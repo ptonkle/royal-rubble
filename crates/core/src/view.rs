@@ -167,6 +167,25 @@ pub enum Item {
         role: String,
         controls: Vec<Item>,
     },
+    /// a row of choices, one chosen (the material bar, the shot bar); a
+    /// press sends the option's `value`
+    Bar {
+        id: String,
+        options: Vec<BarOption>,
+    },
+}
+
+/// One choice on a bar: its key, its name, and whether it is the one chosen.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BarOption {
+    pub value: String,
+    pub text: String,
+    /// the key that picks it, shown small
+    pub key: String,
+    #[serde(skip_serializing_if = "is_false")]
+    pub selected: bool,
+    #[serde(skip_serializing_if = "is_false")]
+    pub disabled: bool,
 }
 
 /// A term and its definition, for the page's hover hints.
@@ -205,6 +224,10 @@ pub struct Ui {
     pub master_gain: String,
     /// the music's gain under the main gain, as a decimal
     pub music_gain: String,
+    /// the sound and music sliders' shares, 0 to 1, as decimals ("0.800"),
+    /// for the sound module, which squares and scales them itself
+    pub sound_share: String,
+    pub music_share: String,
     /// the view model changes without an action: read it every frame
     pub live: bool,
     /// a match is showing: keys go to the core
@@ -216,6 +239,9 @@ pub struct Ui {
     pub hash: String,
     /// a status line, or nothing
     pub status: String,
+    /// the playfield's canvas, while one shows
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub field: Option<crate::app::field::Frame>,
 }
 
 #[cfg(test)]

@@ -3,7 +3,9 @@
 //! everything the page draws. No clock and no randomness: the page hands in
 //! a seed and the time. Ported from Fleeced's `app.rs` (after Crabble's).
 
+pub mod field;
 mod lobby_view;
+pub mod sandbox;
 
 use std::collections::BTreeMap;
 
@@ -36,6 +38,8 @@ enum Screen {
     Paste,
     Lobby,
     Play,
+    /// The playfield with no rules: build, test and throw.
+    Sandbox,
 }
 
 impl Screen {
@@ -48,6 +52,7 @@ impl Screen {
             Screen::Paste => "paste",
             Screen::Lobby => "lobby",
             Screen::Play => "play",
+            Screen::Sandbox => "sandbox",
         }
     }
 }
@@ -93,6 +98,8 @@ pub struct App {
     typed_reply: String,
     /// The latest time the page handed in.
     now_ms: i64,
+    /// The sandbox, while it shows.
+    sandbox: Option<sandbox::Sandbox>,
 }
 
 fn percent(value: &str) -> Result<u32, String> {
@@ -151,6 +158,7 @@ impl App {
             typed_invite: String::new(),
             typed_reply: String::new(),
             now_ms: 0,
+            sandbox: None,
         })
     }
 
@@ -231,6 +239,32 @@ impl App {
                 self.enter(Room::host(&how, self.now_ms));
             }
             "menu.join" => self.open(Screen::Online),
+            "menu.sandbox" => {
+                self.sandbox = Some(sandbox::Sandbox::new(self.rng.next_u64()));
+                self.back = Screen::Title;
+                self.screen = Screen::Sandbox;
+            }
+            "sandbox.leave" => {
+                self.sandbox = None;
+                self.screen = Screen::Title;
+            }
+            "field.size" | "field.down" | "field.move" | "field.up" | "sandbox.tool" | "sandbox.ammo"
+            | "sandbox.air" | "sandbox.test" | "sandbox.mode" => {
+                let Some(s) = &mut self.sandbox else {
+                    return Err(format!("Unknown action \"{name}\"."));
+                };
+                match name {
+                    "field.size" => s.set_size(value)?,
+                    "field.down" => s.down(value)?,
+                    "field.move" => s.moved(value)?,
+                    "field.up" => s.up(value)?,
+                    "sandbox.tool" => s.set_tool(value)?,
+                    "sandbox.ammo" => s.set_ammo(value)?,
+                    "sandbox.air" => s.set_air(value)?,
+                    "sandbox.test" => s.run_test(),
+                    _ => s.toggle_mode(),
+                }
+            }
             "menu.settings" => self.open(Screen::Settings),
             "menu.back" => self.screen = self.back,
             "version" => {
@@ -308,6 +342,9 @@ impl App {
     /// One display frame: the room's work, and the screen following it.
     pub fn pump(&mut self, now_ms: i64, keys: u32) -> Pump {
         self.now_ms = now_ms;
+        if let Some(s) = &mut self.sandbox {
+            s.pump(now_ms, keys);
+        }
         let mut pump = self
             .room
             .as_mut()
@@ -352,6 +389,7 @@ impl App {
                 self.button("menu.solo", "menu.solo"),
                 self.button("menu.host", "menu.host"),
                 self.button("menu.join", "menu.join"),
+                self.button("menu.sandbox", "menu.sandbox"),
                 self.quiet("menu.settings", "menu.settings"),
             ],
         )]
@@ -442,9 +480,15 @@ impl App {
             (Screen::Paste, r) => self.paste_panels(r),
             (Screen::Lobby, Some(r)) => self.lobby_panels(r),
             (Screen::Play, Some(r)) => self.play_panels(r),
+            (Screen::Sandbox, _) => self
+                .sandbox
+                .as_ref()
+                .map_or_else(|| self.title_panels(), |s| s.panels(&self.strings)),
             (Screen::Title | Screen::Lobby | Screen::Play, _) => self.title_panels(),
         };
-        let playing = self.screen == Screen::Play && room.is_some_and(|r| r.stage == Stage::Playing);
+        let sandbox = self.sandbox.as_ref().filter(|_| self.screen == Screen::Sandbox);
+        let playing = (self.screen == Screen::Play && room.is_some_and(|r| r.stage == Stage::Playing))
+            || sandbox.is_some();
         let status = match room {
             Some(r) => r.status(),
             None if self.bad_code => "online.bad_code",
@@ -454,7 +498,7 @@ impl App {
             screen: self.screen.name().into(),
             title: self.strings.get("title"),
             version: VERSION.into(),
-            version_opens: !matches!(self.screen, Screen::Notes | Screen::Play),
+            version_opens: !matches!(self.screen, Screen::Notes | Screen::Play | Screen::Sandbox),
             panels,
             hints: self.hints.clone(),
             icon: icon::data_url(),
@@ -465,9 +509,15 @@ impl App {
             music: self.save.music,
             master_gain: decimal(save::master_gain(self.save.volume)),
             music_gain: decimal(save::music_gain(self.save.music)),
-            live: room.is_some(),
+            sound_share: decimal(self.save.volume * 10),
+            music_share: decimal(self.save.music * 10),
+            live: room.is_some() || sandbox.is_some(),
             capture: playing,
-            keys: BTreeMap::new(),
+            keys: if sandbox.is_some() {
+                sandbox::keys()
+            } else {
+                BTreeMap::new()
+            },
             hash: room
                 .filter(|r| !r.code.is_empty())
                 .map_or_else(String::new, |r| format!("#room={}", r.code)),
@@ -476,6 +526,7 @@ impl App {
             } else {
                 self.strings.get(status)
             },
+            field: sandbox.map(|s| s.frame()),
         }
     }
 }

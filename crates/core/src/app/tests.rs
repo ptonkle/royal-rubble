@@ -36,7 +36,16 @@ fn ids(app: &App) -> Vec<String> {
 fn the_title_offers_bots_host_join_and_settings_and_the_version_opens_whats_new() {
     let mut a = app();
     assert_eq!(a.ui().screen, "title");
-    assert_eq!(ids(&a), ["menu.solo", "menu.host", "menu.join", "menu.settings"]);
+    assert_eq!(
+        ids(&a),
+        [
+            "menu.solo",
+            "menu.host",
+            "menu.join",
+            "menu.sandbox",
+            "menu.settings"
+        ]
+    );
     assert_eq!(a.ui().version, VERSION);
     a.act("version", "").unwrap();
     assert_eq!(a.ui().screen, "notes");

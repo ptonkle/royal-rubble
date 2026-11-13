@@ -12,6 +12,7 @@ import init, { Game } from "./pkg/tool_shim.js";
 import * as store from "./save/store.js";
 import { pump, startNet } from "./online.js";
 import { takeGains } from "./settings.js";
+import { initField, showField } from "./field.js";
 
 const el = (id) => document.getElementById(id);
 const make = (tag, cls, text) => {
@@ -236,7 +237,25 @@ function copy(item) {
   return wrap;
 }
 
-const builders = { button, slider, toggle, select, text, number, lines, notes, copy, code_box: codeBox };
+// A row of choices (the material bar, the shot bar): each shows its key
+// small and sends its value; the chosen one is marked for the stylesheet.
+function bar(item) {
+  const row = make("div", "bar");
+  row.id = item.id;
+  item.options.forEach((o) => {
+    const b = make("button", "bar-option");
+    b.type = "button";
+    b.id = item.id + "." + o.value;
+    b.disabled = o.disabled === true;
+    if (o.selected) b.dataset.selected = "on";
+    b.append(make("span", "bar-key", o.key), make("span", "bar-text", o.text));
+    on(b.id, "click", () => send(item.id, o.value));
+    row.append(b);
+  });
+  return row;
+}
+
+const builders = { button, slider, toggle, select, text, number, lines, notes, copy, code_box: codeBox, bar };
 
 // One lobby seat: who sits there and the controls this browser may use.
 function seat(item) {
@@ -434,6 +453,7 @@ function draw(result) {
   version.disabled = !ui.version_opens;
   el("message").textContent = ui.status;
   drawMenus();
+  showField(ui);
   // in a match the keys are the game's: a menu button left with the focus
   // would take Space or Enter as a press
   if (ui.capture && document.activeElement !== document.body) document.activeElement.blur();
@@ -516,6 +536,7 @@ async function main() {
   const glossary = await (await fetch("data/glossary.md")).text();
   game = new Game(strings, notes, glossary);
   bindInput();
+  await initField(send);
   // read before the first draw, which writes the address's hash
   const invited = new URLSearchParams(location.hash.slice(1)).get("room");
   // the settings from an earlier visit, checked by the core before the
