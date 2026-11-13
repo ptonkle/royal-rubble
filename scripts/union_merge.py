@@ -9,6 +9,7 @@ outside the list, so a real code conflict is left for a person to read.
 """
 
 import json
+import os
 import re
 import subprocess
 import tomllib
@@ -18,10 +19,18 @@ UNION = ("SECOND-ORDER.md", "HANDOFF.md", "LICENSES.md", "MEASUREMENTS.md", "GLO
          "tests/tags.toml", "crates/core/src/lib.rs", "crates/shim/src/lib.rs")
 
 
-def sorted_modules(text):
-    """Both sides of a lib.rs conflict list modules: keep one of each, in order."""
+def sorted_modules(text, src_dir):
+    """Both sides of a lib.rs conflict list modules: keep one of each, in order.
+
+    A module whose file is gone was deleted on one side; a stale branch
+    must not bring it back."""
     lines = text.split("\n")
-    mods = sorted({line for line in lines if line.startswith("pub mod ")})
+
+    def exists(line):
+        m = line[len("pub mod "):].rstrip(";").strip()
+        return os.path.exists(os.path.join(src_dir, m + ".rs")) or \
+            os.path.exists(os.path.join(src_dir, m, "mod.rs"))
+    mods = sorted({line for line in lines if line.startswith("pub mod ") and exists(line)})
     first = next(i for i, line in enumerate(lines) if line.startswith("pub mod "))
     rest = [line for line in lines[first:] if not line.startswith("pub mod ")]
     return "\n".join(lines[:first] + mods + rest)
@@ -65,7 +74,7 @@ def main():
         elif name in UNION:
             text = BLOCK.sub(lambda m: m.group(1) + m.group(2), text)
             if name.endswith("lib.rs"):
-                text = sorted_modules(text)
+                text = sorted_modules(text, os.path.dirname(name))
             if name == "SECOND-ORDER.md":
                 text = drop_repeated_rows(text)
             if name == "tests/tags.toml":
