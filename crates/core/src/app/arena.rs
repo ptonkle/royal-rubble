@@ -89,6 +89,8 @@ const COLLAPSE_MIN: u32 = 3;
 const CAM_MARGIN: i64 = 3;
 const CAM_BEHIND: i64 = 6;
 const CAM_FLY_MAX_W: i64 = 44;
+/// The widest a high shot opens the view to keep the ground in it.
+const CAM_FLY_TALL_W: i64 = 260;
 const CAM_AIM_MIN_W: i64 = 24;
 const CAM_AIM_MAX_W: i64 = 44;
 const CAM_EMPTY_W: i64 = 10;
@@ -508,8 +510,23 @@ impl Arena {
             } else {
                 left
             };
+            // a high shot widens the view so the ground stays in it, up to
+            // a widest view; past that the view rises with the shot (R1.1700)
+            let floor = base.y.min(ground);
+            let tall = (b.pos.y + Fx::from_int(CAM_MARGIN) - floor) * 6 / 5;
+            let width = width.max(
+                (tall * Fx::from_int(w as i64) / Fx::from_int(h.max(1) as i64))
+                    .min(Fx::from_int(CAM_FLY_TALL_W)),
+            );
+            // the trebuchet stays in while the widened view still holds the ball
+            let home = base.x - Fx::from_int(CAM_BEHIND);
+            let left = if home < left && b.pos.x + Fx::from_int(CAM_MARGIN) < home + width {
+                home
+            } else {
+                left
+            };
             let mut cam = Camera::spanning(left, width, Fx::ZERO, w, h);
-            cam.bottom = base.y.min(ground) - cam.height() / 6;
+            cam.bottom = floor - cam.height() / 6;
             let above = b.pos.y + Fx::from_int(CAM_MARGIN) - (cam.bottom + cam.height());
             if above > Fx::ZERO {
                 cam.bottom += above;
@@ -668,11 +685,6 @@ impl Arena {
             return;
         }
         self.release_held_swing();
-        let target = self.camera_target();
-        self.eye = Some(match self.eye {
-            Some(e) if self.my_field().is_some() => e.ease_toward(target, CAM_EASE),
-            _ => target,
-        });
         let inputs: Vec<(PlayerId, Input)> = self.pending.drain(..).map(|i| (self.me, i)).collect();
         let before = Arena::counts(self.my_field());
         let results = online::step(&mut self.play, &mut self.log, &inputs);
@@ -805,13 +817,29 @@ impl Arena {
         }
         let phase = self.phase();
         let round = self.play.rules.round;
-        if phase != self.seen_phase || round != self.seen_round {
+        let moved = phase != self.seen_phase || round != self.seen_round;
+        if moved {
             self.entered(phase);
             changed = true;
         }
         if changed {
             self.rebuild();
         }
+        self.move_eye(moved, ran);
+    }
+
+    /// The shown view after `ran` ticks: eased toward `camera_target`, and
+    /// snapped there when the phase just changed (R1.1700).
+    fn move_eye(&mut self, snap: bool, ran: u32) {
+        let target = self.camera_target();
+        let mut eye = match self.eye {
+            Some(e) if !snap && self.my_field().is_some() => e,
+            _ => target,
+        };
+        for _ in 0..ran.min(CAM_EASE as u32 * 4) {
+            eye = eye.ease_toward(target, CAM_EASE);
+        }
+        self.eye = Some(eye);
     }
 
     /// The path of your last shot, for the trail.

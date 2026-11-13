@@ -2092,7 +2092,7 @@
   "ground_band_a": 6,
   "ground_band_b": 22,
   "ground_band_c": 46,
-  "ground_band_d": 80,
+  "ground_band_d": 56,
   "ground_line": 4.5,
   "ground_band_line": 2.6,
   "ground_scallop": 9,
@@ -2197,10 +2197,16 @@
   ],
   [
    "terracotta",
+   "ground_band_b",
+   "ground_band_c"
+  ],
+  [
+   "olive",
    "ground_band_c",
    "ground_band_d"
   ]
  ],
+ "ground_fill": "tan",
  "wave_wools": [
   "bluegreen",
   "buff",
