@@ -65,8 +65,8 @@
   {
     "name": "game: interest stops at the cap",
     "file": "crates/core/src/game/economy.rs",
-    "find": "(banked / tune::INTEREST_STEP).min(cap)",
-    "replace": "(banked / tune::INTEREST_STEP)",
+    "find": "(banked / step.max(1)).min(cap)",
+    "replace": "(banked / step.max(1))",
     "test": "interest_is_one_per_ten_and_stops_at_five"
   },
   {
@@ -373,8 +373,8 @@
   {
     "name": "spots: forest doubles a carpenter",
     "file": "crates/core/src/game/ledger.rs",
-    "find": "Yield::Stock(m, n) => *self.stock.get_mut(m) += n * mult,",
-    "replace": "Yield::Stock(m, n) => *self.stock.get_mut(m) += n * 2,",
+    "find": "Yield::Stock(m, n) => *self.stock.get_mut(m) += (n + mods.producer_bonus) * mult,",
+    "replace": "Yield::Stock(m, n) => *self.stock.get_mut(m) += (n + mods.producer_bonus) * 2,",
     "test": "spot_forest_doubles_a_carpenter_but_not_off_the_spot"
   },
   {
@@ -432,5 +432,152 @@
     "find": "if !terrain.buildable(level).contains(col) {",
     "replace": "if false {",
     "test": "spot_building_outside_the_buildable_span_is_refused"
+  },
+  {
+    "name": "upgrade cards not built are never dealt",
+    "file": "crates/core/src/game/upgrades.rs",
+    "find": "UPGRADES[*i].dealable && ",
+    "replace": "",
+    "test": "a_card_not_yet_built_is_never_dealt"
+  },
+  {
+    "name": "upgrade air cards stop at four keys",
+    "file": "crates/core/src/game/upgrades.rs",
+    "find": ".filter(|i| !(air_full && gives_air(*i)))",
+    "replace": "",
+    "test": "air_effect_cards_stop_once_four_keys_are_taken"
+  },
+  {
+    "name": "upgrade secret passage spares a death",
+    "file": "crates/core/src/game/flow.rs",
+    "find": ".map_or(0, |o| o.mods.deaths_spared as usize)",
+    "replace": ".map_or(0, |_| 0)",
+    "test": "secret_passage_spares_the_first_death_and_pardon_cuts_the_rest"
+  },
+  {
+    "name": "upgrade royal pardon cuts damage",
+    "file": "crates/core/src/game/upgrades.rs",
+    "find": "base * (100 - self.royal_damage_cut_pct.min(100)) / 100",
+    "replace": "base",
+    "test": "shot_cards_change_price_damage_and_revenge"
+  },
+  {
+    "name": "upgrade tithe pays each round",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "p.purse.gold += p.mods.gold_per_round;",
+    "replace": "",
+    "test": "round_upgrades_pay_at_build_start"
+  },
+  {
+    "name": "upgrade revenge shots arrive next round",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "+ p.mods.revenge_shots(p.kills_last_round, p.losses_last_round)",
+    "replace": "",
+    "test": "vengeance_and_scavenger_add_shots_next_round"
+  },
+  {
+    "name": "upgrade long arm adds power",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "row.shot_power_pct + self.mods.power_pct",
+    "replace": "row.shot_power_pct",
+    "test": "long_arm_and_spare_stones_change_the_loadout"
+  },
+  {
+    "name": "upgrade quartermaster cuts shot price",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "let cost = pl.mods.shot_price();",
+    "replace": "let cost = tune::SHOT_COST;",
+    "test": "quartermaster_makes_bought_shots_cost_one"
+  },
+  {
+    "name": "upgrade guild charter raises producers",
+    "file": "crates/core/src/game/ledger.rs",
+    "find": "(n + mods.producer_bonus) * mult",
+    "replace": "n * mult",
+    "test": "guild_charter_and_arsenal_raise_building_yields"
+  },
+  {
+    "name": "upgrade card numbers match the table",
+    "file": "data/upgrades.json",
+    "find": "+8 gold now",
+    "replace": "+9 gold now",
+    "test": "the_numbers_on_each_card_match_its_effects"
+  },
+  {
+    "name": "upgrade every card has text",
+    "file": "data/upgrades.json",
+    "find": "\"purse\": {",
+    "replace": "\"purse_x\": {",
+    "test": "every_upgrade_has_a_name_and_text_and_no_text_is_orphaned"
+  },
+  {
+    "name": "upgrade chainmail is squires only",
+    "file": "crates/core/src/game/upgrades.rs",
+    "find": "who.is_none_or(|k| k == kind)",
+    "replace": "who.is_none()",
+    "test": "chainmail_saves_squires_and_plate_armor_everyone"
+  },
+  {
+    "name": "upgrade strength adds up",
+    "file": "crates/core/src/game/upgrades.rs",
+    "find": "Effect::Strength(m, n) => mods.strength_pct.push((m, n)),",
+    "replace": "Effect::Strength(..) => {}",
+    "test": "defense_upgrades_add_up_per_material"
+  },
+  {
+    "name": "upgrade usury lowers the interest step",
+    "file": "crates/core/src/game/upgrades.rs",
+    "find": "Effect::InterestStep(n) => purse.interest_step = purse.interest_step.min(n.max(1)),",
+    "replace": "Effect::InterestStep(_) => {}",
+    "test": "economy_upgrades_pay_gold_now_and_raise_interest"
+  },
+  {
+    "name": "upgrade powder keg grows blasts",
+    "file": "crates/core/src/game/upgrades.rs",
+    "find": "Effect::Blast(n) => mods.blast_pct += n,",
+    "replace": "Effect::Blast(_) => {}",
+    "test": "ammo_upgrades_stack_per_kind"
+  },
+  {
+    "name": "upgrade masons discount",
+    "file": "crates/core/src/game/upgrades.rs",
+    "find": "Effect::Discount(m, n) => mods.discounts.push((m, n)),",
+    "replace": "Effect::Discount(..) => {}",
+    "test": "masons_discount_takes_a_gold_off_stone_and_metal"
+  },
+  {
+    "name": "ammo blast wears down beams",
+    "file": "crates/core/src/physics/ammo.rs",
+    "find": "seg.hp = (seg.hp - damage * share).max(Fx::ZERO);",
+    "replace": "",
+    "test": "an_exploding_shot_blows_up_a_wall_it_touches"
+  },
+  {
+    "name": "ammo blast kills bodies",
+    "file": "crates/core/src/physics/ammo.rs",
+    "find": "if body.alive && (body.pos - at).len2() < rr * rr {",
+    "replace": "if false {",
+    "test": "a_blast_kills_bodies_in_reach"
+  },
+  {
+    "name": "ammo strengthen raises hit points",
+    "file": "crates/core/src/physics/ammo.rs",
+    "find": "seg.hp = pct(TUNE.material(seg.material).hp, bonus);",
+    "replace": "",
+    "test": "a_stronger_segment_strains_less"
+  },
+  {
+    "name": "ammo spread fans out",
+    "file": "crates/core/src/physics/ammo.rs",
+    "find": "let turn = t.spread * (2 * k - (n - 1)) / 2;",
+    "replace": "let turn = 0;",
+    "test": "ammo_kinds_carry_their_tune"
+  },
+  {
+    "name": "ammo heavy sling adds weight",
+    "file": "crates/core/src/physics/ammo.rs",
+    "find": "let mass = pct(t.mass, mods.weight_pct);",
+    "replace": "let mass = t.mass;",
+    "test": "shot_mods_add_weight_blast_and_fire"
   }
 ]

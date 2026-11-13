@@ -1,0 +1,280 @@
+{
+  "upgrades": {
+    "firebrand": {
+      "name": "Firebrand",
+      "text": "Fire shots: +1 per round"
+    },
+    "black_powder": {
+      "name": "Black Powder",
+      "text": "Exploding shots: +1 per round"
+    },
+    "millstone": {
+      "name": "Millstone",
+      "text": "Heavy shots: +1 per round"
+    },
+    "grapeshot": {
+      "name": "Grapeshot",
+      "text": "Spread shots: +1 per round (5 small stones)"
+    },
+    "chain_shot": {
+      "name": "Chain Shot",
+      "text": "Chain shots: +2 per round (cut ropes and wood)"
+    },
+    "greek_fire": {
+      "name": "Greek Fire",
+      "text": "Fire shots: +2 per round. Fire spreads 50% faster"
+    },
+    "powder_keg": {
+      "name": "Powder Keg",
+      "text": "Exploding shots: +2 per round. +25% blast size"
+    },
+    "dragons_breath": {
+      "name": "Dragon's Breath",
+      "text": "All your shots set wood on fire"
+    },
+    "meteor": {
+      "name": "Meteor",
+      "text": "Meteor shots: +1 per round (huge, heavy, burning)"
+    },
+    "plummet": {
+      "name": "Plummet",
+      "text": "Air effect: drop straight down. 2 uses per round"
+    },
+    "turnabout": {
+      "name": "Turnabout",
+      "text": "Air effect: reverse direction. 2 uses per round"
+    },
+    "spur": {
+      "name": "Spur",
+      "text": "Air effect: +50% speed. 2 uses per round"
+    },
+    "kestrel": {
+      "name": "Kestrel",
+      "text": "Air effect: hang still for 1 second. 2 uses per round"
+    },
+    "ghost_stone": {
+      "name": "Ghost Stone",
+      "text": "Air effect: pass through segments for 0.5 seconds. 2 uses per round"
+    },
+    "hawk_dive": {
+      "name": "Hawk Dive",
+      "text": "Air effect: dive at double speed. 2 uses per round"
+    },
+    "splinter": {
+      "name": "Splinter",
+      "text": "Air effect: split into 3. 2 uses per round"
+    },
+    "wild_hunt": {
+      "name": "Wild Hunt",
+      "text": "Air effects: +2 uses each per round"
+    },
+    "spare_stones": {
+      "name": "Spare Stones",
+      "text": "Normal shots: +1 per round"
+    },
+    "quartermaster": {
+      "name": "Quartermaster",
+      "text": "Bought shots cost 1 gold less"
+    },
+    "lucky_stone": {
+      "name": "Lucky Stone",
+      "text": "25% chance each round: +2 normal shots"
+    },
+    "scavenger": {
+      "name": "Scavenger",
+      "text": "+1 normal shot per royal you killed last round (max 3)"
+    },
+    "second_volley": {
+      "name": "Second Volley",
+      "text": "Your first shot each round fires twice"
+    },
+    "arrow_storm": {
+      "name": "Arrow Storm",
+      "text": "Once per round: 8 arrows at your aim point (royals only)"
+    },
+    "vengeance": {
+      "name": "Vengeance",
+      "text": "+1 normal shot per royal you lost last round (max 3)"
+    },
+    "siege_train": {
+      "name": "Siege Train",
+      "text": "Normal shots: +3 per round"
+    },
+    "rain_of_ruin": {
+      "name": "Rain of Ruin",
+      "text": "Once per round: 3 boulders fall on your target's tallest tower"
+    },
+    "seasoned_oak": {
+      "name": "Seasoned Oak",
+      "text": "+25% wood strength"
+    },
+    "dressed_stone": {
+      "name": "Dressed Stone",
+      "text": "+20% stone strength"
+    },
+    "tempered_iron": {
+      "name": "Tempered Iron",
+      "text": "+20% metal strength"
+    },
+    "damp_timber": {
+      "name": "Damp Timber",
+      "text": "Your wood burns 50% slower"
+    },
+    "mortar": {
+      "name": "Mortar",
+      "text": "+30% joint strength"
+    },
+    "deep_footings": {
+      "name": "Deep Footings",
+      "text": "+50% strength for segments on the ground"
+    },
+    "bracing": {
+      "name": "Bracing",
+      "text": "+100% rope strength. Ropes can't be cut"
+    },
+    "citadel": {
+      "name": "Citadel",
+      "text": "+30% strength for all materials"
+    },
+    "hallowed_walls": {
+      "name": "Hallowed Walls",
+      "text": "The first 4 segments hit each round take no damage"
+    },
+    "purse": {
+      "name": "Purse",
+      "text": "+8 gold now"
+    },
+    "tithe": {
+      "name": "Tithe",
+      "text": "+1 gold per round"
+    },
+    "scholar": {
+      "name": "Scholar",
+      "text": "+2 free XP per round"
+    },
+    "lumber_deal": {
+      "name": "Lumber Deal",
+      "text": "+6 wood per round"
+    },
+    "strongbox": {
+      "name": "Strongbox",
+      "text": "Interest cap: +3 (max +8)"
+    },
+    "bounty": {
+      "name": "Bounty",
+      "text": "Kill gold doubled"
+    },
+    "masons_discount": {
+      "name": "Mason's Discount",
+      "text": "Stone and metal cost 1 gold less"
+    },
+    "royal_treasury": {
+      "name": "Royal Treasury",
+      "text": "+35 gold now"
+    },
+    "usury": {
+      "name": "Usury",
+      "text": "Interest: +1 per 5 gold banked (max +5)"
+    },
+    "counting_house": {
+      "name": "Counting House",
+      "text": "Gain a Counting House: 2 gold per surviving round"
+    },
+    "watchtower": {
+      "name": "Watchtower",
+      "text": "Gain a Watchtower: see next round's wind while it stands"
+    },
+    "carpenters_gift": {
+      "name": "Carpenter's Gift",
+      "text": "Gain a free Carpenter"
+    },
+    "guild_charter_1": {
+      "name": "Guild Charter I",
+      "text": "Producers: +1 output"
+    },
+    "guild_charter_2": {
+      "name": "Guild Charter II",
+      "text": "Producers: +2 output"
+    },
+    "arsenal": {
+      "name": "Arsenal",
+      "text": "Armories give +2 shots instead of +1"
+    },
+    "chapel": {
+      "name": "Chapel",
+      "text": "Gain a Chapel: +1 health per surviving round"
+    },
+    "royal_mint": {
+      "name": "Royal Mint",
+      "text": "Gain a Mint: 5 gold per surviving round"
+    },
+    "cathedral": {
+      "name": "Cathedral",
+      "text": "Gain a Cathedral: royals within 4 segments survive one hit per round"
+    },
+    "chainmail": {
+      "name": "Chainmail",
+      "text": "Squires survive one hit per round"
+    },
+    "hardy_stock": {
+      "name": "Hardy Stock",
+      "text": "Royals survive falls of up to 5 segment heights"
+    },
+    "decoy": {
+      "name": "Decoy",
+      "text": "Gain a Decoy royal (no damage when killed)"
+    },
+    "close_quarters": {
+      "name": "Close Quarters",
+      "text": "Royal spacing: 3 segments instead of 4"
+    },
+    "plate_armor": {
+      "name": "Plate Armor",
+      "text": "All royals survive one hit per round"
+    },
+    "secret_passage": {
+      "name": "Secret Passage",
+      "text": "Once per round, your first royal killed survives"
+    },
+    "decoy_court": {
+      "name": "Decoy Court",
+      "text": "Gain 3 Decoy royals"
+    },
+    "royal_pardon": {
+      "name": "Royal Pardon",
+      "text": "Take 40% less damage from royal deaths"
+    },
+    "long_arm_1": {
+      "name": "Long Arm I",
+      "text": "+10% shot power"
+    },
+    "steady_hand": {
+      "name": "Steady Hand",
+      "text": "Shows the paths of your last 3 shots"
+    },
+    "windward": {
+      "name": "Windward",
+      "text": "Wind moves your shots 50% less"
+    },
+    "sighting_peg": {
+      "name": "Sighting Peg",
+      "text": "Shows the start of your arc while swinging"
+    },
+    "long_arm_2": {
+      "name": "Long Arm II",
+      "text": "+20% shot power"
+    },
+    "heavy_sling": {
+      "name": "Heavy Sling",
+      "text": "+25% weight for all your shots"
+    },
+    "forward_camp": {
+      "name": "Forward Camp",
+      "text": "Your trebuchet stands 6 segments closer"
+    },
+    "siege_master": {
+      "name": "Siege Master",
+      "text": "+40% damage to all materials"
+    }
+  }
+}

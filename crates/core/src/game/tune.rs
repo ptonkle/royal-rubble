@@ -231,6 +231,8 @@ pub const SELL_LATER_DEN: u32 = 2;
 
 /// Gold per extra normal shot bought in build, and how many a round.
 pub const SHOT_COST: u32 = 2;
+/// A discount never makes a bought shot cheaper than this.
+pub const MIN_SHOT_COST: u32 = 1;
 pub const MAX_SHOTS_BOUGHT: u32 = 3;
 
 // ---- Map spots (R1.600) ----------------------------------------------------
@@ -255,6 +257,8 @@ pub const ARMORY_RUIN_SHOTS: u32 = 1;
 pub const CARDS_OFFERED: usize = 3;
 pub const FREE_REROLLS: u32 = 1;
 pub const REROLL_COST: u32 = 2;
+/// Air effects take the Q, W, E and R keys: four at most.
+pub const MAX_AIR_SLOTS: usize = 4;
 /// Tier weights (silver, gold, prismatic) for the 1st, 2nd, ... upgrade
 /// round; the last row repeats.
 pub const TIER_WEIGHTS: &[(u32, u32, u32)] = &[

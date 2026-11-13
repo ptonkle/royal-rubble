@@ -211,13 +211,18 @@ impl Ledger {
 
     /// Buy one extra normal shot for this round's siege.
     pub fn buy_shot(&mut self, gold: &mut u32) -> Result<(), Refusal> {
+        self.buy_shot_at(gold, tune::SHOT_COST)
+    }
+
+    /// Buy one shot for this round at `cost` gold.
+    pub fn buy_shot_at(&mut self, gold: &mut u32, cost: u32) -> Result<(), Refusal> {
         if self.shots_bought >= tune::MAX_SHOTS_BOUGHT {
             return Err(Refusal::Limit);
         }
-        if *gold < tune::SHOT_COST {
+        if *gold < cost {
             return Err(Refusal::NotEnoughGold);
         }
-        *gold -= tune::SHOT_COST;
+        *gold -= cost;
         self.shots_bought += 1;
         Ok(())
     }
@@ -225,6 +230,12 @@ impl Ledger {
     /// Bank what the surviving producers make, with their spots' effects.
     /// Returns what goes outside the stockpile.
     pub fn collect_yields(&mut self, survived: &[u32]) -> Payout {
+        self.collect_yields_with(survived, &Modifiers::default())
+    }
+
+    /// As `collect_yields`, with upgrades: producers make `producer_bonus`
+    /// more (before a spot doubles it), and armories give `armory_shots`.
+    pub fn collect_yields_with(&mut self, survived: &[u32], mods: &Modifiers) -> Payout {
         let mut out = Payout::default();
         for e in &self.entries {
             let Piece::Building(b) = e.piece else { continue };
@@ -234,8 +245,8 @@ impl Ledger {
             let boosted = e.spot.is_some_and(|s| tune::SPOT_BOOSTS.contains(&(s, b)));
             let mult = if boosted { tune::SPOT_YIELD_MULT } else { 1 };
             match building_row(b).yields {
-                Yield::Stock(m, n) => *self.stock.get_mut(m) += n * mult,
-                Yield::Shots(n) => out.shots += n * mult,
+                Yield::Stock(m, n) => *self.stock.get_mut(m) += (n + mods.producer_bonus) * mult,
+                Yield::Shots(n) => out.shots += mods.armory_shots.unwrap_or(n) * mult,
             }
             match e.spot {
                 Some(SpotKind::GoldVein) => out.gold += tune::GOLD_VEIN_GOLD,
