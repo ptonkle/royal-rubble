@@ -109,14 +109,14 @@ pub struct Tune {
     /// Arm angle at swing start (brads, 0 = pointing forward).
     pub treb_start_angle: i64,
     /// Arm speed through the swing: (tick, brads per tick) knots, joined by
-    /// straight lines. The counterweight drops: the arm speeds up once and
-    /// slows once, never stalling (R1.1601). The last knot is where it stops.
+    /// straight lines. A short speed-up, then a steady natural speed, then a
+    /// quick stop (R1.1803). The last knot is where it stops.
     pub treb_swing: [(i64, i64); 6],
     /// Launch speed multiplier is (treb_power_base + power) / treb_power_base.
     pub treb_power_base: i64,
-    /// The swing is shown slowed down so it can be timed: the shot leaves at
-    /// this percent of the pouch's speed (R1.1602).
-    pub treb_time_scale: i64,
+    /// The shot leaves at this percent of the pouch's real speed: the one
+    /// knob that sets the range (R1.1803).
+    pub treb_speed_pct: i64,
     /// Sling length (tip to pouch).
     pub treb_sling: Fx,
     /// How far ahead of the arm's line the sling starts (brads): it lies
@@ -206,19 +206,19 @@ pub const TUNE: Tune = Tune {
     hover_ticks: 60,
     split_spread: TURN / 36,
     boost_speed: Fx::ratio(1, 10),
-    treb_pivot_height: Fx::from_int(3),
+    treb_pivot_height: Fx::ratio(7, 2),
     treb_arm: Fx::from_int(4),
     treb_start_angle: TURN * 5 / 8,
-    treb_swing: [(0, 0), (14, 1300), (30, 21), (150, 17), (230, 15), (260, 0)],
+    treb_swing: [(0, 0), (15, 305), (50, 305), (80, 305), (102, 305), (110, 0)],
     treb_power_base: 100,
-    treb_time_scale: 1340,
+    treb_speed_pct: 234,
     treb_sling: Fx::from_int(4),
     treb_sling_lead: TURN * 3 / 8,
     treb_sling_past: TURN / 36,
-    treb_short_arm: Fx::ratio(4, 3),
-    treb_hinge: Fx::ratio(1, 2),
-    treb_weight_side: Fx::ONE,
-    treb_base_half: Fx::ratio(3, 2),
+    treb_short_arm: Fx::ratio(2, 3),
+    treb_hinge: Fx::ratio(3, 2),
+    treb_weight_side: Fx::ratio(4, 5),
+    treb_base_half: Fx::from_int(3),
     treb_wheel_r: Fx::ratio(1, 4),
     edge_margin: Fx::from_int(64),
 };

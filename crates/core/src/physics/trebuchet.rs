@@ -10,8 +10,8 @@
 //! adds to the arm tip's speed. An early release throws backward or lobs
 //! high, a later one is flatter, and too late throws into the ground.
 //!
-//! The swing is shown slowed down so it can be timed: the shot leaves at
-//! `treb_time_scale` percent of the pouch's speed (R1.1602).
+//! The arm turns at a steady natural speed (R1.1803); the shot leaves at
+//! `treb_speed_pct` percent of the pouch's real speed, which sets the range.
 //!
 //! [`pose`] gives every point the drawing needs, including the follow-through
 //! after release and the counterweight swinging on its hinge.
@@ -69,31 +69,21 @@ pub fn arm_at(t: u32) -> (i64, i64) {
     (TUNE.treb_start_angle - swept2(t) / 2, arm_speed(t))
 }
 
-/// Arm angle where the counterweight's drop ends and the arm turns slowly.
-const SLOW_ANGLE: i64 = TUNE.treb_start_angle - swept2(TUNE.treb_swing[2].0) / 2;
-
-/// The sling's direction (tip to pouch, brads) at arm angle `arm`. It hangs
-/// at a fixed angle to the arm while the counterweight drops, then swings
-/// round faster than the arm and passes the arm's line by `treb_sling_past`
-/// as the arm stops, so a release that late throws into the ground.
+/// The sling's direction (tip to pouch, brads) at arm angle `arm`. It
+/// starts lying forward under the frame and swings round steadily faster
+/// than the arm, passing the arm's line by `treb_sling_past` as the arm
+/// stops, so a release that late throws into the ground (R1.1803).
 fn sling_angle(arm: i64) -> i64 {
     let lead = TUNE.treb_sling_lead;
     let past = TUNE.treb_sling_past;
-    if arm >= SLOW_ANGLE {
-        arm + lead
-    } else {
-        arm + (lead + past) * (arm - END_ANGLE) / (SLOW_ANGLE - END_ANGLE) - past
-    }
+    let start = TUNE.treb_start_angle;
+    arm + (lead + past) * (arm - END_ANGLE) / (start - END_ANGLE) - past
 }
 
-/// How much faster than the arm the sling turns, in percent, at arm angle `arm`.
-fn sling_pct(arm: i64) -> i64 {
-    if arm >= SLOW_ANGLE {
-        100
-    } else {
-        let sweep = TUNE.treb_sling_lead + TUNE.treb_sling_past;
-        100 + 100 * sweep / (SLOW_ANGLE - END_ANGLE)
-    }
+/// How much faster than the arm the sling turns, in percent.
+fn sling_pct(_arm: i64) -> i64 {
+    let sweep = TUNE.treb_sling_lead + TUNE.treb_sling_past;
+    100 + 100 * sweep / (TUNE.treb_start_angle - END_ANGLE)
 }
 
 fn unit(a: i64) -> Vec2 {
@@ -129,7 +119,7 @@ fn mirror(v: Vec2, facing_left: bool) -> Vec2 {
 pub fn trebuchet_launch(base: Vec2, release_tick: u32, power: u8, facing_left: bool) -> Launch {
     let (_, pouch, shape, speed) = sling_at(release_tick);
     let base_pct = TUNE.treb_power_base * 100;
-    let w = speed * (TUNE.treb_power_base + power as i64) * TUNE.treb_time_scale / base_pct;
+    let w = speed * (TUNE.treb_power_base + power as i64) * TUNE.treb_speed_pct / base_pct;
     let vel = shape * brads_to_radians(w);
     Launch {
         pos: base + mirror(pouch, facing_left),
@@ -172,7 +162,7 @@ pub enum Phase {
 /// Ticks the arm rocks after a release before it is winched back.
 pub const ROCK_TICKS: u32 = 60;
 /// Ticks the winch takes to pull the arm back to the cocked angle.
-pub const WINCH_TICKS: u32 = 30;
+pub const WINCH_TICKS: u32 = 60;
 
 /// A point on a rope or hinge, stepped by Verlet and kept `len` from its anchor.
 #[derive(Clone, Copy)]
@@ -207,20 +197,20 @@ pub fn pose(base: Vec2, phase: Phase, facing_left: bool) -> Pose {
     let start = TUNE.treb_start_angle;
     let hang = TUNE.treb_hinge;
     let down = Vec2::new(Fx::ZERO, -hang);
-    // the counterweight's hinge point, stepped through the swing
+    // the counterweight hangs straight down from its hinge through the
+    // swing, so it drops through the middle of the frame (R1.1800); after
+    // release it sways on the hinge
     let swing_to = match phase {
         Phase::Rest => 0,
         Phase::Swing(t) => t.min(SWING_END),
         Phase::After { at, .. } => at.min(SWING_END),
     };
-    let s0 = short_end(pivot, start);
+    let s1 = short_end(pivot, arm_at(swing_to).0);
+    let s0 = short_end(pivot, arm_at(swing_to.saturating_sub(1)).0);
     let mut cw = Bob {
-        p: s0 + down,
+        p: s1 + down,
         prev: s0 + down,
     };
-    for k in 1..=swing_to {
-        cw.step(short_end(pivot, arm_at(k).0), hang);
-    }
     let (arm, tip, pouch, loaded) = match phase {
         Phase::Rest => {
             let (tip, pouch, _, _) = sling_at(0);
@@ -250,24 +240,31 @@ pub fn pose(base: Vec2, phase: Phase, facing_left: bool) -> Pose {
                 rope.step(tip, TUNE.treb_sling);
             }
             if since > ROCK_TICKS {
-                // the winch pulls it back to the cocked angle
+                // the winch pulls it back to the cocked angle, easing in
+                // and out (smoothstep)
                 let k = (since - ROCK_TICKS).min(WINCH_TICKS) as i64;
-                arm += (start - arm) * k / WINCH_TICKS as i64;
                 if k == WINCH_TICKS as i64 {
                     return pose(base, Phase::Rest, facing_left);
                 }
+                let n = WINCH_TICKS as i64;
+                let (num, den) = (k * k * (3 * n - 2 * k), n * n * n);
+                arm += (start - arm) * num / den;
+                let e = Fx::ratio(num, den);
                 let tip = pivot + unit(arm) * TUNE.treb_arm;
                 let lie = tip + Vec2::new(TUNE.treb_sling, Fx::ZERO);
-                rope.p = Vec2::lerp(rope.p, lie, Fx::ratio(k, WINCH_TICKS as i64));
+                rope.p = Vec2::lerp(rope.p, lie, e);
                 let s = short_end(pivot, arm);
-                cw.p = s + down;
+                cw.p = Vec2::lerp(cw.p, s + down, e);
             }
             let tip = pivot + unit(arm) * TUNE.treb_arm;
             (arm, tip, rope.p, false)
         }
     };
     let short = short_end(pivot, arm);
-    let dir = (cw.p - short).normalized();
+    let dir = match phase {
+        Phase::After { .. } => (cw.p - short).normalized(),
+        _ => Vec2::new(Fx::ZERO, -Fx::ONE),
+    };
     let side = TUNE.treb_weight_side;
     let across = Vec2::new(dir.y, -dir.x) * (side / 2);
     let top = short + dir * hang;

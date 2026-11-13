@@ -127,6 +127,7 @@ fn fly(b: &mut Ball, wind: Fx) {
 }
 
 /// The box around the live castle and its targets, widened by a margin.
+#[derive(Clone, Debug)]
 struct Bounds {
     lo: Vec2,
     hi: Vec2,
@@ -178,171 +179,207 @@ fn live_targets(world: &World, targets: &[Target]) -> Vec<(Vec2, Fx)> {
 /// flies on its own until it reaches the castle, which saves most of the
 /// cost; otherwise every tick is stepped.
 pub fn play_out(world: &World, s: &Shooter, plan: Plan, targets: &[Target]) -> Outcome {
-    let quiet = world.settle_left == 0
-        && world.projectiles.iter().all(|b| !b.alive)
-        && world.debris.iter().all(|b| !b.alive);
-    let bounds = Bounds::of(world, targets);
-    let mut balls = launch_balls(s, plan.release_tick);
-    let mut t = 0u32;
-    let mut effect_done = false;
-    if quiet {
-        if let Some(bx) = &bounds {
-            while t < tune::FLIGHT_MAX && !balls.iter().any(|b| bx.holds(b.pos, b.radius)) {
-                if let Some((e, at)) = plan.effect {
-                    if at == t {
-                        apply_effect(&mut balls, e);
-                        effect_done = true;
-                    }
-                }
-                for b in balls.iter_mut() {
-                    fly(b, world.wind);
-                }
-                t += 1;
-                if balls
-                    .iter()
-                    .all(|b| b.pos.y - b.radius < world.terrain.height_at(b.pos.x))
-                {
-                    break;
-                }
-            }
+    let mut run = PlayOut::new(*s, plan, targets);
+    loop {
+        if let Some(o) = run.outcome() {
+            return o;
         }
+        run.advance(world);
     }
-    let mut w = world.clone();
-    let alive_before: Vec<bool> = targets
-        .iter()
-        .map(|tg| w.bodies.get(tg.body).is_some_and(|b| b.alive))
-        .collect();
-    let mut mine: Vec<usize> = Vec::new();
-    for b in balls {
-        w.projectiles.push(b);
-        mine.push(w.projectiles.len() - 1);
-    }
-    let mut out = Outcome {
-        closest: i64::MAX,
-        ..Outcome::default()
-    };
-    let mut after = 0u32;
-    let mut steps = 0u32;
-    while steps < tune::VERIFY_TICKS + tune::AFTER_TICKS && after < tune::AFTER_TICKS {
-        if let (Some((e, at)), false) = (plan.effect, effect_done) {
-            if at == t {
-                let live: Vec<usize> = mine.iter().copied().filter(|&p| w.projectiles[p].alive).collect();
-                mine = live.into_iter().flat_map(|p| w.air_effect(p, e)).collect();
-                effect_done = true;
-            }
-        }
-        let aims = live_targets(&w, targets);
-        for &p in &mine {
-            let b = w.projectiles[p];
-            if !b.alive {
-                continue;
-            }
-            for (q, r) in &aims {
-                let d = ((b.pos - *q).len() - *r - b.radius).raw().max(0);
-                out.closest = out.closest.min(d);
-            }
-        }
-        for ev in w.step() {
-            if let Event::Broke { segment, .. } = ev {
-                let seg = &w.segments[segment];
-                let mid = Vec2::lerp(w.nodes[seg.a].pos, w.nodes[seg.b].pos, Fx::HALF);
-                let near = Fx::from_int(tune::NEAR_UNITS);
-                if aims.iter().any(|(q, _)| (mid - *q).len() <= near) {
-                    out.near_breaks += 1;
-                }
-            }
-        }
-        t += 1;
-        steps += 1;
-        // a shot is spent once it is gone or has left the castle's box
-        let spent = |b: &Ball| !b.alive || bounds.as_ref().is_some_and(|bx| !bx.holds(b.pos, b.radius));
-        if mine.iter().all(|&p| spent(&w.projectiles[p])) {
-            after += 1;
-        }
-    }
-    for (i, (tg, was)) in targets.iter().zip(alive_before).enumerate() {
-        if was && w.bodies.get(tg.body).is_some_and(|b| !b.alive) {
-            out.killed += tg.value;
-            if i < 64 {
-                out.killed_mask |= 1 << i;
-            }
-        }
-    }
-    out
 }
 
-/// Quick pass for one release tick: the closest approach (raw, centers
-/// less radii) of the plain flight and of every effect trigger, as plans.
-/// The plain flight is flown once; each trigger flies on from its state.
-fn quick_pass(
-    world: &World,
-    s: &Shooter,
-    release_tick: u32,
-    effects: &[AirEffect],
-    a: &AimTune,
-    aims: &[(Vec2, Fx)],
-    out: &mut Vec<(i64, Plan)>,
-) {
-    let gap = |b: &Ball| -> i64 {
-        aims.iter()
-            // below zero: overlapping, more central the lower
-            .map(|(p, r)| ((b.pos - *p).len() - *r - b.radius).raw())
-            .min()
-            .unwrap_or(i64::MAX)
-    };
-    // path[t] is the state before step t; prefix[t] the best gap before it
-    let mut path = Vec::new();
-    let mut prefix = Vec::new();
-    let mut b = launch_ball(s, release_tick);
-    let mut best = i64::MAX;
-    for _ in 0..tune::FLIGHT_MAX {
-        path.push(b);
-        prefix.push(best);
-        fly(&mut b, world.wind);
-        best = best.min(gap(&b));
-        if b.pos.y - b.radius < world.terrain.height_at(b.pos.x) {
-            break;
+/// `play_out` in slices: each `advance` does one unit of work (the free
+/// flight and the world's clone, then one full-physics step) and says what
+/// it cost, in the work units of `tune::WORLD_STEP_COST`.
+#[derive(Clone, Debug)]
+pub struct PlayOut {
+    s: Shooter,
+    plan: Plan,
+    targets: Vec<Target>,
+    state: PlayState,
+}
+
+#[derive(Clone, Debug)]
+enum PlayState {
+    Start,
+    Run(Box<PlayRun>),
+    Done(Outcome),
+}
+
+#[derive(Clone, Debug)]
+struct PlayRun {
+    w: World,
+    bounds: Option<Bounds>,
+    t: u32,
+    effect_done: bool,
+    mine: Vec<usize>,
+    out: Outcome,
+    after: u32,
+    steps: u32,
+    alive_before: Vec<bool>,
+}
+
+/// Work units of one free-flight tick of one shot, with `aims` targets.
+fn fly_cost(aims: usize) -> u64 {
+    1 + aims as u64
+}
+
+impl PlayOut {
+    pub fn new(s: Shooter, plan: Plan, targets: &[Target]) -> PlayOut {
+        PlayOut {
+            s,
+            plan,
+            targets: targets.to_vec(),
+            state: PlayState::Start,
         }
     }
-    out.push((
-        best,
-        Plan {
-            release_tick,
-            effect: None,
-        },
-    ));
-    // effects are tried only near the targets
-    let reach = Fx::from_int(tune::TRIGGER_REACH_UNITS);
-    let lo = aims.iter().map(|(p, _)| p.x).min().unwrap_or(Fx::ZERO) - reach;
-    let hi = aims.iter().map(|(p, _)| p.x).max().unwrap_or(Fx::ZERO) + reach;
-    for &e in effects {
-        let mut at = a.trigger_stride.max(1);
-        while (at as usize) < path.len() {
-            let x = path[at as usize].pos.x;
-            if x < lo || x > hi {
-                at += a.trigger_stride.max(1);
-                continue;
+
+    pub fn outcome(&self) -> Option<Outcome> {
+        match &self.state {
+            PlayState::Done(o) => Some(*o),
+            _ => None,
+        }
+    }
+
+    /// The most the next `advance` can cost.
+    pub fn next_cost(&self) -> u64 {
+        match &self.state {
+            PlayState::Start => tune::FLIGHT_MAX as u64 * 3 * fly_cost(self.targets.len()) + tune::CLONE_COST,
+            PlayState::Run(_) => tune::WORLD_STEP_COST,
+            PlayState::Done(_) => 0,
+        }
+    }
+
+    pub fn advance(&mut self, world: &World) -> u64 {
+        match &mut self.state {
+            PlayState::Start => {
+                let (run, cost) = self.start(world);
+                self.state = PlayState::Run(Box::new(run));
+                cost
             }
-            let mut balls = vec![path[at as usize]];
-            apply_effect(&mut balls, e);
-            let mut best = prefix[at as usize];
-            for mut b in balls {
-                for _ in at..tune::FLIGHT_MAX {
-                    fly(&mut b, world.wind);
-                    best = best.min(gap(&b));
-                    if b.pos.y - b.radius < world.terrain.height_at(b.pos.x) {
+            PlayState::Run(run) => {
+                Self::step(run, self.plan, &self.targets);
+                if run.steps < tune::VERIFY_TICKS + tune::AFTER_TICKS && run.after < tune::AFTER_TICKS {
+                    return tune::WORLD_STEP_COST;
+                }
+                let mut out = run.out;
+                for (i, (tg, was)) in self.targets.iter().zip(&run.alive_before).enumerate() {
+                    if *was && run.w.bodies.get(tg.body).is_some_and(|b| !b.alive) {
+                        out.killed += tg.value;
+                        if i < 64 {
+                            out.killed_mask |= 1 << i;
+                        }
+                    }
+                }
+                self.state = PlayState::Done(out);
+                tune::WORLD_STEP_COST
+            }
+            PlayState::Done(_) => 0,
+        }
+    }
+
+    fn start(&self, world: &World) -> (PlayRun, u64) {
+        let (s, plan, targets) = (&self.s, self.plan, &self.targets[..]);
+        let quiet = world.settle_left == 0
+            && world.projectiles.iter().all(|b| !b.alive)
+            && world.debris.iter().all(|b| !b.alive);
+        let bounds = Bounds::of(world, targets);
+        let mut balls = launch_balls(s, plan.release_tick);
+        let mut t = 0u32;
+        let mut effect_done = false;
+        let mut cost = tune::CLONE_COST;
+        if quiet {
+            if let Some(bx) = &bounds {
+                while t < tune::FLIGHT_MAX && !balls.iter().any(|b| bx.holds(b.pos, b.radius)) {
+                    if let Some((e, at)) = plan.effect {
+                        if at == t {
+                            apply_effect(&mut balls, e);
+                            effect_done = true;
+                        }
+                    }
+                    for b in balls.iter_mut() {
+                        fly(b, world.wind);
+                    }
+                    cost += balls.len() as u64;
+                    t += 1;
+                    if balls
+                        .iter()
+                        .all(|b| b.pos.y - b.radius < world.terrain.height_at(b.pos.x))
+                    {
                         break;
                     }
                 }
             }
-            out.push((
-                best,
-                Plan {
-                    release_tick,
-                    effect: Some((e, at)),
-                },
-            ));
-            at += a.trigger_stride.max(1);
+        }
+        let mut w = world.clone();
+        let alive_before: Vec<bool> = targets
+            .iter()
+            .map(|tg| w.bodies.get(tg.body).is_some_and(|b| b.alive))
+            .collect();
+        let mut mine: Vec<usize> = Vec::new();
+        for b in balls {
+            w.projectiles.push(b);
+            mine.push(w.projectiles.len() - 1);
+        }
+        let run = PlayRun {
+            w,
+            bounds,
+            t,
+            effect_done,
+            mine,
+            out: Outcome {
+                closest: i64::MAX,
+                ..Outcome::default()
+            },
+            after: 0,
+            steps: 0,
+            alive_before,
+        };
+        (run, cost)
+    }
+
+    fn step(r: &mut PlayRun, plan: Plan, targets: &[Target]) {
+        if let (Some((e, at)), false) = (plan.effect, r.effect_done) {
+            if at == r.t {
+                let w = &mut r.w;
+                let live: Vec<usize> = r
+                    .mine
+                    .iter()
+                    .copied()
+                    .filter(|&p| w.projectiles[p].alive)
+                    .collect();
+                r.mine = live.into_iter().flat_map(|p| w.air_effect(p, e)).collect();
+                r.effect_done = true;
+            }
+        }
+        let aims = live_targets(&r.w, targets);
+        for &p in &r.mine {
+            let b = r.w.projectiles[p];
+            if !b.alive {
+                continue;
+            }
+            for (q, rad) in &aims {
+                let d = ((b.pos - *q).len() - *rad - b.radius).raw().max(0);
+                r.out.closest = r.out.closest.min(d);
+            }
+        }
+        for ev in r.w.step() {
+            if let Event::Broke { segment, .. } = ev {
+                let seg = &r.w.segments[segment];
+                let mid = Vec2::lerp(r.w.nodes[seg.a].pos, r.w.nodes[seg.b].pos, Fx::HALF);
+                let near = Fx::from_int(tune::NEAR_UNITS);
+                if aims.iter().any(|(q, _)| (mid - *q).len() <= near) {
+                    r.out.near_breaks += 1;
+                }
+            }
+        }
+        r.t += 1;
+        r.steps += 1;
+        // a shot is spent once it is gone or has left the castle's box
+        let bounds = &r.bounds;
+        let spent = |b: &Ball| !b.alive || bounds.as_ref().is_some_and(|bx| !bx.holds(b.pos, b.radius));
+        if r.mine.iter().all(|&p| spent(&r.w.projectiles[p])) {
+            r.after += 1;
         }
     }
 }
@@ -371,47 +408,319 @@ pub fn plan_shot_avoiding(
     seed: u64,
     avoid: &[Plan],
 ) -> Plan {
-    let a = tune::aim(d);
-    let aims = live_targets(world, targets);
-    let mut ranked: Vec<(i64, Plan)> = Vec::new();
-    let ticks = release_ticks(s);
-    for &r in &ticks {
-        quick_pass(world, s, r, effects, &a, &aims, &mut ranked);
+    let mut search = Search::new(world, *s, targets, effects, d, seed, avoid);
+    loop {
+        if let Some(p) = search.plan() {
+            return p;
+        }
+        search.advance(world);
     }
-    // closest first; plain shots before effects, earlier ticks first on ties
-    ranked.retain(|(_, p)| !avoid.contains(p));
-    ranked.sort_by_key(|(d, p)| (*d, p.effect.is_some(), p.release_tick, p.effect.map(|e| e.1)));
-    let mut best: Option<(i64, Plan)> = None;
-    let mut check: Vec<Plan> = ranked.iter().take(a.verified.max(1)).map(|r| r.1).collect();
-    if a.each_effect {
-        // the best plan with each effect too: the quick pass can't see walls
-        for &e in effects {
-            if let Some((_, p)) = ranked.iter().find(|(_, p)| p.effect.map(|x| x.0) == Some(e)) {
-                if !check.contains(p) {
-                    check.push(*p);
+}
+
+/// `plan_shot_avoiding` in slices, against the same `world` every call.
+/// Two passes. The quick pass flies each release tick's plain path, then
+/// each air-effect trigger from it, one flight per `advance`. The best
+/// few are then played out (`PlayOut`), one physics step per `advance`.
+#[derive(Clone, Debug)]
+pub struct Search {
+    s: Shooter,
+    targets: Vec<Target>,
+    effects: Vec<AirEffect>,
+    avoid: Vec<Plan>,
+    seed: u64,
+    a: AimTune,
+    aims: Vec<(Vec2, Fx)>,
+    /// Effects are tried only while the shot is between these x.
+    lo: Fx,
+    hi: Fx,
+    ticks: Vec<u32>,
+    ranked: Vec<(i64, Plan)>,
+    stage: Stage,
+}
+
+#[derive(Clone, Debug)]
+enum Stage {
+    /// Release tick `ticks[ti]`: `path[t]` is the plain flight's state
+    /// before step t (empty: not flown yet), `prefix[t]` the best gap
+    /// before it; effect `ei` is tried next at trigger `at`.
+    Quick {
+        ti: usize,
+        path: Vec<Ball>,
+        prefix: Vec<i64>,
+        ei: usize,
+        at: u32,
+    },
+    Verify {
+        check: Vec<Plan>,
+        ci: usize,
+        run: Option<PlayOut>,
+        best: Option<(i64, Plan)>,
+    },
+    Done(Plan),
+}
+
+impl Search {
+    pub fn new(
+        world: &World,
+        s: Shooter,
+        targets: &[Target],
+        effects: &[AirEffect],
+        d: Difficulty,
+        seed: u64,
+        avoid: &[Plan],
+    ) -> Search {
+        let aims = live_targets(world, targets);
+        let reach = Fx::from_int(tune::TRIGGER_REACH_UNITS);
+        let lo = aims.iter().map(|(p, _)| p.x).min().unwrap_or(Fx::ZERO) - reach;
+        let hi = aims.iter().map(|(p, _)| p.x).max().unwrap_or(Fx::ZERO) + reach;
+        Search {
+            s,
+            targets: targets.to_vec(),
+            effects: effects.to_vec(),
+            avoid: avoid.to_vec(),
+            seed,
+            a: tune::aim(d),
+            aims,
+            lo,
+            hi,
+            ticks: release_ticks(&s),
+            ranked: Vec::new(),
+            stage: Stage::Quick {
+                ti: 0,
+                path: Vec::new(),
+                prefix: Vec::new(),
+                ei: 0,
+                at: 0,
+            },
+        }
+    }
+
+    /// The chosen plan, once the search is over.
+    pub fn plan(&self) -> Option<Plan> {
+        match self.stage {
+            Stage::Done(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    /// The most the next `advance` can cost (0: done).
+    pub fn next_cost(&self) -> u64 {
+        match &self.stage {
+            // a split trigger flies three shots the whole way
+            Stage::Quick { .. } => {
+                tune::FLIGHT_MAX as u64 * 3 * fly_cost(self.aims.len()) + tune::FLIGHT_MAX as u64
+            }
+            Stage::Verify { check, ci, run, .. } => match run {
+                Some(r) => r.next_cost(),
+                None if *ci < check.len() => PlayOut::new(self.s, check[*ci], &self.targets).next_cost(),
+                None => 1,
+            },
+            Stage::Done(_) => 0,
+        }
+    }
+
+    fn gap(&self, b: &Ball) -> i64 {
+        self.aims
+            .iter()
+            // below zero: overlapping, more central the lower
+            .map(|(p, r)| ((b.pos - *p).len() - *r - b.radius).raw())
+            .min()
+            .unwrap_or(i64::MAX)
+    }
+
+    /// One unit of work; returns its cost.
+    pub fn advance(&mut self, world: &World) -> u64 {
+        let placeholder = Stage::Done(Plan {
+            release_tick: 0,
+            effect: None,
+        });
+        let stage = std::mem::replace(&mut self.stage, placeholder);
+        let (stage, cost) = match stage {
+            Stage::Quick {
+                ti,
+                path,
+                prefix,
+                ei,
+                at,
+            } => self.quick(world, ti, path, prefix, ei, at),
+            Stage::Verify { check, ci, run, best } => self.verify(world, check, ci, run, best),
+            done => (done, 0),
+        };
+        self.stage = stage;
+        cost
+    }
+
+    fn quick(
+        &mut self,
+        world: &World,
+        ti: usize,
+        mut path: Vec<Ball>,
+        mut prefix: Vec<i64>,
+        mut ei: usize,
+        mut at: u32,
+    ) -> (Stage, u64) {
+        let Some(&release_tick) = self.ticks.get(ti) else {
+            let n = self.ranked.len() as u64;
+            return (self.rank(), 1 + n);
+        };
+        let fc = fly_cost(self.aims.len());
+        let stride = self.a.trigger_stride.max(1);
+        if path.is_empty() {
+            let mut b = launch_ball(&self.s, release_tick);
+            let mut best = i64::MAX;
+            for _ in 0..tune::FLIGHT_MAX {
+                path.push(b);
+                prefix.push(best);
+                fly(&mut b, world.wind);
+                best = best.min(self.gap(&b));
+                if b.pos.y - b.radius < world.terrain.height_at(b.pos.x) {
+                    break;
+                }
+            }
+            self.ranked.push((
+                best,
+                Plan {
+                    release_tick,
+                    effect: None,
+                },
+            ));
+            let cost = path.len() as u64 * fc;
+            let next = Stage::Quick {
+                ti,
+                path,
+                prefix,
+                ei: 0,
+                at: stride,
+            };
+            return (next, cost);
+        }
+        // the next trigger near the targets, or the next release tick
+        let mut skipped = 0u64;
+        loop {
+            let Some(&e) = self.effects.get(ei) else {
+                let next = Stage::Quick {
+                    ti: ti + 1,
+                    path: Vec::new(),
+                    prefix: Vec::new(),
+                    ei: 0,
+                    at: 0,
+                };
+                return (next, 1 + skipped);
+            };
+            if at as usize >= path.len() {
+                ei += 1;
+                at = stride;
+                continue;
+            }
+            let x = path[at as usize].pos.x;
+            if x < self.lo || x > self.hi {
+                at += stride;
+                skipped += 1;
+                continue;
+            }
+            let mut balls = vec![path[at as usize]];
+            apply_effect(&mut balls, e);
+            let mut best = prefix[at as usize];
+            let mut cost = skipped;
+            for mut b in balls {
+                for _ in at..tune::FLIGHT_MAX {
+                    fly(&mut b, world.wind);
+                    cost += fc;
+                    best = best.min(self.gap(&b));
+                    if b.pos.y - b.radius < world.terrain.height_at(b.pos.x) {
+                        break;
+                    }
+                }
+            }
+            self.ranked.push((
+                best,
+                Plan {
+                    release_tick,
+                    effect: Some((e, at)),
+                },
+            ));
+            let next = Stage::Quick {
+                ti,
+                path,
+                prefix,
+                ei,
+                at: at + stride,
+            };
+            return (next, cost.max(1));
+        }
+    }
+
+    /// The quick pass is over: rank its plans and pick the ones to verify.
+    fn rank(&mut self) -> Stage {
+        let avoid = &self.avoid;
+        let ranked = &mut self.ranked;
+        // closest first; plain shots before effects, earlier ticks first on ties
+        ranked.retain(|(_, p)| !avoid.contains(p));
+        ranked.sort_by_key(|(d, p)| (*d, p.effect.is_some(), p.release_tick, p.effect.map(|e| e.1)));
+        let mut check: Vec<Plan> = ranked.iter().take(self.a.verified.max(1)).map(|r| r.1).collect();
+        if self.a.each_effect {
+            // the best plan with each effect too: the quick pass can't see walls
+            for &e in &self.effects {
+                if let Some((_, p)) = ranked.iter().find(|(_, p)| p.effect.map(|x| x.0) == Some(e)) {
+                    if !check.contains(p) {
+                        check.push(*p);
+                    }
                 }
             }
         }
-    }
-    for plan in &check {
-        let score = play_out(world, s, *plan, targets).score();
-        if best.is_none_or(|(b, _)| score > b) {
-            best = Some((score, *plan));
+        Stage::Verify {
+            check,
+            ci: 0,
+            run: None,
+            best: None,
         }
     }
-    let mut plan = best.map(|(_, p)| p).unwrap_or(Plan {
-        release_tick: ticks.first().copied().unwrap_or(1),
-        effect: None,
-    });
-    let mut rng = Rng::new(seed);
-    if a.miss_ticks > 0 && rng.chance(a.miss_chance.0, a.miss_chance.1) {
-        let mut off = rng.between(1, a.miss_ticks);
-        if rng.chance(1, 2) {
-            off = -off;
-        }
-        plan.release_tick = (plan.release_tick as i32 + off).max(0) as u32;
+
+    fn verify(
+        &mut self,
+        world: &World,
+        check: Vec<Plan>,
+        mut ci: usize,
+        run: Option<PlayOut>,
+        mut best: Option<(i64, Plan)>,
+    ) -> (Stage, u64) {
+        let mut run = match run {
+            Some(r) => r,
+            None if ci < check.len() => PlayOut::new(self.s, check[ci], &self.targets),
+            None => return (Stage::Done(self.choose(best)), 1),
+        };
+        let cost = run.advance(world);
+        let run = match run.outcome() {
+            Some(o) => {
+                let score = o.score();
+                if best.is_none_or(|(b, _)| score > b) {
+                    best = Some((score, check[ci]));
+                }
+                ci += 1;
+                None
+            }
+            None => Some(run),
+        };
+        (Stage::Verify { check, ci, run, best }, cost)
     }
-    plan
+
+    /// The best verified plan, then the deliberate error.
+    fn choose(&self, best: Option<(i64, Plan)>) -> Plan {
+        let a = &self.a;
+        let mut plan = best.map(|(_, p)| p).unwrap_or(Plan {
+            release_tick: self.ticks.first().copied().unwrap_or(1),
+            effect: None,
+        });
+        let mut rng = Rng::new(self.seed);
+        if a.miss_ticks > 0 && rng.chance(a.miss_chance.0, a.miss_chance.1) {
+            let mut off = rng.between(1, a.miss_ticks);
+            if rng.chance(1, 2) {
+                off = -off;
+            }
+            plan.release_tick = (plan.release_tick as i32 + off).max(0) as u32;
+        }
+        plan
+    }
 }
 
 /// Fires `plan` in the live world and steps it `ticks` times, applying the

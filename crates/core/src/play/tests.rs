@@ -644,15 +644,15 @@ fn shortest_plot_window(level: u8) -> (u64, usize) {
 }
 
 #[test]
-fn trebuchet_level_one_plot_window_is_at_least_12_ticks() {
+fn trebuchet_level_one_plot_window_is_at_least_4_ticks() {
     let (seed, ticks) = shortest_plot_window(1);
-    assert!(ticks >= 12, "seed {seed}: {ticks} ticks");
+    assert!(ticks >= 4, "seed {seed}: {ticks} ticks");
 }
 
 #[test]
-fn trebuchet_level_nine_plot_window_is_at_least_12_ticks() {
+fn trebuchet_level_nine_plot_window_is_at_least_6_ticks() {
     let (seed, ticks) = shortest_plot_window(9);
-    assert!(ticks >= 12, "seed {seed}: {ticks} ticks");
+    assert!(ticks >= 6, "seed {seed}: {ticks} ticks");
 }
 
 #[test]
@@ -697,4 +697,68 @@ fn trebuchet_best_throw_lands_just_past_the_farthest_plot_back() {
             "level {level}, seed {seed}: lands {far}, back {back}"
         );
     }
+}
+
+/// A planning job whose slices cost what `left` says, in order.
+#[derive(Clone, Debug)]
+struct SliceJob {
+    left: Vec<u64>,
+    planned: u32,
+}
+
+impl super::siege::PlanJob for SliceJob {
+    fn next_cost(&self) -> u64 {
+        self.left.first().copied().unwrap_or(0)
+    }
+    fn advance(&mut self) -> u64 {
+        self.left.remove(0)
+    }
+    fn take_ready(&mut self) -> Vec<super::siege::PlannedShot> {
+        Vec::new()
+    }
+    fn planned(&self) -> u32 {
+        self.planned
+    }
+    fn box_clone(&self) -> Box<dyn super::siege::PlanJob> {
+        Box::new(self.clone())
+    }
+}
+
+#[test]
+fn botplan_slice_serves_the_bot_with_fewest_shots_within_the_budget() {
+    let mut a = SliceJob {
+        left: vec![60, 60, 60],
+        planned: 1,
+    };
+    let mut b = SliceJob {
+        left: vec![100, 10],
+        planned: 0,
+    };
+    // b first (fewer shots): 100 (50 left), 10 (40 left); a's 60 does not fit
+    let spent = super::plan_slice(&mut [&mut a, &mut b], 150);
+    assert_eq!(spent, 110);
+    assert_eq!(a.left, vec![60, 60, 60]);
+    assert!(b.left.is_empty());
+    // b is done: a 60, 60 (30 left), and its last 60 waits
+    let spent = super::plan_slice(&mut [&mut a, &mut b], 150);
+    assert_eq!(spent, 120);
+    assert_eq!(a.left, vec![60]);
+}
+
+#[test]
+fn botplan_late_shot_swings_when_ready_and_keeps_its_spacing() {
+    use super::siege::{swing_tick, PlannedShot};
+    let every = super::tune::BOT_SHOT_EVERY;
+    // ready in time: the planned tick
+    assert_eq!(swing_tick(None, 30, 0), 30);
+    // ready late: the tick it is ready, never a tick already past
+    assert_eq!(swing_tick(None, 30, 80), 80);
+    // the next shot keeps one spacing after the late one
+    let late = PlannedShot {
+        ammo: 0,
+        swing_at: 80,
+        release_after: 45,
+        air: None,
+    };
+    assert_eq!(swing_tick(Some(&late), 30 + every, 100), 80 + every);
 }

@@ -91,7 +91,7 @@ impl Play {
             castles,
             siege: None,
             last_result: None,
-            planner: siege::simple_planner,
+            planner: siege::simple_job,
         })
     }
 
@@ -249,8 +249,14 @@ impl Play {
         let round = self.rules.round;
         if let Some(s) = self.siege.as_mut() {
             let live = self.rules.phase == Phase::Siege;
+            if live {
+                let mut jobs: Vec<&mut (dyn siege::PlanJob + 'static)> =
+                    s.fields.iter_mut().filter_map(|f| f.job.as_deref_mut()).collect();
+                plan_slice(&mut jobs, tune::BOT_PLAN_BUDGET);
+            }
             for f in s.fields.iter_mut() {
                 if live {
+                    f.take_planned(s.tick);
                     f.run_plan(s.tick);
                 }
                 f.step();
@@ -329,8 +335,9 @@ impl Play {
                 Seat::Human => None,
             };
             let bot = stand_in || difficulty.is_some();
-            let mut shooter = Shooter::new(attacker, bot, &a.loadout(), &a.mods);
+            let shooter = Shooter::new(attacker, bot, &a.loadout(), &a.mods);
             let base = units::trebuchet_base(&o.terrain);
+            let mut job = None;
             if bot {
                 let royals: Vec<(usize, u32)> = cw_bodies
                     .iter()
@@ -350,7 +357,7 @@ impl Play {
                     air: &shooter.air,
                     difficulty: if stand_in { None } else { difficulty },
                 };
-                shooter.plan = (self.planner)(&view);
+                job = Some((self.planner)(&view));
             }
             fields.push(Field {
                 owner,
@@ -363,6 +370,7 @@ impl Play {
                 fuses: Vec::new(),
                 lives: siege::body_lives(&cw_bodies, o),
                 killed: Vec::new(),
+                job,
             });
         }
         self.siege = Some(Siege {
@@ -426,5 +434,30 @@ impl Play {
             }
         }
         h
+    }
+}
+
+/// One tick of bot shot planning across every field (R1.2000): each unit
+/// of work goes to the bot with the fewest shots planned (the first such
+/// field on a tie) whose next unit fits in what is left of `budget`, so
+/// first shots come one bot after another rather than all at the end.
+/// The budget is in work units, never clock time, so the slices are the
+/// same on every machine. Returns the units spent.
+pub fn plan_slice(jobs: &mut [&mut (dyn siege::PlanJob + 'static)], budget: u64) -> u64 {
+    let mut left = budget;
+    loop {
+        let next = jobs
+            .iter()
+            .enumerate()
+            .filter(|(_, j)| {
+                let need = j.next_cost();
+                need > 0 && need <= left
+            })
+            .min_by_key(|(i, j)| (j.planned(), *i))
+            .map(|(i, _)| i);
+        let Some(i) = next else {
+            return budget - left;
+        };
+        left -= jobs[i].advance().min(left);
     }
 }

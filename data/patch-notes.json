@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.2.1",
+    "date": "2026-11-13",
+    "notes": [
+      "The trebuchet now swings at a steady speed, with a real sling and counterweight.",
+      "Its longest throw is shorter.",
+      "The camera stays on the trebuchet for a moment after each throw."
+    ]
+  },
+  {
     "version": "0.2.0",
     "date": "2026-11-13",
     "notes": [

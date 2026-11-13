@@ -97,6 +97,8 @@ const CAM_EMPTY_W: i64 = 10;
 const CAM_MIN_TALL: i64 = 4;
 /// The settled castle fills at least this share (num, den) of the height.
 const CAM_CASTLE_SHARE: (i64, i64) = (35, 100);
+/// Ticks after release the view stays on the trebuchet (R1.1800).
+pub(crate) const CAM_HOLD: u32 = 24;
 /// Each tick the view moves this fraction (1/n) of the way to its target.
 const CAM_EASE: i64 = 8;
 
@@ -497,6 +499,10 @@ impl Arena {
             .iter()
             .filter_map(|&i| world.projectiles.get(i))
             .find(|b| b.alive);
+        // just after release the view stays on the trebuchet so the sling's
+        // whip and the follow-through are seen (R1.1800)
+        let held = flying.is_some_and(|b| b.age < CAM_HOLD);
+        let flying = flying.filter(|_| !held);
         let base = f.base;
         if let Some(b) = flying {
             let left = b.pos.x - Fx::from_int(CAM_BEHIND);
@@ -533,7 +539,7 @@ impl Arena {
             }
             return cam;
         }
-        if settled {
+        if settled && !held {
             return castle;
         }
         let left = base.x - Fx::from_int(CAM_BEHIND);

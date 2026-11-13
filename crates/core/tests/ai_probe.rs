@@ -121,3 +121,75 @@ fn probe_siege_plan_time() {
         }
     }
 }
+
+/// Seven bots planning a whole siege each on the probe castle: the worst
+/// tick at the siege start before (every shot in one call) and after (a
+/// budget of work a tick, `play::plan_slice`), R1.2000.
+#[test]
+#[ignore]
+fn probe_botplan_worst_tick() {
+    use tool_core::ai::planner::{plan_siege, SiegePlanner};
+    use tool_core::game::upgrades::AirKind;
+    use tool_core::play::siege::{Ammo, PlanJob, SiegeView};
+    use tool_core::play::tune::BOT_PLAN_BUDGET;
+    let (w, _) = castle();
+    let plot = tool_core::terrain::Plot::generate(1);
+    let ammo = [(Ammo::Normal, 5u32)];
+    let bots = 7;
+    for (air, d) in [
+        (vec![], Difficulty::Normal),
+        (vec![AirKind::Drop], Difficulty::Hard),
+        (vec![AirKind::Drop, AirKind::Split], Difficulty::Hard),
+    ] {
+        let v = SiegeView {
+            world: &w,
+            plot: &plot,
+            base: Vec2::ints(4, 0),
+            power: 0,
+            ammo: &ammo,
+            air: &air,
+            difficulty: Some(d),
+            royals: &[],
+        };
+        let t0 = Instant::now();
+        for _ in 0..bots {
+            plan_siege(&v);
+        }
+        let before = t0.elapsed().as_micros();
+        let mut jobs: Vec<SiegePlanner> = (0..bots).map(|_| SiegePlanner::new(&v)).collect();
+        let (mut worst, mut worst_units, mut total, mut units) = (0u128, 0u64, 0u128, 0u64);
+        let mut ticks = 0u32;
+        // the tick each bot's first and last shot was ready
+        let mut first: Vec<Option<u32>> = vec![None; bots];
+        let mut last = vec![0u32; bots];
+        while jobs.iter().any(|j| j.next_cost() > 0) {
+            let t = Instant::now();
+            let mut refs: Vec<&mut (dyn PlanJob + 'static)> = jobs
+                .iter_mut()
+                .map(|j| j as &mut (dyn PlanJob + 'static))
+                .collect();
+            let spent = tool_core::play::plan_slice(&mut refs, BOT_PLAN_BUDGET);
+            let us = t.elapsed().as_micros();
+            for (i, j) in jobs.iter_mut().enumerate() {
+                if !j.take_ready().is_empty() {
+                    first[i].get_or_insert(ticks);
+                    last[i] = ticks;
+                }
+            }
+            if us > worst {
+                worst = us;
+                worst_units = spent;
+            }
+            total += us;
+            units += spent;
+            ticks += 1;
+        }
+        println!(
+            "{bots} bots {d:?} air {air:?}: all at once {before} us in one tick; sliced worst tick {worst} us ({worst_units} units), mean {} us, {ticks} ticks, {} ns/unit, first shots ready by tick {:?}, last {:?}",
+            total / ticks as u128,
+            total * 1000 / units.max(1) as u128,
+            first.iter().map(|f| f.unwrap_or(0)).max().unwrap_or(0),
+            last.iter().max().unwrap_or(&0),
+        );
+    }
+}
