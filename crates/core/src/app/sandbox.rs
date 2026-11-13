@@ -396,8 +396,7 @@ impl Sandbox {
             }
             Mode::Siege => {
                 let base = self.engine_base();
-                let left = base.x - Fx::from_int(6);
-                // as far as the castle reaches, not the whole plot: a bigger castle
+                // as far as the castle reaches, not the whole plot
                 let reach = self
                     .world
                     .nodes
@@ -406,23 +405,42 @@ impl Sandbox {
                     .max()
                     .unwrap_or(zl)
                     .max(zl + Fx::from_int(10));
-                let right = (reach + Fx::from_int(6)).min(zr + margin);
-                let mut cam = Camera::spanning(left, right - left, Fx::ZERO, w, h);
-                cam.bottom = base.y - cam.height() / 4;
-                // light follow: zoom out, keeping the ground and the castle,
-                // while the shot would leave the top or right edge
-                if let Some(b) = self
+                let castle_right = (reach + Fx::from_int(6)).min(zr + margin);
+                let flying = self
                     .shot
                     .and_then(|i| self.world.projectiles.get(i))
-                    .filter(|b| b.alive)
-                {
-                    let margin = Fx::from_int(3);
-                    let tall = b.pos.y + margin - cam.bottom;
-                    let wide = b.pos.x + margin - cam.left;
+                    .filter(|b| b.alive);
+                if let Some(b) = flying {
+                    // in flight: both ends, zoomed out to keep the shot in view
+                    let left = base.x - Fx::from_int(6);
+                    let mut cam = Camera::spanning(left, castle_right - left, Fx::ZERO, w, h);
+                    cam.bottom = base.y.min(self.ground(zl)) - cam.height() / 5;
+                    let edge = Fx::from_int(3);
+                    let tall = b.pos.y + edge - cam.bottom;
+                    let wide = b.pos.x + edge - cam.left;
                     let ppu_y = Fx::from_int(h as i64) / tall.max(Fx::ONE);
                     let ppu_x = Fx::from_int(w as i64) / wide.max(Fx::ONE);
                     cam.ppu = cam.ppu.min(ppu_y).min(ppu_x);
+                    return cam;
                 }
+                // the build view's width, so a castle and a trebuchet read at one scale
+                let width = zr - zl + margin * 2;
+                if self.swing.is_none() && !self.trail.is_empty() {
+                    // after a shot lands: settle on the castle
+                    let left = zl - margin;
+                    let mut cam = Camera::spanning(
+                        left,
+                        width.min(castle_right - left).max(width / 2),
+                        Fx::ZERO,
+                        w,
+                        h,
+                    );
+                    cam.bottom = self.ground(zl) - cam.height() / 5;
+                    return cam;
+                }
+                // aiming: the trebuchet, a quarter in from the left
+                let mut cam = Camera::spanning(base.x - width / 4, width, Fx::ZERO, w, h);
+                cam.bottom = base.y - cam.height() / 4;
                 cam
             }
         }

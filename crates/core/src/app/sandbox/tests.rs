@@ -1,4 +1,5 @@
 use super::*;
+use crate::app::field::Camera;
 
 #[test]
 fn sandbox_starts_with_a_castle_that_stands_a_test() {
@@ -84,4 +85,21 @@ fn sandbox_space_twice_throws_one_shot() {
     assert!(s.world.projectiles.is_empty());
     s.pump(700, KEY_SPACE);
     assert_eq!(s.world.projectiles.len(), 1);
+}
+
+#[test]
+fn sandbox_siege_camera_aims_at_the_trebuchet_then_settles_on_the_castle() {
+    let mut s = Sandbox::new(5);
+    s.toggle_mode();
+    let on_screen = |cam: &Camera, p: Vec2| {
+        let [x, y] = cam.px(p);
+        x >= 0 && x <= cam.w && y >= 0 && y <= cam.h
+    };
+    let base = s.engine_base();
+    let castle = s.beams[0].from;
+    assert!(on_screen(&s.camera(), base));
+    assert!(!on_screen(&s.camera(), castle));
+    s.trail = vec![castle];
+    assert!(on_screen(&s.camera(), castle));
+    assert!(!on_screen(&s.camera(), base));
 }

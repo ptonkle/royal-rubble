@@ -474,5 +474,12 @@
     "find": "    (v * 4).floor_int().clamp(0, 3) as u8",
     "replace": "    (v * 3).floor_int().clamp(0, 3) as u8",
     "test": "strain_steps_by_quarters_and_a_break_is_the_top"
+  },
+  {
+    "name": "sandbox camera settles on the castle",
+    "file": "crates/core/src/app/sandbox.rs",
+    "find": "if self.swing.is_none() && !self.trail.is_empty() {",
+    "replace": "if false {",
+    "test": "sandbox_siege_camera_aims_at_the_trebuchet_then_settles_on_the_castle"
   }
 ]
