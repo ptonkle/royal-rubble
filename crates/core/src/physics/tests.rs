@@ -600,3 +600,25 @@ fn trebuchet_sixteenth_release_lands_between_whole_ticks() {
         assert_eq!(prev, b);
     }
 }
+
+#[test]
+fn a_royal_killed_up_high_is_knocked_back_and_falls_to_the_ground() {
+    // R1.3603: a body on a floor 5 up, killed on tick 3 with a push left and
+    // up; it must not stay in the air where it died
+    let mut w = flat_world();
+    let s = beam(&mut w, (10, 5), (11, 5), Material::Wood);
+    w.add_body(s, Fx::HALF, Fx::ratio(1, 4));
+    w.tick = 3;
+    let x0 = w.bodies[0].pos.x;
+    w.bodies[0].kill(3, Vec2::new(-Fx::ratio(1, 5), Fx::ratio(1, 10)));
+    for _ in 0..240 {
+        w.step();
+    }
+    let b = w.bodies[0];
+    assert!(!b.alive);
+    assert_eq!(b.died, Some(3));
+    // thrown left, past the floor's left end at x 10, and lying on the
+    // ground (height 0 in the flat world), not on the floor at 5
+    assert!(b.pos.x < x0 - Fx::ONE, "x {:?} from {:?}", b.pos.x, x0);
+    assert!(b.pos.y < Fx::ONE, "y {:?}", b.pos.y);
+}

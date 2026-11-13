@@ -139,6 +139,7 @@ fn stand(w: &mut World, surface: Surface, x: Fx, radius: Fx, tall: Fx) -> usize 
                 attached: None,
                 peak_y: pos.y,
                 alive: true,
+                died: None,
             });
             w.bodies.len() - 1
         }

@@ -139,6 +139,27 @@ pub enum Event {
     BodyFell { body: usize, drop: Fx },
 }
 
+/// What a recent impact threw up, for the page's dust and chips (R1.3608).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ImpactKind {
+    Dust,
+    Wood,
+    Stone,
+    Metal,
+}
+
+/// A recent impact: where, on which tick, and what it threw up. Kept for
+/// `IMPACT_LIFE` ticks; it changes nothing in the simulation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Impact {
+    pub pos: Vec2,
+    pub tick: u32,
+    pub kind: ImpactKind,
+}
+
+/// How many ticks an impact is kept for drawing.
+pub const IMPACT_LIFE: u32 = 36;
+
 #[derive(Clone, Debug)]
 pub struct World {
     pub terrain: Terrain,
@@ -155,6 +176,8 @@ pub struct World {
     /// Horizontal acceleration on shots, units per tick squared.
     pub wind: Fx,
     pub tick: u32,
+    /// Recent impacts, newest last, for drawing only.
+    pub impacts: Vec<Impact>,
 }
 
 /// What a static test found.
@@ -184,6 +207,7 @@ impl World {
             bodies: Vec::new(),
             wind: Fx::ZERO,
             tick: 0,
+            impacts: Vec::new(),
         }
     }
 
@@ -347,6 +371,8 @@ impl World {
             self.finish_break(s, cause, &mut events);
         }
         self.step_bodies(&mut events);
+        let now = self.tick;
+        self.impacts.retain(|m| m.tick + IMPACT_LIFE > now);
         self.tick += 1;
         events
     }
@@ -508,6 +534,21 @@ impl World {
             } else {
                 Fx::ONE / node.mass
             };
+        }
+        let seg = &self.segments[s];
+        let kind = match seg.material {
+            Material::Wood => Some(ImpactKind::Wood),
+            Material::Stone => Some(ImpactKind::Stone),
+            Material::Metal => Some(ImpactKind::Metal),
+            Material::Rope => None,
+        };
+        if let Some(kind) = kind {
+            let pos = (self.nodes[seg.a].pos + self.nodes[seg.b].pos) * Fx::HALF;
+            self.impacts.push(Impact {
+                pos,
+                tick: self.tick,
+                kind,
+            });
         }
         self.spawn_debris(s);
         events.push(Event::Broke { segment: s, cause });
