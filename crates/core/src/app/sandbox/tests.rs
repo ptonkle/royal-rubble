@@ -14,7 +14,7 @@ fn sandbox_starts_with_a_castle_that_stands_a_test() {
 /// Where a shot released at tick `t` first comes down to the ground, with
 /// no wind and nothing in the way.
 fn landing(s: &Sandbox, t: u32) -> Fx {
-    let l = trebuchet_launch(s.engine_base(), t, power(), false);
+    let l = crate::physics::trebuchet_launch(s.engine_base(), t, power(), false);
     let (mut p, mut v) = (l.pos, l.vel);
     let mut n = 0;
     while p.y > s.ground(p.x) && n < 2000 {
@@ -79,13 +79,13 @@ fn sandbox_selling_a_floor_takes_its_royal_with_it() {
 fn sandbox_space_twice_throws_one_shot() {
     let mut s = Sandbox::new(5);
     s.toggle_mode();
-    s.pump(0, KEY_SPACE);
-    s.pump(16, 0);
+    s.pump(0, KEY_SPACE, None);
+    s.pump(16, 0, None);
     for _ in 0..39 {
         s.tick();
     }
     assert!(s.world.projectiles.is_empty());
-    s.pump(700, KEY_SPACE);
+    s.pump(700, KEY_SPACE, None);
     assert_eq!(s.world.projectiles.len(), 1);
 }
 
@@ -99,9 +99,65 @@ fn sandbox_siege_camera_aims_at_the_trebuchet_then_settles_on_the_castle() {
     };
     let base = s.engine_base();
     let castle = s.beams[0].from;
-    assert!(on_screen(&s.camera(), base));
-    assert!(!on_screen(&s.camera(), castle));
+    assert!(on_screen(&s.camera_target(), base));
+    assert!(!on_screen(&s.camera_target(), castle));
     s.trail = vec![castle];
-    assert!(on_screen(&s.camera(), castle));
-    assert!(!on_screen(&s.camera(), base));
+    assert!(on_screen(&s.camera_target(), castle));
+    assert!(!on_screen(&s.camera_target(), base));
+}
+
+/// The shot's sideways speed when Space lets go `press_after_us` after the
+/// start of the last tick run, 30 ticks into the swing.
+fn sandbox_thrown_vx(press_after_us: i64) -> Fx {
+    let mut s = Sandbox::new(5);
+    s.toggle_mode();
+    s.pump(1000, 0, None);
+    s.pump(1000, KEY_SPACE, Some(1_000_000));
+    s.pump(1500, 0, None);
+    // 60 ticks a second: 30 ticks run by 1500 ms
+    let basis = 1_000_000 + 30 * 1_000_000 / 60;
+    s.pump(1500, KEY_SPACE, Some(basis + press_after_us));
+    let i = s.shot.expect("the shot is in the air");
+    s.world.projectiles[i].vel.x
+}
+
+#[test]
+fn sandbox_release_press_time_throws_between_whole_ticks() {
+    // R1.2202: presses 0, 8 and 16 sixteenths into the tick (a tick is
+    // 16,667 microseconds): the middle one throws between the other two
+    let (a, b, c) = (
+        sandbox_thrown_vx(100),
+        sandbox_thrown_vx(100 + 8_334),
+        sandbox_thrown_vx(100 + 16_667),
+    );
+    assert!(a != c, "{a:?} {c:?}");
+    assert!((a < b && b < c) || (a > b && b > c), "{a:?} {b:?} {c:?}");
+}
+
+/// A sandbox siege with a shot let go `at` ticks into the swing.
+fn sandbox_thrown(at: u32) -> Sandbox {
+    let mut s = Sandbox::new(5);
+    s.toggle_mode();
+    s.space(None);
+    for _ in 0..at {
+        s.tick();
+    }
+    s.space(None);
+    s
+}
+
+#[test]
+fn sandbox_view_eases_after_the_hold_instead_of_jumping() {
+    // R1.2201: once the 0.4 s hold ends the view glides to the flight view
+    let mut s = sandbox_thrown(crate::physics::SWING_END * 2 / 3);
+    for _ in 0..crate::app::arena::CAM_HOLD + 1 {
+        s.tick();
+    }
+    let before = s.camera();
+    s.tick();
+    let (eye, target) = (s.camera(), s.camera_target());
+    assert!(eye != target, "snapped to {target:?}");
+    let moved = (eye.left - before.left).abs();
+    let wanted = (target.left - before.left).abs();
+    assert!(moved < wanted, "moved {moved:?} of {wanted:?}");
 }

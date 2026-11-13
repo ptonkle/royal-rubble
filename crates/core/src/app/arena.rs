@@ -14,8 +14,8 @@
 use std::collections::BTreeMap;
 
 use super::field::{
-    cloth_at, ground_line, material_name, tree_marks, world_parts, Camera, Cue, Engine, Figure, Flag, Frame,
-    Inset, Preview, Ring, SpotMark,
+    cloth_at, ground_line, material_name, tree_marks, world_parts, world_right, Camera, Cue, Engine, Figure,
+    Flag, Frame, Inset, Preview, Ring, SpotMark,
 };
 use super::sandbox::{num, pair, reach_end};
 use crate::game::flow::Phase;
@@ -100,7 +100,7 @@ const CAM_CASTLE_SHARE: (i64, i64) = (35, 100);
 /// Ticks after release the view stays on the trebuchet (R1.1800).
 pub(crate) const CAM_HOLD: u32 = 24;
 /// Each tick the view moves this fraction (1/n) of the way to its target.
-const CAM_EASE: i64 = 8;
+pub(crate) const CAM_EASE: i64 = 8;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Tool {
@@ -456,7 +456,7 @@ impl Arena {
         let margin = Fx::from_int(2);
         let mut cam = Camera::spanning(zl - margin, zr - zl + margin * 2, Fx::ZERO, w, h);
         cam.bottom = self.ground(p, zl) - cam.height() / 5;
-        cam
+        cam.kept_in(world_right(self.plot(p)))
     }
 
     /// The castle box of field `f`: left, right, ground and top, from its
@@ -489,6 +489,7 @@ impl Arena {
     /// eases the shown view toward it.
     fn siege_camera(&self, f: &Field, settled: bool, w: i32, h: i32) -> Camera {
         let (cl, cr, ground, top) = self.castle_box(f);
+        let edge = world_right(&f.plot);
         let castle = Camera::framing(
             cl,
             cr,
@@ -540,6 +541,7 @@ impl Arena {
             };
             let mut cam = Camera::spanning(left, width, Fx::ZERO, w, h);
             cam.bottom = floor - cam.height() / 6;
+            let mut cam = cam.kept_in(edge);
             let above = b.pos.y + Fx::from_int(CAM_MARGIN) - (cam.bottom + cam.height());
             if above > Fx::ZERO {
                 cam.bottom += above;
@@ -547,7 +549,7 @@ impl Arena {
             return cam;
         }
         if settled && !held {
-            return castle;
+            return castle.kept_in(edge);
         }
         let left = base.x - Fx::from_int(CAM_BEHIND);
         let width = (cl + Fx::from_int(CAM_MARGIN) - left)
@@ -555,7 +557,7 @@ impl Arena {
             .max(Fx::from_int(CAM_AIM_MIN_W));
         let mut cam = Camera::spanning(left, width, Fx::ZERO, w, h);
         cam.bottom = base.y.min(ground) - cam.height() / 6;
-        cam
+        cam.kept_in(edge)
     }
 
     /// The field you shoot at this siege.
@@ -593,6 +595,17 @@ impl Arena {
                 self.siege_camera(f, f.shooter.swing_from.is_none() && !self.trail.is_empty(), w, h)
             }
             _ => self.build_camera(self.shown(), w, h),
+        }
+    }
+
+    /// The right edge of the world the camera shows (R1.2200).
+    fn view_right(&self) -> Fx {
+        if let Some(r) = &self.replay {
+            return world_right(self.plot(r.field.owner));
+        }
+        match (self.phase(), self.my_field()) {
+            (Phase::Siege | Phase::SiegeOver, Some(f)) => world_right(&f.plot),
+            _ => world_right(self.plot(self.shown())),
         }
     }
 
@@ -872,7 +885,8 @@ impl Arena {
         for _ in 0..ran.min(CAM_EASE as u32 * 4) {
             eye = eye.ease_toward(target, CAM_EASE);
         }
-        self.eye = Some(eye);
+        // the left edge and the zoom ease apart, so keep each step inside
+        self.eye = Some(eye.kept_in(self.view_right()));
     }
 
     /// The path of your last shot, for the trail.

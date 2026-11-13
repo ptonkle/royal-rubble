@@ -98,6 +98,19 @@ impl Camera {
         cam
     }
 
+    /// The view kept inside the world, `0..right` across (R1.2200): moved
+    /// so nothing left of the first column or right of the last shows, and
+    /// narrowed to the world's width, bottom kept, when it is wider.
+    pub fn kept_in(self, right: Fx) -> Camera {
+        let mut cam = if self.width() > right {
+            Camera::spanning(Fx::ZERO, right, self.bottom, self.w, self.h)
+        } else {
+            self
+        };
+        cam.left = cam.left.min(right - cam.width()).max(Fx::ZERO);
+        cam
+    }
+
     /// One step of easing toward `to`: a `1/div` share of the way, so views
     /// glide instead of jumping. A different screen size snaps.
     pub fn ease_toward(self, to: Camera, div: i64) -> Camera {
@@ -423,6 +436,11 @@ pub fn cloth_at(cam: &Camera) -> [i32; 2] {
     cam.px(Vec2::new(Fx::ZERO, Fx::ZERO))
 }
 
+/// The world's right edge: the far side of the plot's last column.
+pub fn world_right(plot: &Plot) -> Fx {
+    cell_units(crate::terrain::COL_W) * plot.heights.len() as i64
+}
+
 /// The ground line and the water across the view.
 pub fn ground_line(plot: &Plot, cam: &Camera) -> (Vec<[i32; 2]>, Vec<[i32; 2]>) {
     let col = cell_units(crate::terrain::COL_W);
@@ -529,6 +547,37 @@ mod tests {
         // the whole castle across
         assert!(cam.px(Vec2::new(Fx::from_int(100), Fx::from_int(10)))[0] >= 0);
         assert!(cam.px(Vec2::new(Fx::from_int(126), Fx::from_int(10)))[0] <= 1920);
+    }
+
+    #[test]
+    fn camera_kept_in_never_shows_past_the_world_edges() {
+        // R1.2200: a world 100 units across, views 20 wide at 1000 px
+        let world = Fx::from_int(100);
+        let at = |left: i64, width: i64| {
+            Camera::spanning(
+                Fx::from_int(left),
+                Fx::from_int(width),
+                Fx::from_int(3),
+                1000,
+                500,
+            )
+            .kept_in(world)
+        };
+        // past the left: moved right to 0
+        assert_eq!(at(-5, 20).left, Fx::ZERO);
+        // past the right: moved left so its right edge is 100
+        assert_eq!(at(90, 20).left, Fx::from_int(80));
+        // inside: untouched
+        assert_eq!(
+            at(30, 20),
+            Camera::spanning(Fx::from_int(30), Fx::from_int(20), Fx::from_int(3), 1000, 500)
+        );
+        // wider than the world: narrowed to it, bottom kept
+        let wide = at(-50, 200);
+        assert_eq!(
+            (wide.left, wide.bottom, wide.ppu),
+            (Fx::ZERO, Fx::from_int(3), Fx::from_int(10))
+        );
     }
 
     #[test]

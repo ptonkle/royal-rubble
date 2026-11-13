@@ -296,3 +296,42 @@ fn arena_release_press_time_throws_between_whole_ticks() {
     assert!(a != c, "{a:?} {c:?}");
     assert!((a < b && b < c) || (a > b && b > c), "{a:?} {b:?} {c:?}");
 }
+
+/// Whether the shown view stays inside the world, `0..right` across.
+fn view_in_world(a: &Arena) -> Result<(), String> {
+    let f = a.my_field().ok_or("no field")?;
+    let right = super::world_right(&f.plot);
+    let cam = a.camera();
+    // the far edge may pass by the rounding of a pixel
+    let slack = Fx::ONE / 8;
+    if cam.left < Fx::ZERO || cam.left + cam.width() > right + slack {
+        return Err(format!("{cam:?} past 0..{right:?}"));
+    }
+    Ok(())
+}
+
+#[test]
+fn arena_the_siege_view_never_shows_past_the_world_edges() {
+    // R1.2200: the trebuchet stands near x 14, so a view built round it
+    // showed empty linen left of the world
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    to_siege(&mut a);
+    view_in_world(&a).unwrap();
+    // aiming: the trebuchet in the left part of the screen
+    let base = a.my_field().unwrap().base;
+    let [bx, _] = a.camera().px(base);
+    assert!((0..1920 / 3).contains(&bx), "trebuchet at x {bx}");
+    let t = crate::physics::SWING_END * 2 / 3;
+    a.space(crate::play::ON_TICK);
+    for _ in 0..t {
+        a.tick();
+    }
+    a.space(crate::play::ON_TICK);
+    for k in 0..400 {
+        a.tick();
+        if let Err(e) = view_in_world(&a) {
+            panic!("tick {k}: {e}");
+        }
+    }
+}

@@ -1146,5 +1146,33 @@
     "find": "Input::Release(part) => (11, part.min(31) as u64),",
     "replace": "Input::Release(_) => (11, 0),",
     "test": "online_release_part_survives_packing"
+  },
+  {
+    "name": "worldedge siege view not kept inside",
+    "file": "crates/core/src/app/field.rs",
+    "find": "        cam.left = cam.left.min(right - cam.width()).max(Fx::ZERO);\n",
+    "replace": "",
+    "test": "arena_the_siege_view_never_shows_past_the_world_edges"
+  },
+  {
+    "name": "sbpartrelease sandbox release ignores the press part",
+    "file": "crates/core/src/app/sandbox.rs",
+    "find": "let at = t * parts + part.map_or(0, |p| (p as u32).min(2 * parts - 1));",
+    "replace": "let at = t * parts + part.map_or(0, |_| 0);",
+    "test": "sandbox_release_press_time_throws_between_whole_ticks"
+  },
+  {
+    "name": "sbeyease sandbox view snaps",
+    "file": "crates/core/src/app/sandbox.rs",
+    "find": ".map_or(target, |e| e.ease_toward(target, super::arena::CAM_EASE));",
+    "replace": ".map_or(target, |_| target);",
+    "test": "sandbox_view_eases_after_the_hold_instead_of_jumping"
+  },
+  {
+    "name": "keptinworld camera kept_in does nothing",
+    "file": "crates/core/src/app/field.rs",
+    "find": "    pub fn kept_in(self, right: Fx) -> Camera {\n",
+    "replace": "    pub fn kept_in(self, right: Fx) -> Camera {\n        if right > Fx::ZERO {\n            return self;\n        }\n",
+    "test": "camera_kept_in_never_shows_past_the_world_edges"
   }
 ]

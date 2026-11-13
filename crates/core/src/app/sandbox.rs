@@ -10,13 +10,13 @@
 use std::collections::BTreeMap;
 
 use super::field::{
-    cell_units, cloth_at, ground_line, material_name, terrain_of, tree_marks, world_parts, Camera, Cue,
-    Engine, Figure, Flag, Frame, Preview, Ring, CELL_TO_RAW,
+    cell_units, cloth_at, ground_line, material_name, terrain_of, tree_marks, world_parts, world_right,
+    Camera, Cue, Engine, Figure, Flag, Frame, Preview, Ring, CELL_TO_RAW,
 };
 use crate::game::royals::RoyalKind;
 use crate::physics::trebuchet::{pose, Phase as Arm};
 use crate::physics::world::snap;
-use crate::physics::{trebuchet_launch, AirEffect, BreakCause, Event, Fx, Material, Vec2, World, TUNE};
+use crate::physics::{trebuchet_launch_at, AirEffect, BreakCause, Event, Fx, Material, Vec2, World, TUNE};
 use crate::strings::Strings;
 use crate::terrain::{Plot, COL_W};
 use crate::view::{BarOption, Item, Panel};
@@ -225,6 +225,9 @@ pub struct Sandbox {
     prev_keys: u32,
     cues: Vec<Cue>,
     serial: u32,
+    /// The siege view as shown, easing toward `camera_target` each tick
+    /// (R1.2201).
+    eye: Option<Camera>,
 }
 
 impl Sandbox {
@@ -258,6 +261,7 @@ impl Sandbox {
             stepped: 0,
             prev_keys: 0,
             cues: Vec::new(),
+            eye: None,
             serial: 0,
         };
         s.starter_castle();
@@ -385,7 +389,30 @@ impl Sandbox {
 
     // ---- the camera ----
 
+    /// The view shown: eased in the siege, exact in the build.
     pub fn camera(&self) -> Camera {
+        match (self.mode, self.eye) {
+            (Mode::Siege, Some(eye)) => eye,
+            _ => self.camera_target(),
+        }
+    }
+
+    /// One tick of the shown view easing toward its target, as the match's
+    /// does (R1.2201), kept inside the world.
+    fn move_eye(&mut self) {
+        let target = self.camera_target();
+        let eye = self
+            .eye
+            .map_or(target, |e| e.ease_toward(target, super::arena::CAM_EASE));
+        self.eye = Some(eye.kept_in(world_right(&self.plot)));
+    }
+
+    /// Where the view heads, kept inside the world (R1.2200).
+    pub fn camera_target(&self) -> Camera {
+        self.view().kept_in(world_right(&self.plot))
+    }
+
+    fn view(&self) -> Camera {
         let (w, h) = self.size;
         let (zl, zr, _) = self.zone();
         let margin = Fx::from_int(2);
@@ -475,7 +502,7 @@ impl Sandbox {
     }
 
     /// Space: start the swing, or let go.
-    fn space(&mut self) {
+    fn space(&mut self, part: Option<u8>) {
         if self.mode != Mode::Siege {
             return;
         }
@@ -484,14 +511,18 @@ impl Sandbox {
                 self.swing = Some(self.world.tick);
                 self.cue("trebuchet_creak", 0);
             }
-            (Some(_), false) => self.release(),
+            (Some(_), false) => self.release(part),
             _ => {}
         }
     }
 
-    fn release(&mut self) {
+    /// Lets go `part` sixteenths of a tick after the last tick run (0-31),
+    /// or on it when `None` (R1.2202).
+    fn release(&mut self, part: Option<u8>) {
         let t = self.swing_tick().unwrap_or(0);
-        let launch = trebuchet_launch(self.engine_base(), t, power(), false);
+        let parts = crate::physics::RELEASE_PARTS;
+        let at = t * parts + part.map_or(0, |p| (p as u32).min(2 * parts - 1));
+        let launch = trebuchet_launch_at(self.engine_base(), at, power(), false);
         let ammo = AMMO[self.ammo];
         let i = self.world.fire(launch, ammo.radius, ammo.mass);
         self.world.projectiles[i].fire = ammo.fire;
@@ -523,11 +554,14 @@ impl Sandbox {
     // ---- one display frame ----
 
     /// Reads the keys and steps the world up to `now_ms` (siege only).
-    pub fn pump(&mut self, now_ms: i64, keys: u32) {
+    /// `press_us` is when the latest key went down (microseconds), so a
+    /// release is timed within a tick as in the match (R1.2202).
+    pub fn pump(&mut self, now_ms: i64, keys: u32, press_us: Option<i64>) {
         let pressed = keys & !self.prev_keys;
         self.prev_keys = keys;
         if pressed & KEY_SPACE != 0 {
-            self.space();
+            let part = self.press_part(press_us);
+            self.space(part);
         }
         for (k, (_, bit)) in KEY_DIGITS.iter().enumerate() {
             if pressed & bit != 0 {
@@ -554,11 +588,23 @@ impl Sandbox {
         }
     }
 
+    /// Sixteenths of a tick from the last tick run to the key press; on
+    /// the tick (`None`) when either is unknown.
+    fn press_part(&self, press_us: Option<i64>) -> Option<u8> {
+        match (press_us, self.clock) {
+            (Some(press), Some(start)) => {
+                let basis = start * 1000 + self.stepped * 1_000_000 / TUNE_TICKS;
+                Some(super::arena::release_part(press, basis, TUNE_TICKS))
+            }
+            _ => None,
+        }
+    }
+
     /// One physics tick of the siege, and the sounds it makes.
     pub fn tick(&mut self) {
         if let Some(t) = self.swing_tick() {
             if !self.released && t >= Sandbox::swing_end() {
-                self.release();
+                self.release(None);
             }
         }
         let events = self.world.step();
@@ -611,6 +657,7 @@ impl Sandbox {
                 self.released = false;
             }
         }
+        self.move_eye();
     }
 
     // ---- build mode ----
@@ -666,6 +713,8 @@ impl Sandbox {
     pub fn toggle_mode(&mut self) {
         self.rebuild();
         self.drag = None;
+        // a new mode's view starts where it wants to be
+        self.eye = None;
         match self.mode {
             Mode::Build => {
                 self.mode = Mode::Siege;

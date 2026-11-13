@@ -380,7 +380,7 @@ impl App {
     pub fn pump_pressed(&mut self, now_ms: i64, keys: u32, press_us: Option<i64>) -> Pump {
         self.now_ms = now_ms;
         if let Some(s) = &mut self.sandbox {
-            s.pump(now_ms, keys);
+            s.pump(now_ms, keys, press_us);
         }
         self.start_arena();
         if let Some(a) = &mut self.arena {
