@@ -1,0 +1,104 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Palette sampler</title></head>
+<body><script>
+window.PATCHES = [
+  ["linen", 3, 1122, 714, 30], ["linen", 6, 1300, 420, 30], ["linen", 1, 760, 800, 30], ["linen", 1, 1150, 700, 20],
+  ["terracotta", 6, 420, 800, 10], ["terracotta", 4, 1380, 700, 10], ["terracotta", 1, 295, 640, 6], ["terracotta", 1, 1270, 980, 5],
+  ["tan", 3, 1020, 1020, 10], ["tan", 1, 520, 650, 8], ["tan", 1, 1560, 700, 12],
+  ["buff", 2, 1010, 1000, 8], ["buff", 1, 175, 760, 6],
+  ["olive", 4, 720, 700, 14], ["olive", 1, 1250, 700, 8], ["sage", 1, 520, 900, 5],
+  ["slate", 6, 330, 590, 10], ["slate", 1, 940, 650, 4],
+  ["navy", 6, 100, 880, 10], ["navy", 1, 1440, 800, 8], ["navy", 1, 82, 800, 5],
+  ["blue", 1, 110, 176, 4], ["bluegreen", 8, 230, 700, 12],
+  ["ochre", 8, 750, 800, 14], ["ochre", 7, 1220, 430, 8],
+  ["brickdark", 8, 130, 1150, 8], ["brickdark", 3, 300, 1140, 6],
+];
+</script><script>
+// Clusters the thread and linen colors of the reference photos
+// (ctc-journal/img/look/ref/ref01..08.jpg) with seeded k-means.
+// render.py prints window.RESULT; palette.json is written from it.
+const REFS = [1, 2, 3, 4, 5, 6, 7, 8].map(i => `/ctc-journal/img/look/ref/ref0${i}.jpg`);
+const K = 18, ITER = 40, SAMPLE_W = 400;
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+const R = rng(1066);
+const load = src => new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = src; });
+const lum = p => 0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2];
+(async () => {
+  const px = []; // [r,g,b,imgIndex,x,y] in original coordinates
+  for (let i = 0; i < REFS.length; i++) {
+    const im = await load(REFS[i]);
+    const s = SAMPLE_W / im.width, w = SAMPLE_W, h = Math.round(im.height * s);
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const g = c.getContext("2d"); g.drawImage(im, 0, 0, w, h);
+    const d = g.getImageData(0, 0, w, h).data;
+    for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2) {
+      const o = (y * w + x) * 4;
+      px.push([d[o], d[o + 1], d[o + 2], i + 1, Math.round(x / s), Math.round(y / s)]);
+    }
+  }
+  // k-means++ seeding
+  const cen = [px[Math.floor(R() * px.length)].slice(0, 3)];
+  const d2 = p => Math.min(...cen.map(c => (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2));
+  while (cen.length < K) {
+    const ds = px.map(d2), tot = ds.reduce((a, b) => a + b, 0);
+    let r = R() * tot, j = 0; while (r > ds[j]) r -= ds[j++];
+    cen.push(px[j].slice(0, 3));
+  }
+  const lab = new Int32Array(px.length);
+  for (let it = 0; it < ITER; it++) {
+    const sum = cen.map(() => [0, 0, 0, 0]);
+    px.forEach((p, n) => {
+      let best = 0, bd = 1e9;
+      cen.forEach((c, k) => { const dd = (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2; if (dd < bd) { bd = dd; best = k; } });
+      lab[n] = best; const s = sum[best]; s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; s[3]++;
+    });
+    sum.forEach((s, k) => { if (s[3]) cen[k] = [s[0] / s[3], s[1] / s[3], s[2] / s[3]]; });
+  }
+  const hex = c => "#" + c.map(v => Math.round(v).toString(16).padStart(2, "0")).join("");
+  const out = cen.map((c, k) => {
+    const mem = px.filter((_, n) => lab[n] === k).sort((a, b) => lum(a) - lum(b));
+    const mean = a => [0, 1, 2].map(j => a.reduce((t, p) => t + p[j], 0) / a.length);
+    const q = Math.max(1, Math.floor(mem.length * 0.2));
+    let rep = mem[0], rd = 1e9;
+    for (const p of mem) { const dd = (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2; if (dd < rd) { rd = dd; rep = p; } }
+    const perImg = {}; for (const p of mem) perImg[p[3]] = (perImg[p[3]] || 0) + 1;
+    return { mean: hex(c), dark: hex(mean(mem.slice(0, q))), light: hex(mean(mem.slice(-q))), share: +(mem.length / px.length).toFixed(4),
+      sample: `ref0${rep[3]}.jpg @ ${rep[4]},${rep[5]}`, perImg };
+  }).sort((a, b) => b.share - a.share);
+  // Pass 2: thread pixels only (drop anything close to a linen cluster:
+  // bright and low chroma), clustered again.
+  const chroma = p => Math.max(p[0], p[1], p[2]) - Math.min(p[0], p[1], p[2]);
+  const thread = px.filter(p => !(lum(p) > 150 && chroma(p) < 34));
+  const cen2 = [thread[Math.floor(R() * thread.length)].slice(0, 3)];
+  while (cen2.length < 12) {
+    const ds = thread.map(p => Math.min(...cen2.map(c => (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2)));
+    const tot = ds.reduce((a, b) => a + b, 0); let r = R() * tot, j = 0; while (r > ds[j]) r -= ds[j++];
+    cen2.push(thread[j].slice(0, 3));
+  }
+  const lab2 = new Int32Array(thread.length);
+  for (let it = 0; it < ITER; it++) {
+    const sum = cen2.map(() => [0, 0, 0, 0]);
+    thread.forEach((p, n) => { let best = 0, bd = 1e9;
+      cen2.forEach((c, k) => { const dd = (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2; if (dd < bd) { bd = dd; best = k; } });
+      lab2[n] = best; const s = sum[best]; s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; s[3]++; });
+    sum.forEach((s, k) => { if (s[3]) cen2[k] = [s[0] / s[3], s[1] / s[3], s[2] / s[3]]; });
+  }
+  const threads = cen2.map((c, k) => ({ mean: hex(c), share: +(thread.filter((_, n) => lab2[n] === k).length / thread.length).toFixed(3) }))
+    .sort((a, b) => b.share - a.share);
+  // Pass 3: named patches picked by eye, [name, ref, x, y, half-size] in
+  // original pixels; median plus 20th/80th luminance percentile.
+  const PATCHES = window.PATCHES || [];
+  const imgs = {};
+  const patches = [];
+  for (const [name, ref, x, y, hs] of PATCHES) {
+    if (!imgs[ref]) { const im = await load(`/ctc-journal/img/look/ref/ref0${ref}.jpg`); const c = document.createElement("canvas");
+      c.width = im.width; c.height = im.height; const g = c.getContext("2d"); g.drawImage(im, 0, 0); imgs[ref] = g; }
+    const d = imgs[ref].getImageData(x - hs, y - hs, hs * 2, hs * 2).data, a = [];
+    for (let o = 0; o < d.length; o += 4) a.push([d[o], d[o + 1], d[o + 2]]);
+    a.sort((p, q) => lum(p) - lum(q));
+    const pick = f => hex(a[Math.floor(a.length * f)]);
+    patches.push({ name, at: `ref0${ref}.jpg @ ${x},${y} (±${hs})`, dark: pick(0.2), mid: pick(0.5), light: pick(0.8) });
+  }
+  window.RESULT = { all: out, threads, patches }; window.DONE = true;
+})();
+</script></body></html>

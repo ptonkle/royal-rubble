@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Stitch swatch</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas>
+<script src="stitch.js"></script>
+<script>
+(async () => {
+  const q = new URLSearchParams(location.search), zoom = +(q.get("zoom") || 1);
+  const W = innerWidth, H = innerHeight, c = document.getElementById("c");
+  c.width = W; c.height = H;
+  const ctx = c.getContext("2d");
+  const palette = await (await fetch("palette.json")).json();
+  const S = Stitch.create(ctx, palette, { zoom }, 7);
+  ctx.scale(zoom, zoom);
+  S.scale(zoom); // geometry in 1x units; stitches follow zoom anyway
+  S.linen(0, 0, W / zoom, H / zoom);
+  S.border(0, 8, W / zoom, 96);
+  const names = Object.keys(palette.wool);
+  names.forEach((n, i) => {
+    const x = 30 + (i % 6) * 190, y = 140 + Math.floor(i / 6) * 170;
+    const ring = [[x, y + 10], [x + 150, y], [x + 160, y + 120], [x + 10, y + 130]];
+    S.patch(ring, n, i % 2 ? "navy" : "rule", { angle: i % 3 ? Math.PI / 2 : 0 });
+    S.letters(n.toUpperCase(), x + 4, y + 158, 18, ["navy"]);
+  });
+  S.running(S.curve([[60, 520], [300, 470], [600, 560], [900, 480]]), "rule");
+  S.stem(S.curve([[60, 560], [300, 600], [600, 540], [1100, 600]]), "slate");
+  S.letters("HIC TREBVCHETVM : LAPIDEM IACIT · 0123456789", 40, 660, 34, ["navy", "rule", "slate"]);
+  window.DONE = true;
+})();
+</script></body></html>
