@@ -57,6 +57,7 @@
   "lobby.match": "Match",
   "lobby.players": "Players",
   "lobby.wind": "Wind",
+  "lobby.flat": "Flat map",
   "seat.default_name": "Player {n}",
   "seat.bot": "Bot",
   "seat.host": "Host",
@@ -93,7 +94,6 @@
   "air.dive": "Dive",
   "air.boost": "Boost",
   "air.hover": "Hover",
-  "seat.bot_n": "Bot {n}",
   "phase.upgrade": "Upgrade",
   "phase.build": "Build",
   "phase.siege": "Siege",
@@ -161,5 +161,8 @@
   "tip.air.split": "Break into three",
   "tip.air.dive": "Dive straight down",
   "tip.air.boost": "Speed up",
-  "tip.air.hover": "Hang still"
+  "tip.air.hover": "Hang still",
+  "pause.heading": "Paused",
+  "pause.resume": "Resume",
+  "pause.leave": "Leave match"
 }

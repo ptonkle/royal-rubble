@@ -24,6 +24,7 @@ fn start(bots: usize, seed: u64) -> MatchStart {
         options: Options {
             players: bots as u32 + 1,
             wind: true,
+            flat: false,
         },
     }
 }
@@ -362,4 +363,32 @@ fn arena_the_siege_view_never_shows_past_the_world_edges() {
             panic!("tick {k}: {e}");
         }
     }
+}
+
+#[test]
+fn flat_map_option_levels_every_column_and_drains_the_water() {
+    let s = Strings::parse(&sample()).unwrap();
+    let mut st = start(1, 7);
+    st.options.flat = true;
+    let a = Arena::new(&st, "me", true, &s).unwrap();
+    let t = &a.play.rules.terrain;
+    let h = t.heights[t.launch_col];
+    assert!(t.heights.iter().all(|&v| v == h));
+    assert!(t.water.cols.is_empty());
+    assert!(!t.spots.is_empty(), "spots still land on level ground");
+    // the same seed without the option keeps its hills
+    let hilly = arena(1);
+    let ht = &hilly.play.rules.terrain;
+    assert!(ht.heights.iter().any(|&v| v != ht.heights[ht.launch_col]));
+}
+
+#[test]
+fn bot_names_come_from_the_list_and_differ_by_seat() {
+    let a = arena(3);
+    let list = crate::app::bot_names::all();
+    assert_eq!(a.names[0], "seat.you");
+    for n in &a.names[1..] {
+        assert!(list.contains(n), "{n} not in the list");
+    }
+    assert!(a.names[1] != a.names[2] && a.names[2] != a.names[3] && a.names[1] != a.names[3]);
 }

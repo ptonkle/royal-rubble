@@ -67,6 +67,7 @@ pub const KEYS: &[&str] = &[
     "lobby.match",
     "lobby.players",
     "lobby.wind",
+    "lobby.flat",
     "seat.default_name",
     "seat.bot",
     "seat.host",
@@ -103,7 +104,6 @@ pub const KEYS: &[&str] = &[
     "air.dive",
     "air.boost",
     "air.hover",
-    "seat.bot_n",
     "phase.upgrade",
     "phase.build",
     "phase.siege",
@@ -172,6 +172,9 @@ pub const KEYS: &[&str] = &[
     "tip.air.dive",
     "tip.air.boost",
     "tip.air.hover",
+    "pause.heading",
+    "pause.resume",
+    "pause.leave",
 ];
 
 /// The strings file, checked.

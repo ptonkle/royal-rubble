@@ -77,6 +77,9 @@ pub enum Who {
 pub struct Options {
     pub players: u32,
     pub wind: bool,
+    /// Flat ground in place of the seeded hills and water.
+    #[serde(default)]
+    pub flat: bool,
 }
 
 impl Default for Options {
@@ -84,6 +87,7 @@ impl Default for Options {
         Options {
             players: MIN_PLAYERS as u32,
             wind: true,
+            flat: false,
         }
     }
 }
@@ -259,6 +263,10 @@ impl Lobby {
         self.options.wind = on;
     }
 
+    pub fn set_flat(&mut self, on: bool) {
+        self.options.flat = on;
+    }
+
     /// Every person but the host has pressed Ready.
     pub fn everyone_ready(&self) -> bool {
         self.seats.iter().all(|s| match s {
@@ -318,7 +326,8 @@ mod tests {
             l.options,
             Options {
                 players: 2,
-                wind: true
+                wind: true,
+                flat: false
             }
         );
         assert!(matches!(&l.seats[0], Who::Person { name, .. } if name == "Ann"));

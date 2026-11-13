@@ -311,6 +311,7 @@ fn match_with(seats: Vec<Seat>, seed: u64) -> Play {
         seats,
         wind: false,
         seed,
+        flat: false,
     })
     .unwrap();
     p.start().unwrap();

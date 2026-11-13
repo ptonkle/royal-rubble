@@ -209,6 +209,12 @@ impl App {
                 value: o.wind,
                 disabled: !host,
             },
+            Item::Toggle {
+                id: "lobby.flat".into(),
+                label: self.strings.get("lobby.flat"),
+                value: o.flat,
+                disabled: !host,
+            },
         ];
         let problem = room.lobby.start_problem();
         if let Some(key) = problem {

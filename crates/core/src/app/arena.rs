@@ -301,7 +301,8 @@ impl Arena {
     /// A match from the lobby's start: bots in their seats, `client` is you.
     pub fn new(start: &MatchStart, client: &str, fast: bool, s: &Strings) -> Result<Arena, String> {
         let me = start.seats.iter().position(|st| st.person == client).unwrap_or(0) as PlayerId;
-        let mut bot_n = 0;
+        let bots = start.seats.iter().filter(|st| st.bot.is_some()).count();
+        let mut bot_names = super::bot_names::draw(&super::bot_names::all(), start.seed, bots).into_iter();
         let names = start
             .seats
             .iter()
@@ -310,8 +311,7 @@ impl Arena {
                 if i as PlayerId == me {
                     s.get("seat.you")
                 } else if st.bot.is_some() {
-                    bot_n += 1;
-                    s.fill("seat.bot_n", &[("n", bot_n.to_string())])
+                    bot_names.next().unwrap_or_default()
                 } else {
                     st.name.clone()
                 }
@@ -370,6 +370,20 @@ impl Arena {
         a.seen_round = a.play.rules.round;
         a.rebuild();
         Ok(a)
+    }
+
+    /// Moves the clock on by `ms` paused, so a solo match does not catch up
+    /// the time spent in the pause menu.
+    pub fn hold(&mut self, ms: i64) {
+        if let Some(c) = &mut self.clock {
+            *c += ms;
+        }
+    }
+
+    /// Ticks run so far by this browser's clock.
+    #[cfg(test)]
+    pub(crate) fn ticks_run(&self) -> i64 {
+        self.stepped
     }
 
     pub fn is_online(&self) -> bool {
