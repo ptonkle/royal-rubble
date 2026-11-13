@@ -54,16 +54,29 @@ def gpu_window():
     return os.path.exists("/dev/dxg") and shutil.which("Xvfb") is not None and not forced
 
 
+# No sound from a check: on WSL a headless browser still reaches the
+# person's speakers through WSLg's PulseAudio, so every browser gets a sound
+# server that does not exist (and Chromium is muted as well).
+SILENT = {"PULSE_SERVER": "unix:/nonexistent-royal-rubble-check"}
+
+
 def launch(p, engine, **options):
     """`options` are Playwright's; a window on the GPU adds its own args."""
     if engine == "chromium" and gpu_window():
         # the env goes to the browser itself (Playwright's driver started
         # before this); no Wayland, so the window can only go to Xvfb
         env = {k: v for k, v in os.environ.items() if k != "WAYLAND_DISPLAY"}
-        env.update(DISPLAY=_xvfb(), GALLIUM_DRIVER="d3d12")
-        args = GPU_ARGS + options.pop("args", [])
+        env.update(DISPLAY=_xvfb(), GALLIUM_DRIVER="d3d12", **SILENT)
+        args = GPU_ARGS + ["--mute-audio"] + options.pop("args", [])
         return p.chromium.launch(channel="chromium", headless=False, args=args, env=env, **options)
-    return getattr(p, engine).launch(**options)
+    env = dict(os.environ, **SILENT)
+    env.update(options.pop("env", {}))
+    if engine == "chromium":
+        options["args"] = ["--mute-audio"] + options.pop("args", [])
+    if engine == "firefox":
+        prefs = options.pop("firefox_user_prefs", {})
+        options["firefox_user_prefs"] = {"media.volume_scale": "0.0", **prefs}
+    return getattr(p, engine).launch(env=env, **options)
 
 
 def renderer(page):
