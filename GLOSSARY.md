@@ -111,6 +111,14 @@ The six letters that let friends join a room. Copy link sends the same code as a
 
 Not: game code
 
+### Flat map
+
+A lobby option: level ground with no hills, cliffs or water.
+
+### Paused
+
+The menu Esc opens during a match. A match against bots stops while it shows.
+
 ### Wind
 
 Air that pushes every shot the same way. It changes each round and can be turned off in the lobby.

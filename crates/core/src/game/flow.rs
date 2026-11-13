@@ -41,6 +41,8 @@ pub struct Settings {
     pub seats: Vec<Seat>,
     pub wind: bool,
     pub seed: u64,
+    /// Flat ground (the lobby's Flat map).
+    pub flat: bool,
 }
 
 impl Settings {
@@ -214,7 +216,11 @@ pub fn is_upgrade_round(round: u32) -> bool {
 impl Match {
     pub fn new(settings: Settings) -> Result<Self, Refusal> {
         settings.validate()?;
-        let ground = terrain::Plot::generate(settings.seed);
+        let ground = if settings.flat {
+            terrain::Plot::generate_flat(settings.seed)
+        } else {
+            terrain::Plot::generate(settings.seed)
+        };
         let players = settings
             .seats
             .iter()
@@ -643,6 +649,7 @@ mod tests {
             seats: vec![Seat::Human; n],
             wind: true,
             seed: 11,
+            flat: false,
         })
         .unwrap();
         m.start().unwrap();
@@ -662,6 +669,7 @@ mod tests {
             seats: vec![Seat::Human; n],
             wind: false,
             seed: 0,
+            flat: false,
         };
         assert_eq!(Match::new(s(1)).unwrap_err(), Refusal::BadSettings);
         assert_eq!(Match::new(s(9)).unwrap_err(), Refusal::BadSettings);
@@ -921,6 +929,7 @@ mod tests {
             seats,
             wind: true,
             seed: 5,
+            flat: false,
         })
         .unwrap();
         m.start().unwrap();

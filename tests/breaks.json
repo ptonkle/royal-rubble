@@ -1216,5 +1216,61 @@
     "find": "p.attacker == attacker && p.key == key)",
     "replace": "p.attacker == attacker)",
     "test": "botplan_build_planning_starts_again_when_the_castle_changed"
+  },
+  {
+    "name": "pause resume skips the paused time",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "            *c += ms;\n",
+    "replace": "",
+    "test": "pause_menu_stops_a_solo_match_and_resume_skips_the_time_paused"
+  },
+  {
+    "name": "pause holds a solo match still",
+    "file": "crates/core/src/app.rs",
+    "find": "                (_, Some(_)) => {}\n",
+    "replace": "                (_, Some(_)) => a.pump(now_ms, 0, None, net_tick),\n",
+    "test": "pause_menu_stops_a_solo_match_and_resume_skips_the_time_paused"
+  },
+  {
+    "name": "pause esc backs out of pause settings",
+    "file": "crates/core/src/app.rs",
+    "find": "            (Screen::Play, Pause::Settings) => \"pause.back\",\n",
+    "replace": "",
+    "test": "pause_escape_walks_pause_settings_and_back"
+  },
+  {
+    "name": "flat map levels the ground",
+    "file": "crates/core/src/terrain/mod.rs",
+    "find": "        plot.heights.iter_mut().for_each(|v| *v = h);\n",
+    "replace": "",
+    "test": "flat_map_option_levels_every_column_and_drains_the_water"
+  },
+  {
+    "name": "flat map reaches the match",
+    "file": "crates/core/src/play/online.rs",
+    "find": "        flat: start.options.flat,",
+    "replace": "        flat: false,",
+    "test": "flat_map_option_levels_every_column_and_drains_the_water"
+  },
+  {
+    "name": "bot names never repeat",
+    "file": "crates/core/src/app/bot_names.rs",
+    "find": "out.push(list[pool.swap_remove(i)].clone());",
+    "replace": "out.push(list[pool[i]].clone());",
+    "test": "bot_names_never_repeat_within_the_list"
+  },
+  {
+    "name": "bot names follow the seed",
+    "file": "crates/core/src/app/bot_names.rs",
+    "find": "let mut rng = Rng::new(seed ^ SALT);",
+    "replace": "let mut rng = Rng::new(SALT);",
+    "test": "bot_names_follow_the_seed"
+  },
+  {
+    "name": "bot names reach the arena",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                    bot_names.next().unwrap_or_default()",
+    "replace": "                    st.name.clone()",
+    "test": "bot_names_come_from_the_list_and_differ_by_seat"
   }
 ]

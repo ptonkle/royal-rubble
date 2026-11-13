@@ -254,7 +254,10 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R1.3005 | worklist | The siege view frames the shot | While aiming, the camera sits over the target plot and your trebuchet is cut off at the bottom right, under the version label (`notes/shots/late-r7-siege0-1200ms.png`, `late-r8-siege1-2000ms.png`); the earlier round (`late-r5-siege0-250ms.png`) shows your trebuchet and no target. The version label overlaps the field during play | | | open |
 | R1.3006 | finding | 250 ms after release is mid-flight | ?fast runs 8x, so a 2 s flight is over in 250 ms and every first run frame was after impact with no shot or debris in view. Frames now at 40, 90, 150 and 300 ms. A second run showed the real cause: the ammo count does not drop after the two Space presses (Normal 3 before and after), so the script throws nothing and no flight or debris was ever captured; `play_match.py` uses the same presses. Next: hold Space with keyboard.down/up across 42 game ticks, or check where the page listens for keys | `scripts/play_late.py` `SIEGE_AT_MS` | | open |
 | R1.3007 | finding | 8 players crowd the HUD | The health list holds 8 names without clipping (`notes/shots/late-r5-build.png`) and Results lists 8 places (`notes/shots/late-results.png`); the lobby holds 8 seats (`late-lobby.png`). Nothing to fix there | | | done |
-
+| R1.3500 | divergence | What's New scrolled the whole page | `#menus` pads the window by the border strip plus 1.5rem top and bottom (216px at 1080p), and the notes panel was capped at the window less 6rem, so the page was 120px taller than the window | The notes panel is capped inside that padding and is a column whose list alone scrolls | `web/style.css` `.panel.notes` | done |
+| R1.3501 | finding | Settings could open during a match | Esc now asks the core what to do (`ui.escape`): in a match it opens Paused (Resume, Settings, Leave match); in Paused, Resume; in its Settings, Back; on Settings, What's New and Join, Back. A solo match stops its clock while paused and skips the time on Resume (`Arena::hold`); an online match plays on, with no keys from you | `app.rs` `Pause`, `escape`; tests `pause_*` | | done |
+| R1.3502 | worklist | Bots needed names | 40 lord-and-king names in `data/bot-names.json`, drawn without repeats from the match seed, so every browser in a room agrees. `seat.bot_n` ("Bot {n}") is gone. Read the list and strike or add names | `crates/core/src/app/bot_names.rs` | | person |
+| R1.3503 | finding | A flat map option needed new terrain | `Plot::generate_flat` keeps the seeded layout (pad, gap columns, plot, spots) with every column at the launch pad's height, the water emptied and the features cleared. The lobby option `Options::flat` is `#[serde(default)]`, so an older host's lobby still reads | `terrain/mod.rs`, `lobby.rs`, `game::flow::Settings::flat` | | done |
 ## Strings written by the agent
 
 Each reader-visible string the agent wrote, with its key, for the person to read.
@@ -313,7 +316,6 @@ Each reader-visible string the agent wrote, with its key, for the person to read
 | ammo.normal / heavy / fire / spread | Normal, Heavy, Fire, Spread |
 | air.drop / reverse / phase / split | Drop, Reverse, Phase, Split |
 | GLOSSARY.md | Build, Drop, Fire, Heavy, Metal, Normal, Phase, Reverse, Rope, Sandbox, Siege, Split, Spread, Stone, Test, Wood |
-| seat.bot_n | Bot {n} |
 | phase.upgrade / build / siege | Upgrade, Build, Siege |
 | hud.round / hud.phase | Round {n}; {phase} {n} |
 | hud.gold / level / xp / xp_max | Gold {n}; Level {n}; XP {n}/{m}; XP max |
@@ -333,3 +335,7 @@ Each reader-visible string the agent wrote, with its key, for the person to read
 | results.lobby | Back to lobby |
 | online.desync | Out of sync |
 | GLOSSARY.md | Armory, Boost, Carpenter, Chain, Dive, Exploding, Gold, Hover, Level, Meteor, Mine, Prismatic, Quarry, Ready, Reroll, Results, Round, Scout, Silver, Target, XP |
+| lobby.flat | Flat map |
+| pause.heading / resume / leave | Paused; Resume; Leave match |
+| data/bot-names.json | 40 bot names (R1.3502) |
+| GLOSSARY.md | Flat map, Paused |
