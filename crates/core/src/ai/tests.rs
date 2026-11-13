@@ -103,3 +103,146 @@ fn ai_easy_misses_on_purpose_and_hard_never_does() {
     assert!(distinct(Difficulty::Easy) >= 3);
     assert_eq!(distinct(Difficulty::Hard), 1);
 }
+
+// ---- Castle plans ----------------------------------------------------------
+
+use super::build::*;
+use crate::game::ledger::{BuildingKind, Material as Mat, Stock};
+use crate::terrain::{Plot, SpotKind};
+
+fn ask(plot: &Plot, level: u8, gold: u32, royals: usize, seed: u64) -> BuildAsk<'_> {
+    BuildAsk {
+        plot,
+        level,
+        gold,
+        stock: Stock::default(),
+        royals,
+        buildings: &[],
+        difficulty: Difficulty::Normal,
+        seed,
+    }
+}
+
+#[test]
+fn ai_castle_plans_stand_up_across_seeds_and_levels() {
+    for seed in 0..30u64 {
+        let plot = Plot::generate(seed);
+        for level in 1..=9u8 {
+            let gold = 10 + 12 * level as u32;
+            let plan = plan_castle(&ask(&plot, level, gold, 2 + level as usize, seed));
+            assert!(
+                plan.segments.len() >= 6,
+                "seed {seed} level {level}: {} segments",
+                plan.segments.len()
+            );
+            let (w, royals) = to_world(&plan, &plot);
+            assert_eq!(royals.len(), plan.royals.len());
+            let r = w.static_test(240);
+            assert!(
+                r.broken.is_empty(),
+                "seed {seed} level {level}: {} broke of {}",
+                r.broken.len(),
+                plan.segments.len()
+            );
+        }
+    }
+}
+
+#[test]
+fn ai_castle_plans_fit_the_span_height_budget_and_unlocks() {
+    for seed in 0..30u64 {
+        let plot = Plot::generate(seed);
+        for level in 1..=9u8 {
+            let gold = 4 + 9 * level as u32;
+            let plan = plan_castle(&ask(&plot, level, gold, 3, seed));
+            assert!(
+                plan.gold <= gold,
+                "seed {seed} level {level}: spent {} of {gold}",
+                plan.gold
+            );
+            let span = plot.buildable(level);
+            let (lo, hi) = (super::units::col_x(span.start), super::units::col_x(span.end));
+            let roof = super::units::cells_to_fx(
+                plot.heights[span.start..span.end].iter().copied().max().unwrap() + Plot::build_height(level),
+            );
+            for s in &plan.segments {
+                for p in [s.a, s.b] {
+                    assert!(
+                        p.x >= lo && p.x <= hi,
+                        "seed {seed} level {level}: x {:?} outside",
+                        p.x
+                    );
+                    assert!(p.y <= roof, "seed {seed} level {level}: too tall");
+                }
+                let unlock = match s.material {
+                    Mat::Wood => 1,
+                    Mat::Stone => 4,
+                    Mat::Metal => 7,
+                };
+                assert!(
+                    level >= unlock,
+                    "seed {seed} level {level}: {:?} locked",
+                    s.material
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn ai_castle_builds_stone_from_level_four_when_it_can_afford_it() {
+    let plot = Plot::generate(3);
+    let has = |level: u8, m: Mat| {
+        plan_castle(&ask(&plot, level, 200, 2, 3))
+            .segments
+            .iter()
+            .any(|s| s.material == m)
+    };
+    assert!(!has(3, Mat::Stone));
+    assert!(has(4, Mat::Stone));
+    assert!(has(7, Mat::Metal));
+}
+
+#[test]
+fn ai_castle_royals_keep_their_spacing_on_upper_floors() {
+    let plot = Plot::generate(5);
+    let plan = plan_castle(&ask(&plot, 6, 120, 3, 5));
+    assert_eq!(plan.royals.len(), 3);
+    let spacing = super::units::royal_spacing();
+    for (i, a) in plan.royals.iter().enumerate() {
+        for b in &plan.royals[i + 1..] {
+            assert!((a.at - b.at).len() >= spacing, "{:?} {:?}", a.at, b.at);
+        }
+    }
+    // the first royal goes on an upper floor, under the roof
+    let first = plan.royals[0].at.y;
+    let ys: Vec<Fx> = plan.segments.iter().flat_map(|s| [s.a.y, s.b.y]).collect();
+    let (low, roof) = (*ys.iter().min().unwrap(), *ys.iter().max().unwrap());
+    assert!(
+        first > low + Fx::from_int(2) - Fx::HALF && first < roof,
+        "{first:?} in {low:?}..{roof:?}"
+    );
+}
+
+#[test]
+fn ai_castle_puts_a_producer_on_its_own_spot() {
+    let plot = (0..200u64)
+        .map(Plot::generate)
+        .find(|p| {
+            let span = p.buildable(2);
+            p.spots
+                .iter()
+                .any(|s| s.kind == SpotKind::Forest && span.contains(s.cols.start))
+        })
+        .expect("some seed has a forest open at level 2");
+    let mut a = ask(&plot, 2, 30, 1, 1);
+    a.buildings = &[BuildingKind::Carpenter];
+    let plan = plan_castle(&a);
+    assert_eq!(plan.buildings.len(), 1);
+    let col = plan.buildings[0].col;
+    assert!(plot
+        .spots
+        .iter()
+        .any(|s| s.kind == SpotKind::Forest && s.cols.contains(col)));
+    assert!(plan.gold <= 30);
+}

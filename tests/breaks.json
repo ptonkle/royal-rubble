@@ -432,5 +432,68 @@
     "find": "if !terrain.buildable(level).contains(col) {",
     "replace": "if false {",
     "test": "spot_building_outside_the_buildable_span_is_refused"
+  },
+  {
+    "name": "botai: aim flies through the wind",
+    "file": "crates/core/src/ai/aim.rs",
+    "find": "    b.vel.x += wind;\n",
+    "replace": "",
+    "test": "ai_hard_bot_compensates_for_wind"
+  },
+  {
+    "name": "botai: aim keeps the closest flights",
+    "file": "crates/core/src/ai/aim.rs",
+    "find": "ranked.sort_by_key(|(d, p)| (*d,",
+    "replace": "ranked.sort_by_key(|(d, p)| (-*d,",
+    "test": "ai_hard_bot_hits_a_lone_royal_within_three_shots"
+  },
+  {
+    "name": "botai: aim tries air effects",
+    "file": "crates/core/src/ai/aim.rs",
+    "find": "            let mut balls = vec![path[at as usize]];\n            apply_effect(&mut balls, e);\n",
+    "replace": "            let balls = vec![path[at as usize]];\n",
+    "test": "ai_drop_effect_lands_a_shot_between_plain_landings"
+  },
+  {
+    "name": "botai: easy misses on purpose",
+    "file": "crates/core/src/ai/aim.rs",
+    "find": "if a.miss_ticks > 0 && rng.chance",
+    "replace": "if a.miss_ticks > 99 && rng.chance",
+    "test": "ai_easy_misses_on_purpose_and_hard_never_does"
+  },
+  {
+    "name": "botai: castle height is capped",
+    "file": "crates/core/src/ai/tune.rs",
+    "find": "pub const MAX_FLOORS: [i64; 9] = [3, 3, 4, 4, 5, 5, 6, 6, 7];",
+    "replace": "pub const MAX_FLOORS: [i64; 9] = [30; 9];",
+    "test": "ai_castle_plans_stand_up_across_seeds_and_levels"
+  },
+  {
+    "name": "botai: castle stays in budget",
+    "file": "crates/core/src/ai/build.rs",
+    "find": "(spent <= gold).then_some((spent, used))",
+    "replace": "Some((spent, used))",
+    "test": "ai_castle_plans_fit_the_span_height_budget_and_unlocks"
+  },
+  {
+    "name": "botai: castle stone from level four",
+    "file": "crates/core/src/ai/tune.rs",
+    "find": "pub const STONE_LEVEL: u8 = 4;",
+    "replace": "pub const STONE_LEVEL: u8 = 5;",
+    "test": "ai_castle_builds_stone_from_level_four_when_it_can_afford_it"
+  },
+  {
+    "name": "botai: castle royals keep spacing",
+    "file": "crates/core/src/ai/build.rs",
+    "find": "(gap >= spacing, inside, k, gap, s, at)",
+    "replace": "(gap >= Fx::ZERO, inside, k, gap, s, at)",
+    "test": "ai_castle_royals_keep_their_spacing_on_upper_floors"
+  },
+  {
+    "name": "botai: castle producer on its spot",
+    "file": "crates/core/src/ai/build.rs",
+    "find": "let col = sites::best_column(plot, level, kind, &taken);",
+    "replace": "let col = plot.buildable(level).start + taken.len();",
+    "test": "ai_castle_puts_a_producer_on_its_own_spot"
   }
 ]

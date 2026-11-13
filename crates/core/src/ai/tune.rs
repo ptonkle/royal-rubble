@@ -79,6 +79,20 @@ pub const METAL_LEVEL: u8 = 7;
 pub const BAY_UNITS: i64 = 1;
 pub const FLOOR_UNITS: i64 = 1;
 
+/// Columns kept clear between the plot's front edge and the castle.
+pub const FRONT_SETBACK: usize = 4;
+/// Widest a template's width parameter goes, in bays.
+pub const MAX_BAYS: i64 = 12;
+
+/// A stronger column material is chosen when its best castle is worth at
+/// least this share (num, den) of the best castle in any material.
+pub const STRONGER_SHARE: (u32, u32) = (1, 2);
+
+/// A royal's radius (the physics tests' body size).
+pub fn royal_radius() -> crate::physics::Fx {
+    crate::physics::Fx::ratio(1, 4)
+}
+
 /// Floors a template may rise to, by level (index level - 1).
 pub const MAX_FLOORS: [i64; 9] = [3, 3, 4, 4, 5, 5, 6, 6, 7];
 
