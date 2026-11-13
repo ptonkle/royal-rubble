@@ -1861,7 +1861,7 @@ impl Arena {
                 text,
                 key: (k + 1).to_string(),
                 selected: self.tool == Tool::Beam(*piece),
-                disabled: level < ledger::unlock_level(*piece),
+                disabled: level < ledger::unlock_level(*piece) && stock == 0,
             });
         }
         let unplaced = (0..me.royals.len())

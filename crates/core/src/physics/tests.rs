@@ -520,8 +520,8 @@ fn trebuchet_pose_holds_the_shot_until_release_then_the_arm_rocks_and_rests() {
 #[test]
 fn trebuchet_arm_turns_at_a_steady_speed_through_the_release_block() {
     // R1.1803, the person: "a consistentish speed of swinging around"; from
-    // tick 15 to the last forward-and-up release the fastest tick is under twice
-    // the slowest
+    // tick 30 (the speed-up's end; 15 before R1.3700 halved the arm speed) to
+    // the last forward-and-up release the fastest tick is under twice the slowest
     let base = Vec2::ints(0, 0);
     let last = (0..trebuchet::SWING_END)
         .filter(|&t| {
@@ -530,7 +530,7 @@ fn trebuchet_arm_turns_at_a_steady_speed_through_the_release_block() {
         })
         .max()
         .unwrap();
-    let speeds: Vec<i64> = (15..=last).map(|t| arm_at(t).1).collect();
+    let speeds: Vec<i64> = (30..=last).map(|t| arm_at(t).1).collect();
     let (lo, hi) = (*speeds.iter().min().unwrap(), *speeds.iter().max().unwrap());
     assert!(lo > 0 && hi < lo * 2, "speeds {lo} to {hi}");
 }
@@ -578,11 +578,12 @@ fn trebuchet_sixteenth_release_lands_between_whole_ticks() {
     // R1.2100: through the flat part of the forward window each sixteenth
     // of a tick moves the landing a little, the same way, and none jumps
     // more than a quarter of the whole tick's move
-    for t in [65u32, 70, 85] {
+    // the ticks doubled when R1.3700 halved the arm speed and moved off the top of the range (were 65, 70, 85)
+    for t in [105u32, 115, 125] {
         let a = sixteenth_landing(t * RELEASE_PARTS);
         let b = sixteenth_landing((t + 1) * RELEASE_PARTS);
         let whole = (b - a).abs();
-        assert!(whole > Fx::ONE.raw() * 2, "tick {t}: whole-tick move {whole}");
+        assert!(whole > Fx::ONE.raw(), "tick {t}: whole-tick move {whole}");
         let mut prev = a;
         for f in 1..=RELEASE_PARTS {
             let x = sixteenth_landing(t * RELEASE_PARTS + f);
