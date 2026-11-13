@@ -206,7 +206,10 @@ fn online_two_lagged_browsers_play_a_whole_match_and_agree_every_second() {
     let standings = want.play.rules.standings();
     for k in 0..2 {
         assert_eq!(pair.games[k].play.rules.standings(), standings, "browser {k}");
-        assert_eq!(pair.games[k].play.rules.round, want.play.rules.round, "browser {k}");
+        assert_eq!(
+            pair.games[k].play.rules.round, want.play.rules.round,
+            "browser {k}"
+        );
     }
 }
 
@@ -333,4 +336,3 @@ fn online_release_part_survives_packing() {
         assert_eq!(unpack(k), Some(Input::Release(part)));
     }
 }
-
