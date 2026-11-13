@@ -26,9 +26,30 @@ fn problems(p: &Plot) -> Vec<String> {
         .collect();
     for c in p.plot.start + 1..p.plot.end {
         let rise = (p.heights[c] - p.heights[c - 1]).abs();
-        if rise > MAX_STEP && !cliff_cols.contains(&c) {
+        if rise > PLOT_STEEP && !cliff_cols.contains(&c) {
             out.push(format!("seed {s}: column {c} too steep"));
         }
+    }
+    for l in 1..=MAX_LEVEL {
+        let span = p.buildable(l);
+        let gentle = (span.start + 1..span.end)
+            .filter(|&c| (p.heights[c] - p.heights[c - 1]).abs() <= MAX_STEP)
+            .count();
+        if gentle * 100 < (span.len() - 1) * BUILDABLE_PCT {
+            out.push(format!(
+                "seed {s}: level {l} has {gentle} gentle columns of {}",
+                span.len()
+            ));
+        }
+    }
+    for c in p.between.start..p.between.end {
+        if p.heights[c] > p.arc_cap(c) {
+            out.push(format!("seed {s}: column {c} too high to shoot over"));
+        }
+    }
+    let dist = (p.plot.start - p.launch_col) as i32;
+    if dist < DIST.0 || dist > DIST.1 || p.between.end != p.gap.start {
+        out.push(format!("seed {s}: plot front {dist} columns from the trebuchet"));
     }
     if cliff_cols
         .iter()
@@ -164,4 +185,54 @@ fn terrain_first_spots_open_at_level_1() {
             .count();
         assert!(early >= SPOTS_AT_LEVEL_1, "seed {seed}: {early}");
     }
+}
+
+#[test]
+fn terrain_open_country_stays_under_the_arc_cap() {
+    let p = Plot::generate(5);
+    assert!(!p.between.is_empty());
+    let (l, f) = (p.launch_col, p.plot.start);
+    // the cap is the chord at both ends and rises above it in between
+    assert_eq!(p.arc_cap(l), p.heights[l]);
+    assert_eq!(p.arc_cap(f), p.heights[f]);
+    let mid = (l + f) / 2;
+    let chord = (p.heights[l] + p.heights[f]) / 2;
+    assert!(p.arc_cap(mid) > chord + 10 * CELL);
+    assert!(p.heights[p.between.start..p.between.end]
+        .iter()
+        .zip(p.between.start..)
+        .all(|(&h, c)| h <= p.arc_cap(c)));
+}
+
+#[test]
+fn terrain_relief_is_strong_and_varies_by_seed() {
+    let mut above = 0;
+    let mut below = 0;
+    for seed in 0..100u64 {
+        let p = Plot::generate(seed);
+        let hi = p.heights.iter().copied().max().unwrap_or(0);
+        let lo = p.heights.iter().copied().min().unwrap_or(0);
+        assert!(hi - lo >= 15 * CELL, "seed {seed}: relief {}", (hi - lo) / CELL);
+        let pad = p.heights[p.launch_col];
+        let front = p.heights[p.plot.start];
+        if pad > front {
+            above += 1;
+        } else {
+            below += 1;
+        }
+    }
+    assert!(above >= 25 && below >= 25, "{above} above, {below} below");
+}
+
+#[test]
+fn terrain_plot_front_is_far_from_the_trebuchet() {
+    let d: Vec<usize> = (0..100u64)
+        .map(|s| {
+            let p = Plot::generate(s);
+            p.plot.start - p.launch_col
+        })
+        .collect();
+    let (lo, hi) = (d.iter().min().copied(), d.iter().max().copied());
+    assert!(lo >= Some(DIST.0 as usize) && hi <= Some(DIST.1 as usize));
+    assert!(hi.unwrap_or(0) - lo.unwrap_or(0) >= 20, "{lo:?}..{hi:?}");
 }

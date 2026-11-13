@@ -6,16 +6,17 @@
 //!
 //! Key: brown ground, blue water, a red post at the launch column, colored
 //! blocks for spots, gray lines for ruin segments, and under each map a bar
-//! for the plot (dark for level 1, light for the rest up to level 9).
+//! for the plot (dark for level 1, light for the rest up to level 9). Orange
+//! dots: the highest the open country may stand (`Plot::arc_cap`).
 
 use std::fs;
 use std::path::Path;
 use tool_core::terrain::{Plot, SpotKind, CELL};
 
-const PX_COL: i32 = 4;
-const PX_CELL: i32 = 4;
-const PANEL_W: i32 = 680;
-const PANEL_H: i32 = 240;
+const PX_COL: i32 = 3;
+const PX_CELL: i32 = 3;
+const PANEL_W: i32 = 820;
+const PANEL_H: i32 = 270;
 const COLS: i32 = 2;
 const ROWS: i32 = 6;
 
@@ -63,7 +64,9 @@ fn spot_color(k: SpotKind) -> [u8; 3] {
 
 fn draw(img: &mut Image, p: &Plot, ox: i32, oy: i32) {
     let base = oy + PANEL_H - 24;
-    let y_of = |h: i32| base - h * PX_CELL / CELL;
+    // the lowest ground sits a few cells above the panel's foot
+    let floor = p.heights.iter().copied().min().unwrap_or(0) - 4 * CELL;
+    let y_of = |h: i32| base - (h - floor) * PX_CELL / CELL;
     img.rect(ox, oy, ox + PANEL_W, oy + PANEL_H, [200, 225, 245]);
     for (c, &h) in p.heights.iter().enumerate() {
         let x = ox + 4 + c as i32 * PX_COL;
@@ -72,6 +75,12 @@ fn draw(img: &mut Image, p: &Plot, ox: i32, oy: i32) {
             img.rect(x, y_of(p.water.level), x + PX_COL, y_of(h), [40, 90, 200]);
         }
         img.rect(x, y_of(h), x + PX_COL, base, [120, 85, 50]);
+    }
+    // the arc cap over the open country, dotted
+    for c in (p.between.start..p.between.end).step_by(2) {
+        let x = ox + 4 + c as i32 * PX_COL;
+        let y = y_of(p.arc_cap(c));
+        img.rect(x, y, x + 2, y + 2, [240, 140, 40]);
     }
     let lx = ox + 4 + p.launch_col as i32 * PX_COL;
     let lh = y_of(p.heights[p.launch_col]);
