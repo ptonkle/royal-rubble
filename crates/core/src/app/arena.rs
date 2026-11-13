@@ -83,6 +83,20 @@ const INSET_TOP: i32 = 180;
 const CUES_KEPT: usize = 24;
 /// Breaks in one tick that sound as a collapse.
 const COLLAPSE_MIN: u32 = 3;
+/// Siege camera (R1.1454), in world units: margin round the castle, how far
+/// behind a shot or the trebuchet the view starts, widest flight view, the
+/// aim view's width range, and an empty castle's stand-in size.
+const CAM_MARGIN: i64 = 3;
+const CAM_BEHIND: i64 = 6;
+const CAM_FLY_MAX_W: i64 = 44;
+const CAM_AIM_MIN_W: i64 = 24;
+const CAM_AIM_MAX_W: i64 = 44;
+const CAM_EMPTY_W: i64 = 10;
+const CAM_MIN_TALL: i64 = 4;
+/// The settled castle fills at least this share (num, den) of the height.
+const CAM_CASTLE_SHARE: (i64, i64) = (35, 100);
+/// Each tick the view moves this fraction (1/n) of the way to its target.
+const CAM_EASE: i64 = 8;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Tool {
@@ -253,6 +267,8 @@ pub struct Arena {
     auto_released: Option<u32>,
     seen_phase: Phase,
     seen_round: u32,
+    /// The siege view as shown, easing toward `camera_target` each tick.
+    eye: Option<Camera>,
 }
 
 impl Arena {
@@ -306,6 +322,7 @@ impl Arena {
             auto_released: None,
             seen_phase,
             seen_round,
+            eye: None,
         };
         a.rebuild();
         Ok(a)
@@ -431,21 +448,47 @@ impl Arena {
         cam
     }
 
-    /// The siege view of field `f`: aiming on the trebuchet, zoomed out in
-    /// flight, settled on the castle after a shot lands (as the sandbox).
-    fn siege_camera(&self, f: &Field, settled: bool, w: i32, h: i32) -> Camera {
-        let owner = f.owner;
-        let (zl, zr, _) = self.zone(owner);
-        let margin = Fx::from_int(2);
-        let world = &f.castle.world;
-        let reach = world
+    /// The castle box of field `f`: left, right, ground and top, from its
+    /// segments and royals (the build zone's front when nothing stands).
+    fn castle_box(&self, f: &Field) -> (Fx, Fx, Fx, Fx) {
+        let (zl, _, _) = self.zone(f.owner);
+        let w = &f.castle.world;
+        let xs = w
             .nodes
             .iter()
-            .map(|n| n.pos.x)
-            .max()
-            .unwrap_or(zl)
-            .max(zl + Fx::from_int(10));
-        let castle_right = (reach + Fx::from_int(6)).min(zr + margin);
+            .map(|n| n.pos)
+            .chain(w.bodies.iter().filter(|b| b.alive).map(|b| b.pos));
+        let (mut l, mut r, mut top) = (None::<Fx>, None::<Fx>, None::<Fx>);
+        for p in xs {
+            l = Some(l.map_or(p.x, |v| v.min(p.x)));
+            r = Some(r.map_or(p.x, |v| v.max(p.x)));
+            top = Some(top.map_or(p.y, |v| v.max(p.y)));
+        }
+        let l = l.unwrap_or(zl);
+        let r = r.unwrap_or(zl + Fx::from_int(CAM_EMPTY_W));
+        let ground = self.ground(f.owner, (l + r) / 2);
+        let top = top.unwrap_or(ground).max(ground + Fx::from_int(CAM_MIN_TALL));
+        (l, r, ground, top)
+    }
+
+    /// Where the siege view of field `f` wants to be (R1.1454): aiming, the
+    /// trebuchet with the castle's front at the right edge; in flight, the
+    /// shot followed and the castle brought in as it nears; settled, the
+    /// castle filling over a third of the screen's height. `Arena::tick`
+    /// eases the shown view toward it.
+    fn siege_camera(&self, f: &Field, settled: bool, w: i32, h: i32) -> Camera {
+        let (cl, cr, ground, top) = self.castle_box(f);
+        let castle = Camera::framing(
+            cl,
+            cr,
+            ground,
+            top,
+            Fx::from_int(CAM_MARGIN),
+            CAM_CASTLE_SHARE,
+            w,
+            h,
+        );
+        let world = &f.castle.world;
         let flying = f
             .shooter
             .live
@@ -454,32 +497,34 @@ impl Arena {
             .find(|b| b.alive);
         let base = f.base;
         if let Some(b) = flying {
-            let left = base.x - Fx::from_int(6);
-            let mut cam = Camera::spanning(left, castle_right - left, Fx::ZERO, w, h);
-            cam.bottom = base.y.min(self.ground(owner, zl)) - cam.height() / 5;
-            let edge = Fx::from_int(3);
-            let tall = b.pos.y + edge - cam.bottom;
-            let wide = b.pos.x + edge - cam.left;
-            let ppu_y = Fx::from_int(h as i64) / tall.max(Fx::ONE);
-            let ppu_x = Fx::from_int(w as i64) / wide.max(Fx::ONE);
-            cam.ppu = cam.ppu.min(ppu_y).min(ppu_x);
+            let left = b.pos.x - Fx::from_int(CAM_BEHIND);
+            let right = (cr + Fx::from_int(CAM_MARGIN)).max(b.pos.x + Fx::from_int(CAM_MARGIN));
+            let width = (right - left)
+                .min(Fx::from_int(CAM_FLY_MAX_W))
+                .max(castle.width());
+            // the castle's frame once the shot is inside it
+            let left = if left + width > right {
+                (right - width).max(castle.left.min(left))
+            } else {
+                left
+            };
+            let mut cam = Camera::spanning(left, width, Fx::ZERO, w, h);
+            cam.bottom = base.y.min(ground) - cam.height() / 6;
+            let above = b.pos.y + Fx::from_int(CAM_MARGIN) - (cam.bottom + cam.height());
+            if above > Fx::ZERO {
+                cam.bottom += above;
+            }
             return cam;
         }
-        let width = zr - zl + margin * 2;
         if settled {
-            let left = zl - margin;
-            let mut cam = Camera::spanning(
-                left,
-                width.min(castle_right - left).max(width / 2),
-                Fx::ZERO,
-                w,
-                h,
-            );
-            cam.bottom = self.ground(owner, zl) - cam.height() / 5;
-            return cam;
+            return castle;
         }
-        let mut cam = Camera::spanning(base.x - width / 4, width, Fx::ZERO, w, h);
-        cam.bottom = base.y - cam.height() / 4;
+        let left = base.x - Fx::from_int(CAM_BEHIND);
+        let width = (cl + Fx::from_int(CAM_MARGIN) - left)
+            .min(Fx::from_int(CAM_AIM_MAX_W))
+            .max(Fx::from_int(CAM_AIM_MIN_W));
+        let mut cam = Camera::spanning(left, width, Fx::ZERO, w, h);
+        cam.bottom = base.y.min(ground) - cam.height() / 6;
         cam
     }
 
@@ -507,7 +552,8 @@ impl Arena {
         self.scout.unwrap_or(self.me)
     }
 
-    fn camera(&self) -> Camera {
+    /// The view the camera heads for this tick.
+    fn camera_target(&self) -> Camera {
         let (w, h) = self.size;
         if let Some(r) = &self.replay {
             return self.build_camera(r.field.owner, w, h);
@@ -517,6 +563,14 @@ impl Arena {
                 self.siege_camera(f, f.shooter.swing_from.is_none() && !self.trail.is_empty(), w, h)
             }
             _ => self.build_camera(self.shown(), w, h),
+        }
+    }
+
+    /// The view shown: eased during a siege, exact otherwise.
+    fn camera(&self) -> Camera {
+        match (self.phase(), self.my_field(), self.eye) {
+            (Phase::Siege | Phase::SiegeOver, Some(_), Some(eye)) if self.replay.is_none() => eye,
+            _ => self.camera_target(),
         }
     }
 
@@ -614,6 +668,11 @@ impl Arena {
             return;
         }
         self.release_held_swing();
+        let target = self.camera_target();
+        self.eye = Some(match self.eye {
+            Some(e) if self.my_field().is_some() => e.ease_toward(target, CAM_EASE),
+            _ => target,
+        });
         let inputs: Vec<(PlayerId, Input)> = self.pending.drain(..).map(|i| (self.me, i)).collect();
         let before = Arena::counts(self.my_field());
         let results = online::step(&mut self.play, &mut self.log, &inputs);

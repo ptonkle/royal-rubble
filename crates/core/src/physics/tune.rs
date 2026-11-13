@@ -9,6 +9,9 @@ use super::fixed::{Fx, TURN};
 /// Ticks per second.
 pub const TICKS_PER_SECOND: u32 = 60;
 
+/// Most substeps a fast ball's move is cut into for swept collision.
+pub const MAX_SUBSTEPS: i64 = 8;
+
 /// Gravity: 10 units/s^2 at 60 Hz, as a raw Q16.16 per tick squared.
 const G_RAW: i64 = 182;
 

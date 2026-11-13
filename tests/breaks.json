@@ -945,6 +945,48 @@
     "test": "pixel_length_is_the_rounded_down_distance"
   },
   {
+    "name": "ruins anchored at column edges",
+    "file": "crates/core/src/terrain/spots.rs",
+    "find": "            x: col as i32 * COL_W,",
+    "replace": "            x: col as i32 * COL_W + COL_W / 2,",
+    "test": "ruins_stand_under_the_static_test_on_every_seed"
+  },
+  {
+    "name": "bot castle keeps what stands",
+    "file": "crates/core/src/ai/build.rs",
+    "find": "        if have.iter().any(|h| same(s, &h.seg)) {\n            continue;\n        }",
+    "replace": "        if have.iter().any(|h| same(s, &h.seg) && h.refund > 99) {\n            continue;\n        }",
+    "test": "ai_bot_castle_grows_every_round_and_stands"
+  },
+  {
+    "name": "siege camera keeps the castle big",
+    "file": "crates/core/src/app/field.rs",
+    "find": "            .min(max_w)\n",
+    "replace": "            .min(max_w * 3)\n",
+    "test": "camera_framing_keeps_a_castle_over_a_third_of_the_screen_height"
+  },
+  {
+    "name": "siege camera eases",
+    "file": "crates/core/src/app/field.rs",
+    "find": "            let d = (b - a) / div;",
+    "replace": "            let d = b - a;",
+    "test": "camera_eases_part_way_then_arrives"
+  },
+  {
+    "name": "swept collision for fast shots",
+    "file": "crates/core/src/physics/tune.rs",
+    "find": "pub const MAX_SUBSTEPS: i64 = 8;",
+    "replace": "pub const MAX_SUBSTEPS: i64 = 1;",
+    "test": "a_full_speed_shot_cannot_skip_a_single_stone_wall"
+  },
+  {
+    "name": "siege targets carry royal damage",
+    "file": "crates/core/src/ai/planner.rs",
+    "find": "Target { body, value: damage }",
+    "replace": "Target { body, value: 1 }",
+    "test": "ai_siege_targets_carry_each_royals_damage"
+  },
+  {
     "name": "online bots build inside the tick",
     "file": "crates/core/src/play/online.rs",
     "find": "    if phase == Phase::Build && (before != Phase::Build || round != play.rules.round) {\n        bots_build(play);\n    }\n",

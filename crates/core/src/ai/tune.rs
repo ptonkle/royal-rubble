@@ -102,11 +102,23 @@ pub fn royal_radius() -> crate::physics::Fx {
 /// Floors a template may rise to, by level (index level - 1).
 pub const MAX_FLOORS: [i64; 9] = [3, 3, 4, 4, 5, 5, 6, 6, 7];
 
-/// Gold a bot keeps back from the castle, by difficulty.
-pub fn reserve_gold(d: Difficulty) -> u32 {
-    match d {
+/// Gold a bot keeps banked for interest, by difficulty and round: nothing
+/// in the first rounds, so round 1 builds a castle (R1.1452).
+pub fn reserve_gold(d: Difficulty, round: u32) -> u32 {
+    let steps = match d {
         Difficulty::Easy => 0,
-        Difficulty::Normal => 2,
-        Difficulty::Hard => 4,
-    }
+        Difficulty::Normal => u32::from(round >= 3),
+        Difficulty::Hard => u32::from(round >= 2) + u32::from(round >= 6),
+    };
+    steps * crate::game::tune::INTEREST_STEP
 }
+
+/// A bot buys producers only once its castle has this many segments, so
+/// the first rounds' gold goes into walls.
+pub const PRODUCERS_AFTER_SEGMENTS: usize = 12;
+
+/// Producers a bot buys when unlocked and affordable, in order.
+pub const BOT_PRODUCERS: [crate::game::ledger::BuildingKind; 4] = {
+    use crate::game::ledger::BuildingKind::*;
+    [Carpenter, Quarry, Armory, Mine]
+};

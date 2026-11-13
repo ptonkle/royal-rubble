@@ -674,3 +674,19 @@ fn trebuchet_level_nine_plot_window_is_at_least_12_ticks() {
     let (seed, ticks) = shortest_plot_window(9);
     assert!(ticks >= 12, "seed {seed}: {ticks} ticks");
 }
+
+#[test]
+fn ruins_stand_under_the_static_test_on_every_seed() {
+    for seed in 1..=24u64 {
+        let p = duel(seed);
+        let pl = &p.rules.players[0];
+        let ruin: Vec<u32> = pl.ruin_pieces.iter().map(|r| r.0).collect();
+        assert!(!ruin.is_empty(), "seed {seed}: no ruins");
+        for (id, permille) in p.strain(0) {
+            if ruin.contains(&id) {
+                // well under the yellow band: a ruin reads as sound under Test
+                assert!(permille < 500, "seed {seed}: ruin piece {id} at {permille}");
+            }
+        }
+    }
+}

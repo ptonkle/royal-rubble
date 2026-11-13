@@ -174,8 +174,9 @@ fn truth(m: &MatchStart, people: usize, ticks: u32) -> NetMatch {
 #[test]
 fn online_two_lagged_browsers_play_a_whole_match_and_agree_every_second() {
     let m = start(2, 2, 41);
-    // the whole match: this script plays to the results in 21,290 ticks
-    let ticks = 21_400;
+    // the whole match: this script plays to the results in 24,119 ticks
+    // (bots grow their castles every round, R1.1451)
+    let ticks = 24_300;
     let mut pair = Pair::new(&m);
     pair.play(ticks);
     let want = truth(&m, 2, ticks);
@@ -301,10 +302,10 @@ fn online_a_bot_with_no_castle_builds_one_in_the_tick_a_build_begins() {
         g.play.castles[1]
             .geo
             .values()
-            .any(|x| matches!(x, castle::Geo::Beam { .. }))
+            .any(|x| matches!(x, crate::play::castle::Geo::Beam { .. }))
     };
     let at_start = has_beams(&g);
-    g.play.castles[1] = castle::Castle::default();
+    g.play.castles[1] = crate::play::castle::Castle::default();
     let ready = pack(Input::Ready).unwrap();
     let mut t = 0;
     while g.play.rules.phase != Phase::Siege && t < 20_000 {
