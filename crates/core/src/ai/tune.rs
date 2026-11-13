@@ -111,11 +111,13 @@ pub const HUT_ROOM_EIGHTHS: i64 = 13;
 
 /// Columns kept clear between the plot's front edge and the castle.
 pub const FRONT_SETBACK: usize = 4;
-/// Most the ground may rise under a castle, raw Q16.16 (one unit).
-pub const MAX_RISE_RAW: i64 = 1 << 16;
 /// Widest a bot's keep goes, in bays; past it the keep only grows taller
 /// (R1.4000).
-pub const KEEP_MAX_BAYS: i64 = 6;
+pub const KEEP_MAX_BAYS: i64 = 11;
+/// Plans kept per column material; the best that stands under the static
+/// test (run this many ticks past settling) is built (R1.4002).
+pub const KEEP_CANDIDATES: usize = 6;
+pub const KEEP_TEST_TICKS: u32 = 120;
 
 /// A stronger column material is chosen when its best castle is worth at
 /// least this share (num, den) of the best castle in any material.

@@ -458,6 +458,43 @@ fn ai_bot_castle_grows_every_round_and_stands() {
     }
 }
 
+/// A bot builds one keep (R1.4000): every royal under cover, each in a room
+/// of its own (the match's room rule), no beam through any royal, and the
+/// whole castle within one keep's width.
+#[test]
+fn ai_keep_puts_each_royal_in_its_own_room() {
+    for seed in 0..6u64 {
+        let plot = Plot::generate(seed);
+        let plan = plan_castle(&ask(&plot, 4, 80, 4, seed));
+        assert_eq!(plan.royals.len(), 4, "seed {seed}");
+        let (w, _) = to_world(&plan, &plot);
+        let rooms: Vec<Option<usize>> = plan
+            .royals
+            .iter()
+            .map(|r| crate::play::castle::room_at(&w, r.at))
+            .collect();
+        for (i, r) in rooms.iter().enumerate() {
+            assert!(r.is_some(), "seed {seed}: royal {i} has no room");
+            assert!(!rooms[..i].contains(r), "seed {seed}: royal {i} shares a room");
+        }
+        for r in &plan.royals {
+            for s in &plan.segments {
+                assert!(
+                    !crate::play::castle::beam_hits_royal(s.a, s.b, r.at),
+                    "seed {seed}: a beam through the royal at {:?}",
+                    r.at
+                );
+            }
+        }
+        let lo = plan.segments.iter().map(|s| s.a.x.min(s.b.x)).min().unwrap();
+        let hi = plan.segments.iter().map(|s| s.a.x.max(s.b.x)).max().unwrap();
+        assert!(
+            hi - lo <= Fx::from_int(super::tune::KEEP_MAX_BAYS + 2),
+            "seed {seed}: spread out"
+        );
+    }
+}
+
 #[test]
 fn ai_siege_targets_carry_each_royals_damage() {
     let play = match_with(vec![Seat::Human, Seat::Human], 2);
