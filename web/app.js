@@ -499,13 +499,23 @@ function bindInput() {
 // is which bit.
 let held = 0;
 let tapped = 0;
+// when the latest press went down (the event's timestamp): the core times
+// a release within a tick from it
+let pressedAt;
 
 function pressKey(e, down) {
   const bit = ui && ui.capture && ui.keys ? ui.keys[e.code] : undefined;
   if (bit === undefined) return;
   e.preventDefault();
   held = down ? held | bit : held & ~bit;
-  if (down) tapped |= bit;
+  if (down) {
+    tapped |= bit;
+    pressedAt = e.timeStamp;
+  }
+}
+
+function readPress() {
+  return pressedAt;
 }
 
 function readKeys() {
@@ -560,7 +570,7 @@ async function main() {
   send("save.load", saved);
   if (ui === null) return;
   send("data.upgrades", upgrades);
-  startNet(game, readKeys);
+  startNet(game, readKeys, readPress);
   sendFlags();
   if (invited) send("flag.room", invited);
   requestAnimationFrame(frame);

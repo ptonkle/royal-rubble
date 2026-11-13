@@ -28,6 +28,10 @@ use crate::game::ledger::{BuildingKind, Piece};
 use crate::game::pairing::Pairing;
 use crate::game::{PlayerId, Refusal};
 
+/// `Input::Release` on the tick it is applied, with no part of a tick
+/// (R1.2103).
+pub const ON_TICK: u8 = 16;
+
 /// Everything a player can do, in any phase. One enum, so online play sends
 /// one kind of message (R1.704).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -62,8 +66,10 @@ pub enum Input {
     SelectAmmo(u8),
     /// Start the swing.
     Swing,
-    /// Let go: the ticks since `Swing` set the arc.
-    Release,
+    /// Let go: the time since `Swing` sets the arc. The number is when,
+    /// in sixteenths of a tick from the start of the tick before this one
+    /// (0-31; [`ON_TICK`] is this tick exactly, R1.2103).
+    Release(u8),
     /// Trigger owned air effect `slot` on the shot in flight.
     Air(u8),
     // Any timed phase
@@ -142,10 +148,10 @@ impl Play {
                 let now = self.siege_tick();
                 self.field_of(p)?.swing(now)
             }
-            Input::Release => {
+            Input::Release(part) => {
                 self.need_live_siege()?;
                 let now = self.siege_tick();
-                self.field_of(p)?.release(now)
+                self.field_of(p)?.release_at(now, part)
             }
             Input::Air(slot) => self.field_of(p)?.air(slot),
         }

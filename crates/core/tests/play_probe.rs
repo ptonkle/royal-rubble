@@ -77,7 +77,9 @@ fn probe_siege_tick_time() {
             for f in &s.fields {
                 let sh = &f.shooter;
                 match sh.swing_from {
-                    Some(t0) if s.tick - t0 >= 44 => inputs.push((f.attacker, Input::Release)),
+                    Some(t0) if s.tick - t0 >= 44 => {
+                        inputs.push((f.attacker, Input::Release(tool_core::play::ON_TICK)))
+                    }
                     Some(_) => {}
                     None if sh.shots_left() > 0 && s.tick % 90 == 0 => {
                         inputs.push((f.attacker, Input::Swing))

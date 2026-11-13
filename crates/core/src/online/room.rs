@@ -554,6 +554,11 @@ impl Room {
 
     /// One of this browser's inputs, for the session to send on a tick.
     /// An input that cannot be packed is dropped: the match would refuse it.
+    /// When the session's last tick began, microseconds (R1.2103).
+    pub fn last_tick_us(&self) -> Option<i64> {
+        self.clock.last_tick_us()
+    }
+
     pub fn queue(&mut self, input: Input) {
         if let Some(k) = pack(input) {
             self.queued.push_back(k);

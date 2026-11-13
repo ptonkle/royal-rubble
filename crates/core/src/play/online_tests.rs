@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 use super::*;
 use crate::lobby::{Difficulty as Level, Options, StartSeat};
 use crate::online::{Peer, Session, DELAY, SUM_EVERY};
+use crate::play::ON_TICK;
 
 fn start(people: usize, bots: usize, seed: u64) -> MatchStart {
     let mut seats = Vec::new();
@@ -46,7 +47,7 @@ fn script(seat: usize, tick: u32) -> u64 {
         },
         40 => Input::SelectAmmo(0),
         50 => Input::Swing,
-        50..=59 if t % 3 == seat as u32 % 3 => Input::Release,
+        50..=59 if t % 3 == seat as u32 % 3 => Input::Release(ON_TICK),
         100 => Input::Pick(1),
         130 => Input::Air(0),
         200 => Input::Ready,
@@ -236,7 +237,7 @@ fn online_inputs_pack_and_unpack_and_a_far_point_does_not_pack() {
         Input::BuyShot,
         Input::SelectAmmo(4),
         Input::Swing,
-        Input::Release,
+        Input::Release(ON_TICK),
         Input::Air(3),
         Input::Ready,
     ];
@@ -286,12 +287,12 @@ fn online_the_replay_holds_a_persons_siege_inputs_at_their_ticks() {
     g.step(keys);
     g.step([0; SEATS]);
     g.step([0; SEATS]);
-    keys[1] = pack(Input::Release).unwrap();
+    keys[1] = pack(Input::Release(ON_TICK)).unwrap();
     g.step(keys);
     let (field, inputs) = g.log.replay_of(0).expect("player 0's castle was attacked");
     assert_eq!(field.attacker, 1);
     let got: Vec<(u32, Input)> = inputs.iter().map(|l| (l.tick, l.input)).collect();
-    assert_eq!(got, [(0, Input::Swing), (3, Input::Release)]);
+    assert_eq!(got, [(0, Input::Swing), (3, Input::Release(ON_TICK))]);
 }
 
 #[test]
@@ -321,4 +322,13 @@ fn online_a_bot_with_no_castle_builds_one_in_the_tick_a_build_begins() {
         has_beams(&g),
         "the bot rebuilt as the build began (built at the start: {at_start})"
     );
+}
+
+#[test]
+fn online_release_part_survives_packing() {
+    // R1.2103: every browser applies the same part of a tick
+    for part in [0u8, 7, ON_TICK, 31] {
+        let k = pack(Input::Release(part)).unwrap();
+        assert_eq!(unpack(k), Some(Input::Release(part)));
+    }
 }

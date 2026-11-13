@@ -266,12 +266,12 @@ impl Field {
     }
 
     pub fn release(&mut self, now: u32) -> Result<(), Refusal> {
-        self.release_at(now, 0)
+        self.release_at(now, super::ON_TICK)
     }
 
-    /// Releases on tick `now`, timed `frac` sixteenths of a tick past it
-    /// (R1.2100).
-    pub fn release_at(&mut self, now: u32, frac: u8) -> Result<(), Refusal> {
+    /// Releases on tick `now`, timed `part` sixteenths of a tick after the
+    /// start of the tick before it (0-31; 16 is tick `now` exactly; R1.2103).
+    pub fn release_at(&mut self, now: u32, part: u8) -> Result<(), Refusal> {
         let from = self.shooter.swing_from.ok_or(Refusal::WrongPhase)?;
         let slot = self.shooter.selected as usize;
         let (ammo, left) = self.shooter.ammo[slot];
@@ -282,7 +282,7 @@ impl Field {
         self.shooter.swing_from = None;
         self.shooter.thrown = Some((now - from, now));
         let parts = crate::physics::RELEASE_PARTS;
-        let release = (now - from) * parts + (frac as u32).min(parts - 1);
+        let release = ((now - from) * parts + (part as u32).min(2 * parts - 1)).saturating_sub(parts);
         let launch = trebuchet_launch_at(self.base, release, self.shooter.power, false);
         let copies = if self.shooter.fired == 0 {
             self.shooter.first_copies
@@ -356,7 +356,9 @@ impl Field {
                 let _ = self.select(p.ammo);
                 let _ = self.swing(now);
             }
-            if p.swing_at + p.release_after == now && self.release_at(now, p.release_frac).is_ok() {
+            if p.swing_at + p.release_after == now
+                && self.release_at(now, super::ON_TICK + p.release_frac).is_ok()
+            {
                 if let Some((slot, after)) = p.air {
                     self.shooter.pending_air = Some((slot, now + after));
                 }

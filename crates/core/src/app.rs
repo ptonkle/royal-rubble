@@ -372,13 +372,20 @@ impl App {
 
     /// One display frame: the room's work, and the screen following it.
     pub fn pump(&mut self, now_ms: i64, keys: u32) -> Pump {
+        self.pump_pressed(now_ms, keys, None)
+    }
+
+    /// As `pump`, with when the latest key went down (microseconds, the
+    /// page's clock), so a release lands between ticks (R1.2103).
+    pub fn pump_pressed(&mut self, now_ms: i64, keys: u32, press_us: Option<i64>) -> Pump {
         self.now_ms = now_ms;
         if let Some(s) = &mut self.sandbox {
             s.pump(now_ms, keys);
         }
         self.start_arena();
         if let Some(a) = &mut self.arena {
-            a.pump(now_ms, keys);
+            let net_tick = self.room.as_ref().and_then(|r| r.last_tick_us());
+            a.pump(now_ms, keys, press_us, net_tick);
         }
         if let (Some(a), Some(r)) = (&mut self.arena, &mut self.room) {
             if a.is_online() {

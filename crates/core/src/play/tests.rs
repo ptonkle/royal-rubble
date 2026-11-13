@@ -246,7 +246,7 @@ fn siege_swing_and_release_spend_a_shot() {
     for _ in 0..39 {
         play.tick();
     }
-    assert_eq!(play.step(&[(1, Input::Release)]), vec![Ok(())]);
+    assert_eq!(play.step(&[(1, Input::Release(super::ON_TICK))]), vec![Ok(())]);
     let f = field_on(&mut play, 0);
     assert_eq!(f.shooter.shots_left(), left - 1);
     assert_eq!(f.castle.world.projectiles.len(), 1);
@@ -342,7 +342,9 @@ fn scripted_match(seed: u64, rounds: u32) -> (Play, Vec<u64>) {
                 for f in &s.fields {
                     let sh = &f.shooter;
                     match sh.swing_from {
-                        Some(t) if s.tick - t >= 42 => inputs.push((f.attacker, Input::Release)),
+                        Some(t) if s.tick - t >= 42 => {
+                            inputs.push((f.attacker, Input::Release(super::ON_TICK)))
+                        }
                         Some(_) => {}
                         None if sh.shots_left() > 0 => {
                             let slot = sh.ammo.iter().position(|a| a.1 > 0).unwrap() as u8;

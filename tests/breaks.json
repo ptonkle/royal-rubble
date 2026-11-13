@@ -1111,5 +1111,26 @@
     "find": "            refine: 3,",
     "replace": "            refine: 0,",
     "test": "ai_hard_bot_compensates_for_wind"
+  },
+  {
+    "name": "presspart release part counts sixteenths",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "((press_us - basis_us) * ticks_per_s * parts / 1_000_000)",
+    "replace": "((press_us - basis_us) * ticks_per_s / 1_000_000)",
+    "test": "arena_release_part_counts_sixteenths_from_the_tick_start"
+  },
+  {
+    "name": "presspart solo press time reaches the release",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "        release_part(press, basis, tps)\n    }",
+    "replace": "        let _ = (press, basis, tps);\n        crate::play::ON_TICK\n    }",
+    "test": "arena_release_press_time_throws_between_whole_ticks"
+  },
+  {
+    "name": "presspart online packing keeps the part",
+    "file": "crates/core/src/play/online.rs",
+    "find": "Input::Release(part) => (11, part.min(31) as u64),",
+    "replace": "Input::Release(_) => (11, 0),",
+    "test": "online_release_part_survives_packing"
   }
 ]

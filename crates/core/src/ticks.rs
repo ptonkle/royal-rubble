@@ -52,6 +52,13 @@ impl Clock {
         }
         ticks
     }
+
+    /// When the last tick run began, in the microseconds `frame` is given
+    /// (None before the first frame), so a key's timestamp can be placed
+    /// within the next tick (R1.2103).
+    pub fn last_tick_us(&self) -> Option<i64> {
+        self.last.map(|l| l - self.owed)
+    }
 }
 
 /// Input bits for the example world.

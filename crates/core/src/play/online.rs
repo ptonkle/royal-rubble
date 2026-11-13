@@ -66,7 +66,7 @@ pub fn replay_input(field: &mut Field, input: Input, now: u32) {
     let _ = match input {
         Input::SelectAmmo(slot) => field.select(slot),
         Input::Swing => field.swing(now),
-        Input::Release => field.release(now),
+        Input::Release(part) => field.release_at(now, part),
         Input::Air(slot) => field.air(slot),
         _ => Ok(()),
     };
@@ -75,7 +75,7 @@ pub fn replay_input(field: &mut Field, input: Input, now: u32) {
 fn is_siege_input(i: Input) -> bool {
     matches!(
         i,
-        Input::SelectAmmo(_) | Input::Swing | Input::Release | Input::Air(_)
+        Input::SelectAmmo(_) | Input::Swing | Input::Release(_) | Input::Air(_)
     )
 }
 
@@ -222,7 +222,7 @@ pub fn pack(i: Input) -> Option<u64> {
         Input::BuyShot => (8, 0),
         Input::SelectAmmo(s) => (9, s as u64),
         Input::Swing => (10, 0),
-        Input::Release => (11, 0),
+        Input::Release(part) => (11, part.min(31) as u64),
         Input::Air(s) => (12, s as u64),
         Input::Ready => (13, 0),
     };
@@ -258,7 +258,7 @@ pub fn unpack(k: u64) -> Option<Input> {
         8 => Input::BuyShot,
         9 => Input::SelectAmmo(byte),
         10 => Input::Swing,
-        11 => Input::Release,
+        11 => Input::Release(byte.min(31)),
         12 => Input::Air(byte),
         13 => Input::Ready,
         _ => return None,

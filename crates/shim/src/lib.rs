@@ -35,7 +35,10 @@ impl Game {
         self.g.net_event(kind, peer, text, host, now as i64);
     }
 
-    pub fn net_pump(&mut self, now: f64, keys: u32) -> String {
-        self.g.net_pump(now as i64, keys)
+    /// `press`: the latest keydown's timeStamp, milliseconds, passed on in
+    /// microseconds.
+    pub fn net_pump(&mut self, now: f64, keys: u32, press: Option<f64>) -> String {
+        self.g
+            .net_pump(now as i64, keys, press.map(|p| (p * 1000.0) as i64))
     }
 }

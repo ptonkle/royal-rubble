@@ -275,6 +275,13 @@ pub struct Arena {
     eye: Option<Camera>,
 }
 
+/// Sixteenths of a tick from `basis_us` (when a tick began) to `press_us`,
+/// at `ticks_per_s`, held to 0-31 (R1.2103).
+pub fn release_part(press_us: i64, basis_us: i64, ticks_per_s: i64) -> u8 {
+    let parts = crate::physics::RELEASE_PARTS as i64;
+    ((press_us - basis_us) * ticks_per_s * parts / 1_000_000).clamp(0, 2 * parts - 1) as u8
+}
+
 impl Arena {
     /// A match from the lobby's start: bots in their seats, `client` is you.
     pub fn new(start: &MatchStart, client: &str, fast: bool, s: &Strings) -> Result<Arena, String> {
@@ -603,12 +610,16 @@ impl Arena {
         self.pending.push(input);
     }
 
-    /// One display frame: keys, then the match up to `now_ms`.
-    pub fn pump(&mut self, now_ms: i64, keys: u32) {
+    /// One display frame: keys, then the match up to `now_ms`. `press_us`
+    /// is when the latest key went down and `net_tick_us` when the online
+    /// session's last tick began (both microseconds), so a release is timed
+    /// within a tick (R1.2103).
+    pub fn pump(&mut self, now_ms: i64, keys: u32, press_us: Option<i64>, net_tick_us: Option<i64>) {
         let pressed = keys & !self.prev_keys;
         self.prev_keys = keys;
         if pressed & KEY_SPACE != 0 {
-            self.space();
+            let part = self.press_part(press_us, net_tick_us);
+            self.space(part);
         }
         for (k, (_, bit)) in KEY_DIGITS.iter().enumerate() {
             if pressed & bit != 0 {
@@ -636,7 +647,27 @@ impl Arena {
         }
     }
 
-    fn space(&mut self) {
+    /// Sixteenths of a tick from the start of the last tick run to the key
+    /// press: the next tick applies the press, so this times the release
+    /// within it ([`Input::Release`]). On the tick when anything is unknown.
+    fn press_part(&self, press_us: Option<i64>, net_tick_us: Option<i64>) -> u8 {
+        let Some(press) = press_us else {
+            return crate::play::ON_TICK;
+        };
+        if self.driven.is_some() {
+            let tps = crate::ticks::TICKS_PER_SECOND;
+            return net_tick_us.map_or(crate::play::ON_TICK, |b| release_part(press, b, tps));
+        }
+        let Some(start) = self.clock else {
+            return crate::play::ON_TICK;
+        };
+        let speed = if self.fast { FAST_SPEED } else { 1 };
+        let tps = TICKS * speed;
+        let basis = start * 1000 + self.stepped * 1_000_000 / tps;
+        release_part(press, basis, tps)
+    }
+
+    fn space(&mut self, part: u8) {
         if self.replay.is_some() {
             self.replay = None;
             return;
@@ -648,7 +679,7 @@ impl Arena {
         if f.shooter.swing_from.is_none() {
             self.queue(Input::Swing);
         } else {
-            self.queue(Input::Release);
+            self.queue(Input::Release(part));
         }
     }
 
@@ -694,7 +725,7 @@ impl Arena {
         for ((_, input), r) in inputs.iter().zip(results.iter()) {
             match (input, r) {
                 (Input::Swing, Ok(())) => self.cue("trebuchet_creak", 0),
-                (Input::Release, Ok(())) => {
+                (Input::Release(_), Ok(())) => {
                     self.cue("trebuchet_release", 0);
                     self.path.clear();
                 }
@@ -726,10 +757,10 @@ impl Arena {
         };
         let Some(from) = f.shooter.swing_from else { return };
         if s.tick - from >= Arena::swing_end()
-            && !self.pending.contains(&Input::Release)
+            && !self.pending.iter().any(|i| matches!(i, Input::Release(_)))
             && self.auto_released != Some(from)
         {
-            self.pending.push(Input::Release);
+            self.pending.push(Input::Release(crate::play::ON_TICK));
             if self.driven.is_some() {
                 self.auto_released = Some(from);
             }

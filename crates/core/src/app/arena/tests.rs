@@ -96,7 +96,7 @@ fn play_out_at(a: &mut Arena, release: u32, cap: u32) -> (u32, usize) {
                 if left == 0 {
                     a.queue(Input::Ready);
                 } else if (!swinging && ticks % 200 == 0) || (swinging && ticks % 200 == release) {
-                    a.space();
+                    a.space(crate::play::ON_TICK);
                 }
             }
             _ => a.queue(Input::Ready),
@@ -180,11 +180,11 @@ fn arena_a_high_shot_widens_the_view_and_keeps_the_ground_in_it() {
     let up = (0..crate::physics::SWING_END)
         .find(|&t| crate::physics::trebuchet_launch(Vec2::ZERO, t, 0, false).vel.x > Fx::ZERO)
         .unwrap();
-    a.space();
+    a.space(crate::play::ON_TICK);
     for _ in 0..up {
         a.tick();
     }
-    a.space();
+    a.space(crate::play::ON_TICK);
     for _ in 0..80 {
         a.tick();
     }
@@ -225,11 +225,11 @@ fn arena_the_view_keeps_the_trebuchet_in_just_after_release() {
     a.set_size("1920,1080").unwrap();
     to_siege(&mut a);
     let t = crate::physics::SWING_END * 2 / 3;
-    a.space();
+    a.space(crate::play::ON_TICK);
     for _ in 0..t {
         a.tick();
     }
-    a.space();
+    a.space(crate::play::ON_TICK);
     let base = a.my_field().unwrap().base;
     let top = base + Vec2::new(Fx::ZERO, Fx::from_int(8));
     // the shot ages one tick as it leaves
@@ -247,4 +247,52 @@ fn arena_the_view_keeps_the_trebuchet_in_just_after_release() {
             "tick {k}: {target:?}"
         );
     }
+}
+
+#[test]
+fn arena_release_part_counts_sixteenths_from_the_tick_start() {
+    // R1.2103: at 60 ticks a second one sixteenth is 1,041.7 microseconds
+    assert_eq!(release_part(1_000, 1_000, 60), 0);
+    assert_eq!(release_part(1_000 + 16_667, 1_000, 60), ON_TICK_PART);
+    assert_eq!(release_part(1_000 + 25_000, 1_000, 60), 24);
+    assert_eq!(release_part(500, 1_000, 60), 0);
+    assert_eq!(release_part(1_000 + 40_000, 1_000, 60), 31);
+}
+
+const ON_TICK_PART: u8 = crate::play::ON_TICK;
+
+/// The shot's sideways speed after a solo swing whose release Space went
+/// down `press_after_us` after the start of the last tick before it.
+fn thrown_vx(press_after_us: i64) -> Fx {
+    let mut a = arena(1);
+    to_siege(&mut a);
+    a.pump(1000, 0, None, None);
+    a.pump(1000, KEY_SPACE, Some(1_000_000), None);
+    // fast play runs 480 ticks a second: by 1137 ms, 65 ticks
+    for ms in 1001..=1137 {
+        a.pump(ms, 0, None, None);
+    }
+    let basis = 1_000_000 + 65 * 1_000_000 / 480;
+    a.pump(1138, KEY_SPACE, Some(basis + press_after_us), None);
+    for ms in 1139..=1141 {
+        a.pump(ms, 0, None, None);
+    }
+    let f = a.my_field().unwrap();
+    let w = &f.castle.world;
+    let ball = f
+        .shooter
+        .live
+        .iter()
+        .filter_map(|&i| w.projectiles.get(i))
+        .find(|b| b.alive);
+    ball.expect("the shot is in the air").vel.x
+}
+
+#[test]
+fn arena_release_press_time_throws_between_whole_ticks() {
+    // R1.2103: presses 0, 8 and 16 sixteenths into the tick (a fast tick is
+    // 2,083 microseconds): the middle one throws between the other two
+    let (a, b, c) = (thrown_vx(100), thrown_vx(100 + 1_042), thrown_vx(100 + 2_084));
+    assert!(a != c, "{a:?} {c:?}");
+    assert!((a < b && b < c) || (a > b && b > c), "{a:?} {b:?} {c:?}");
 }

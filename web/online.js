@@ -10,6 +10,7 @@
 
 let game = null;
 let readKeys = null;
+let readPress = null;
 let transport = null;
 let clock = null;
 
@@ -59,7 +60,7 @@ async function request(req) {
 
 /** One turn of the core: its room's work, then what it asked for. */
 export function pump() {
-  const result = JSON.parse(game.net_pump(performance.now(), readKeys()));
+  const result = JSON.parse(game.net_pump(performance.now(), readKeys(), readPress()));
   if (!result.ok) return;
   const p = result.ok;
   // the text first: a parting word goes out before the links close
@@ -67,8 +68,10 @@ export function pump() {
   p.requests.forEach(request);
 }
 
-/** `keys` is read once a turn: the input bits now held. */
-export function startNet(theGame, keys) {
+/** `keys` is read once a turn: the input bits now held; `press`, the
+ *  timestamp of the latest key press, which the core places within a tick. */
+export function startNet(theGame, keys, press) {
   game = theGame;
   readKeys = keys;
+  readPress = press;
 }

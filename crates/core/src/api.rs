@@ -66,9 +66,11 @@ impl Game {
     }
 
     /// One display frame: what to send, and what to ask of the transport.
-    pub fn net_pump(&mut self, now_ms: i64, keys: u32) -> String {
+    /// `press_us`: when the latest key went down, microseconds on the same
+    /// clock as `now_ms` (R1.2103).
+    pub fn net_pump(&mut self, now_ms: i64, keys: u32, press_us: Option<i64>) -> String {
         match &mut self.app {
-            Ok(app) => ok(&app.pump(now_ms, keys)),
+            Ok(app) => ok(&app.pump_pressed(now_ms, keys, press_us)),
             Err(e) => error(e),
         }
     }
