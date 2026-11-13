@@ -130,7 +130,7 @@ function royals(g, f) {
     }
     const rank = K.costumes[r.rank] ? r.rank : "squire";
     const name = "fig-" + rank + (r.dead ? "-dead" : "");
-    const k = most(r.r * G.figure_tall_r, G.figure_min_px) / sprites[name].tall;
+    const k = r.tall / sprites[name].tall;
     if (r.dead) {
       // fallen: turned a quarter onto the floor
       g.save();
@@ -141,7 +141,7 @@ function royals(g, f) {
       g.restore();
       return;
     }
-    place(g, name, r.x, r.y + r.r * G.figure_foot_r, k, face);
+    place(g, name, r.x, r.y + r.r, k, face);
   });
 }
 

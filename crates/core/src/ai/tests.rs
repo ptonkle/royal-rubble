@@ -570,3 +570,91 @@ fn ai_botplan_bot_waits_for_each_planned_shot() {
     }
     assert!(seen > 0);
 }
+
+/// Each royal of `p`: the head room from its feet (the body's bottom) to
+/// the underside of the lowest level beam over it, and the side room from
+/// its middle to the nearest upright beside it within that height.
+fn figure_room(play: &Play, p: u8) -> Vec<(Fx, Fx)> {
+    use crate::play::castle::BodyOwner;
+    use crate::play::tune::FIGURE_TALL;
+    let pl = &play.rules.players[p as usize];
+    let cw = play.castles[p as usize].world(pl, true);
+    let w = &cw.world;
+    let half = |s: &crate::physics::world::Segment| TUNE.material(s.material).thickness / 2;
+    cw.bodies
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| matches!(o, BodyOwner::Royal(_)))
+        .map(|(i, _)| {
+            let b = &w.bodies[i];
+            let foot = b.pos.y - b.radius;
+            let ends = |s: &crate::physics::world::Segment| (w.nodes[s.a].pos, w.nodes[s.b].pos);
+            let head = w
+                .segments
+                .iter()
+                .filter(|s| !s.broken)
+                .filter_map(|s| {
+                    let (a, c) = ends(s);
+                    (a.y == c.y && a.x.min(c.x) < b.pos.x && b.pos.x < a.x.max(c.x) && a.y > b.pos.y)
+                        .then(|| a.y - half(s) - foot)
+                })
+                .min()
+                .unwrap_or(Fx::from_int(1_000));
+            let side = w
+                .segments
+                .iter()
+                .filter(|s| !s.broken)
+                .filter_map(|s| {
+                    let (a, c) = ends(s);
+                    (a.x == c.x && a.y.max(c.y) > foot && a.y.min(c.y) < foot + FIGURE_TALL)
+                        .then(|| (a.x - b.pos.x).abs() - half(s))
+                })
+                .min()
+                .unwrap_or(Fx::from_int(1_000));
+            (head, side)
+        })
+        .collect()
+}
+
+#[test]
+fn ai_bot_royal_figures_fit_under_their_cover() {
+    use super::build::bot_turn;
+    use crate::game::flow::Phase;
+    use crate::play::tune::{FIGURE_TALL, FIGURE_WIDE, HEAD_ROOM};
+    // the drawn figure fits the head room the cover rules allow (R1.2400)
+    assert!(FIGURE_TALL <= HEAD_ROOM);
+    for seed in 1u64..=3 {
+        let mut play = match_with(vec![Seat::Human, Seat::Bot(Difficulty::Normal)], seed);
+        let mut last = (0, Phase::Lobby);
+        let mut checked = 0;
+        let mut n = 0;
+        while play.rules.round <= 4 && play.rules.phase != Phase::Results {
+            let now = (play.rules.round, play.rules.phase);
+            if now != last && now.1 == Phase::Build {
+                for input in bot_turn(&play, 1) {
+                    let _ = play.apply(1, input);
+                }
+                for (head, side) in figure_room(&play, 1) {
+                    assert!(
+                        head >= FIGURE_TALL,
+                        "seed {seed} round {}: head room {head:?}",
+                        now.0
+                    );
+                    assert!(
+                        side + side >= FIGURE_WIDE,
+                        "seed {seed} round {}: side room {side:?}",
+                        now.0
+                    );
+                    checked += 1;
+                }
+            }
+            last = now;
+            let _ = play.apply(0, Input::Ready);
+            let _ = play.apply(1, Input::Ready);
+            play.tick();
+            n += 1;
+            assert!(n < 100_000);
+        }
+        assert!(checked >= 4, "seed {seed}: {checked} royals checked");
+    }
+}

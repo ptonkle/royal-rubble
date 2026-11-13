@@ -944,6 +944,7 @@ impl Sandbox {
                     x: p[0],
                     y: p[1],
                     r: cam.len(b.radius, 3),
+                    tall: cam.figure_tall(),
                     rank: rank_name(k),
                     dead: !b.alive,
                 }
