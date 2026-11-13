@@ -14,8 +14,8 @@
 use std::collections::BTreeMap;
 
 use super::field::{
-    cloth_at, ground_line, material_name, tree_marks, world_parts, world_right, BuildMarks, Camera, Cue,
-    Engine, Figure, Flag, Frame, Inset, Preview, Ring, SpotMark,
+    body_turn, cloth_at, facing, ground_line, impact_marks, material_name, tree_marks, world_parts,
+    world_right, BuildMarks, Camera, Cue, Engine, Figure, Flag, Frame, Inset, Preview, Ring, SpotMark,
 };
 use super::hud_icon;
 use super::sandbox::{num, pair, reach_end};
@@ -1583,7 +1583,15 @@ impl Arena {
     // ---- what the page draws ----
 
     /// The figures of a castle world: royals by rank, buildings by kind.
-    fn figures(&self, world: &World, bodies: &[BodyOwner], owner: PlayerId, cam: &Camera) -> Vec<Figure> {
+    fn figures(
+        &self,
+        world: &World,
+        bodies: &[BodyOwner],
+        owner: PlayerId,
+        cam: &Camera,
+        treb: Vec2,
+    ) -> Vec<Figure> {
+        let treb_x = cam.px(treb)[0];
         let pl = &self.play.rules.players[owner as usize];
         world
             .bodies
@@ -1611,6 +1619,8 @@ impl Arena {
                     tall: cam.figure_tall(),
                     rank,
                     dead: !b.alive,
+                    face: facing(p[0], treb_x),
+                    turn: body_turn(b, world.tick, facing(p[0], treb_x)),
                 }
             })
             .collect()
@@ -1661,7 +1671,8 @@ impl Arena {
         let (ground, water) = ground_line(plot, &cam);
         let world = &f.castle.world;
         let (beams, nodes, shots, debris) = world_parts(world, &cam, None, false);
-        let royals = self.figures(world, &f.castle.bodies, f.owner, &cam);
+        let royals = self.figures(world, &f.castle.bodies, f.owner, &cam, f.base);
+        let (puffs, shake) = impact_marks(world, &cam);
         let s = &f.shooter;
         let phase = match (s.swing_from, s.thrown) {
             (Some(t), _) => Arm::Swing(now.saturating_sub(t)),
@@ -1716,6 +1727,8 @@ impl Arena {
             cues: Vec::new(),
             music: "music_siege",
             loops,
+            puffs,
+            shake: if mine { shake } else { None },
             build: None,
         }
     }
@@ -1776,7 +1789,8 @@ impl Arena {
             None
         };
         let (beams, nodes, shots, debris) = world_parts(world, &cam, strain, building);
-        let royals = self.figures(world, bodies, p, &cam);
+        let base = crate::play::units::trebuchet_base(plot);
+        let royals = self.figures(world, bodies, p, &cam, base);
         let zone = building.then(|| {
             let (l, r, top) = self.zone(p);
             let lt = cam.px(Vec2::new(l, top));
@@ -1788,7 +1802,6 @@ impl Arena {
         } else {
             (None, None)
         };
-        let base = crate::play::units::trebuchet_base(plot);
         Frame {
             mode: "build",
             size: [w, h],
@@ -1813,6 +1826,8 @@ impl Arena {
             cues: self.cues.clone(),
             music: self.build_song(),
             loops: Vec::new(),
+            puffs: Vec::new(),
+            shake: None,
             build: building.then(|| self.marks_over(&cam)),
         }
     }
@@ -1863,6 +1878,11 @@ impl Arena {
                 tall: cam.figure_tall(),
                 rank: pl.royals.get(index).map_or("squire", |r| rank_name(r.kind)),
                 dead: false,
+                face: facing(
+                    p[0],
+                    cam.px(crate::play::units::trebuchet_base(self.plot(self.me)))[0],
+                ),
+                turn: None,
             });
         }
         marks
@@ -1895,6 +1915,8 @@ impl Arena {
             cues: self.cues.clone(),
             music: self.build_song(),
             loops: Vec::new(),
+            puffs: Vec::new(),
+            shake: None,
             build: None,
         }
     }
@@ -1990,6 +2012,7 @@ impl Arena {
             disabled,
             tip: String::new(),
             icon: hud_icon::url(icon),
+            cost: String::new(),
         };
         let rules = &self.play.rules;
         let Some(me) = rules.player(self.me) else {
@@ -2078,25 +2101,30 @@ impl Arena {
                 }
                 bar.push(self.tool_bar(s));
                 let xp_cost = crate::game::tune::XP_BUY_COST;
-                bar.push(button(
+                let mut buy_xp = button(
                     "match.buy_xp",
                     s.fill(
                         "hud.buy_xp",
-                        &[
-                            ("x", crate::game::tune::XP_BUY_AMOUNT.to_string()),
-                            ("n", xp_cost.to_string()),
-                        ],
+                        &[("x", crate::game::tune::XP_BUY_AMOUNT.to_string())],
                     ),
                     "xp",
                     me.purse.xp_needed().is_none() || me.purse.gold < xp_cost,
-                ));
+                );
+                if let Item::Button { cost, .. } = &mut buy_xp {
+                    *cost = xp_cost.to_string();
+                }
+                bar.push(buy_xp);
                 let shot = me.mods.shot_price();
-                bar.push(button(
+                let mut buy_shot = button(
                     "match.buy_shot",
-                    s.fill("hud.buy_shot", &[("n", shot.to_string())]),
+                    s.get("hud.buy_shot"),
                     "buy_shot",
                     me.purse.gold < shot || self.phase() != Phase::Build,
-                ));
+                );
+                if let Item::Button { cost, .. } = &mut buy_shot {
+                    *cost = shot.to_string();
+                }
+                bar.push(buy_shot);
                 bar.push(button("match.test", s.get("sandbox.test"), "test", false));
                 bar.push(button(
                     "match.undo",
@@ -2401,6 +2429,7 @@ impl Arena {
                 disabled: offer.picked.is_some() || me.purse.gold < cost,
                 tip: s.get("tip.reroll"),
                 icon: hud_icon::url("reroll"),
+                cost: String::new(),
             });
         }
         Panel::new("cards", s.get("phase.upgrade"), items)
@@ -2434,6 +2463,7 @@ impl Arena {
                     Item::Button {
                         tip: String::new(),
                         icon: String::new(),
+                        cost: String::new(),
                         id: "play.lobby".into(),
                         text: s.get("results.lobby"),
                         quiet: false,
@@ -2443,6 +2473,7 @@ impl Arena {
                     Item::Button {
                         tip: String::new(),
                         icon: String::new(),
+                        cost: String::new(),
                         id: "match.again".into(),
                         text: s.get("results.again"),
                         quiet: false,
@@ -2452,6 +2483,7 @@ impl Arena {
                 Item::Button {
                     tip: String::new(),
                     icon: String::new(),
+                    cost: String::new(),
                     id: "play.leave".into(),
                     text: s.get("results.menu"),
                     quiet: true,

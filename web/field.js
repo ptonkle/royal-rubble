@@ -24,9 +24,9 @@ export async function initField(theSend) {
   canvas = document.getElementById("field");
   g = canvas.getContext("2d");
   const json = async (path) => (await fetch(path)).json();
-  const names = ["field", "stitch", "palette", "stitch-sprites"];
-  const [table, stitch, palette, baked] = await Promise.all(names.map((n) => json("data/" + n + ".json")));
-  await setLook(table, stitch, palette, baked, g);
+  const names = ["field", "stitch", "palette", "stitch-sprites", "paint", "paint-sprites"];
+  const [table, stitch, palette, baked, paint, painted] = await Promise.all(names.map((n) => json("data/" + n + ".json")));
+  await setLook(table, stitch, palette, Object.assign(baked, painted), g, paint);
   sound.initSound();
   canvas.addEventListener("pointerdown", (e) => {
     canvas.setPointerCapture(e.pointerId);

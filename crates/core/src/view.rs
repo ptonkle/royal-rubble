@@ -73,6 +73,9 @@ pub enum Item {
         /// an icon's data URL (`app::hud_icon`), drawn before the text
         #[serde(skip_serializing_if = "String::is_empty")]
         icon: String,
+        /// a gold price shown under the text with a coin, or empty
+        #[serde(skip_serializing_if = "String::is_empty")]
+        cost: String,
     },
     Slider {
         id: String,
@@ -363,6 +366,7 @@ mod tests {
             disabled: false,
             tip: String::new(),
             icon: String::new(),
+            cost: String::new(),
         };
         assert_eq!(
             serde_json::to_string(&b).unwrap(),

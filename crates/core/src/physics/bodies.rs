@@ -20,12 +20,24 @@ pub struct Body {
     /// Highest point since it last stood still.
     pub peak_y: Fx,
     pub alive: bool,
+    /// The world tick it died on; a dead body keeps falling until it lies
+    /// on the ground or a floor, never left in the air (R1.3603).
+    pub died: Option<u32>,
 }
 
 impl Body {
     /// The point of the body's upright nearest `p`: hits measure from here.
     pub fn nearest(&self, p: Vec2) -> Vec2 {
         Vec2::new(self.pos.x, p.y.clamp_to(self.pos.y, self.pos.y + self.tall))
+    }
+
+    /// Kills the body on world tick `tick`, knocked by `knock` (units a
+    /// tick): it lets go of its floor and flies off with that speed.
+    pub fn kill(&mut self, tick: u32, knock: Vec2) {
+        self.alive = false;
+        self.died = Some(tick);
+        self.attached = None;
+        self.prev = self.pos - knock;
     }
 
     /// True when a circle of radius `r` at `p` touches the body.
@@ -54,6 +66,7 @@ impl World {
             attached: Some((s, u)),
             peak_y: pos.y,
             alive: true,
+            died: None,
         });
         self.bodies.len() - 1
     }
@@ -61,8 +74,8 @@ impl World {
     pub(super) fn step_bodies(&mut self, events: &mut Vec<Event>) {
         for i in 0..self.bodies.len() {
             let mut b = self.bodies[i];
-            if !b.alive {
-                continue;
+            if b.alive && b.died.is_some() {
+                b.died = None;
             }
             if let Some((s, _)) = b.attached {
                 if self.segments[s].broken {
@@ -84,10 +97,13 @@ impl World {
                 }
             }
             let vy = b.pos.y - b.prev.y;
-            if vy >= -TUNE.fall_speed {
+            if !b.alive {
+                // the dead only fall; nothing below kills them again
+            } else if vy >= -TUNE.fall_speed {
                 let drop = b.peak_y - b.pos.y;
                 if drop > TUNE.fall_kill {
                     b.alive = false;
+                    b.died = Some(self.tick);
                     events.push(Event::BodyFell { body: i, drop });
                 }
                 b.peak_y = b.pos.y;

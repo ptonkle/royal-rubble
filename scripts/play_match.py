@@ -25,7 +25,7 @@ import engines  # noqa: E402
 from shot import Handler, by_id  # noqa: E402
 
 SIZE = {"width": 1920, "height": 1080}
-MATCH_LIMIT_S = 240
+MATCH_LIMIT_S = 600
 
 
 def press(page, name):

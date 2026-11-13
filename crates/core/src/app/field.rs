@@ -238,6 +238,55 @@ pub struct Figure {
     pub rank: &'static str,
     #[serde(skip_serializing_if = "is_false")]
     pub dead: bool,
+    /// 1 faces right, -1 left: toward the trebuchet that shoots at this
+    /// castle, so the front reads (R1.3602)
+    pub face: i8,
+    /// a dead royal's tumble: the turn about its feet as cosine and sine in
+    /// thousandths, from upright to lying on its back (R1.3603)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub turn: Option<[i32; 2]>,
+}
+
+/// Cosine and sine, in thousandths, of each eighth of a quarter turn.
+const QUARTER: [[i32; 2]; 9] = [
+    [1000, 0],
+    [981, 195],
+    [924, 383],
+    [831, 556],
+    [707, 707],
+    [556, 831],
+    [383, 924],
+    [195, 981],
+    [0, 1000],
+];
+
+/// Ticks a fall takes to lie flat, squared: the tumble speeds up as it goes.
+const TUMBLE_SQ: u32 = 50;
+
+/// How far over a royal dead for `ticks` has tumbled: it falls on its back,
+/// away from the trebuchet it faces, so the turn's sine has the other sign.
+pub fn death_turn(ticks: u32, face: i8) -> [i32; 2] {
+    let t = ticks.min(64);
+    let step = ((t * t) / TUMBLE_SQ).min(8) as usize;
+    let [c, s] = QUARTER[step];
+    [c, -s * face as i32]
+}
+
+/// The tumble of a body for the frame: none while it lives.
+pub fn body_turn(b: &crate::physics::Body, tick: u32, face: i8) -> Option<[i32; 2]> {
+    if b.alive {
+        return None;
+    }
+    Some(death_turn(tick.saturating_sub(b.died.unwrap_or(0)), face))
+}
+
+/// Which way a royal at pixel x faces: toward the trebuchet at `treb_x`.
+pub fn facing(x: i32, treb_x: i32) -> i8 {
+    if treb_x < x {
+        -1
+    } else {
+        1
+    }
 }
 
 /// The trebuchet, as pixel points (R1.1603): a wheeled base, the A-frame,
@@ -267,6 +316,11 @@ pub struct Engine {
     /// pixel lengths of the two uprights (feet to pivot), the base (foot to
     /// foot), the arm (weight to tip) and the brace, for placing textures
     pub lens: [i32; 5],
+    /// pixel lengths of the cross braces (each foot to the brace beam's far
+    /// end), the two hinge straps (short arm's end to the box's top
+    /// corners) and the sling's two ropes, so the page can draw them as
+    /// beams (R1.3606)
+    pub struts: [i32; 6],
     /// the shot in the pouch, waiting to be thrown
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loaded: Option<Dot>,
@@ -302,6 +356,7 @@ impl Engine {
         let weight = cam.px(p.short);
         let brace = p.brace.map(|v| cam.px(v));
         let sling = p.sling.map(|v| cam.px(v));
+        let box_ = p.box_.map(|v| cam.px(v));
         Engine {
             feet,
             wheels: p.wheels.map(|v| cam.px(v)),
@@ -310,7 +365,7 @@ impl Engine {
             brace,
             tip,
             weight,
-            box_: p.box_.map(|v| cam.px(v)),
+            box_,
             sling,
             arm_w: cam.len(Fx::ratio(1, 6), 3),
             rope_w: cam.len(Fx::ratio(1, 24), 1),
@@ -321,6 +376,14 @@ impl Engine {
                 px_len(feet[0], feet[1]),
                 px_len(weight, tip),
                 px_len(brace[0], brace[1]),
+            ],
+            struts: [
+                px_len(feet[0], brace[1]),
+                px_len(feet[1], brace[0]),
+                px_len(weight, box_[0]),
+                px_len(weight, box_[1]),
+                px_len(sling[0], sling[1]),
+                px_len(sling[1], sling[2]),
             ],
             loaded: shot.filter(|_| p.loaded).map(|(r, hot)| Dot {
                 x: sling[2][0],
@@ -433,9 +496,96 @@ pub struct Frame {
     pub music: &'static str,
     /// the looping effects running now
     pub loops: Vec<&'static str>,
+    /// dust and chips from recent impacts
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub puffs: Vec<Puff>,
+    /// the view's offset in pixels while a big hit shakes it
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shake: Option<[i32; 2]>,
     /// the build tools' marks, while you build
     #[serde(skip_serializing_if = "Option::is_none")]
     pub build: Option<BuildMarks>,
+}
+
+/// A puff of dust, and for a broken segment its chips or splinters flying
+/// out, drawn over the scene while it fades (R1.3608).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Puff {
+    pub x: i32,
+    pub y: i32,
+    /// the cloud's radius, pixels: it grows as it fades
+    pub r: i32,
+    /// "dust", "wood", "stone" or "metal"
+    pub kind: &'static str,
+    /// how much still shows, in thousandths
+    pub fade: i32,
+    /// the chips' centers, pixels, and their size
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub chips: Vec<[i32; 2]>,
+    pub chip_r: i32,
+}
+
+/// Each chip's way out, in 64ths of a unit a tick: up and to both sides.
+const CHIP_WAYS: [(i64, i64); 5] = [(-3, 6), (-1, 8), (2, 7), (4, 5), (-5, 3)];
+
+/// Breaks within this many ticks count toward a shake.
+const SHAKE_TICKS: u32 = 10;
+
+/// How many fresh breaks make a big hit that shakes the view.
+const SHAKE_BREAKS: u32 = 3;
+
+/// The puffs of a world's recent impacts, and the view's shake: only a big
+/// hit (`SHAKE_BREAKS` segments broken within `SHAKE_TICKS`) shakes it, by
+/// up to 12 pixels, less as the hit ages, flipping side each tick.
+pub fn impact_marks(world: &World, cam: &Camera) -> (Vec<Puff>, Option<[i32; 2]>) {
+    use crate::physics::world::{ImpactKind, IMPACT_LIFE};
+    let now = world.tick;
+    let mut puffs = Vec::new();
+    let mut fresh = 0u32;
+    let mut youngest = SHAKE_TICKS;
+    for m in &world.impacts {
+        let age = now.saturating_sub(m.tick).min(IMPACT_LIFE);
+        let kind = match m.kind {
+            ImpactKind::Dust => "dust",
+            ImpactKind::Wood => "wood",
+            ImpactKind::Stone => "stone",
+            ImpactKind::Metal => "metal",
+        };
+        if m.kind != ImpactKind::Dust && age < SHAKE_TICKS {
+            fresh += 1;
+            youngest = youngest.min(age);
+        }
+        let p = cam.px(m.pos);
+        let a = age as i64;
+        let chips = if m.kind == ImpactKind::Dust {
+            Vec::new()
+        } else {
+            CHIP_WAYS
+                .iter()
+                .map(|&(dx, dy)| {
+                    cam.px(Vec2::new(
+                        m.pos.x + Fx::ratio(dx * a, 64),
+                        m.pos.y + Fx::ratio(dy * a, 64) - Fx::ratio(a * a, 400),
+                    ))
+                })
+                .collect()
+        };
+        puffs.push(Puff {
+            x: p[0],
+            y: p[1],
+            r: cam.len(Fx::HALF + Fx::ratio(a, 30), 4),
+            kind,
+            fade: 1000 - (age as i32 * 1000) / IMPACT_LIFE as i32,
+            chips,
+            chip_r: cam.len(Fx::ratio(1, 8), 2),
+        });
+    }
+    let shake = (fresh >= SHAKE_BREAKS).then(|| {
+        let amp = (fresh.min(6) as i32 * 2 - youngest as i32).max(1);
+        let side = if now.is_multiple_of(2) { 1 } else { -1 };
+        [amp * side, -(amp / 2) * side]
+    });
+    (puffs, shake)
 }
 
 /// A spot on the map, as a band along the ground from `a` to `b`.
@@ -657,6 +807,78 @@ mod tests {
         assert_eq!(px_len([10, 20], [13, 24]), 5);
         assert_eq!(px_len([0, 0], [-1, 1]), 1);
         assert_eq!(px_len([5, 5], [5, 5]), 0);
+    }
+
+    #[test]
+    fn impacts_make_fading_puffs_and_only_a_big_hit_shakes() {
+        use crate::physics::world::{Impact, ImpactKind};
+        use crate::physics::Terrain;
+        // 10 px a unit on a 1000 by 500 view
+        let cam = Camera::spanning(Fx::ZERO, Fx::from_int(100), Fx::ZERO, 1000, 500);
+        let mut w = World::new(Terrain::flat(80, Fx::ZERO));
+        w.tick = 18;
+        let at = |kind| Impact {
+            pos: Vec2::ints(10, 5),
+            tick: 0,
+            kind,
+        };
+        w.impacts = vec![at(ImpactKind::Dust), at(ImpactKind::Stone)];
+        let (puffs, shake) = impact_marks(&w, &cam);
+        // age 18 of 36: half faded; dust has no chips, stone has five
+        assert_eq!(puffs[0].fade, 500);
+        assert_eq!(puffs[0].kind, "dust");
+        assert!(puffs[0].chips.is_empty());
+        assert_eq!(puffs[1].chips.len(), 5);
+        // radius 0.5 + 18/30 = 1.1 units; 18/30 is a hair under 0.6 in fixed
+        // point, so 10.99 px, rounded down to 10
+        assert_eq!(puffs[1].r, 10);
+        // the first chip: 10 - 3*18/64 = 9.156 across (91 px), 5 + 6*18/64
+        // - 324/400 = 5.878 up (500 - 58.78 = 441.2, px 442)
+        assert_eq!(puffs[1].chips[0], [91, 442]);
+        // old breaks never shake
+        assert_eq!(shake, None);
+        // three fresh breaks, the youngest 1 tick old, on an even tick:
+        // 3*2 - 1 = 5 px across and half that up
+        w.impacts = vec![
+            Impact {
+                tick: 16,
+                ..at(ImpactKind::Wood)
+            },
+            Impact {
+                tick: 16,
+                ..at(ImpactKind::Wood)
+            },
+            Impact {
+                tick: 17,
+                ..at(ImpactKind::Stone)
+            },
+        ];
+        assert_eq!(impact_marks(&w, &cam).1, Some([5, -2]));
+        // two fresh breaks are not a big hit
+        w.impacts.pop();
+        assert_eq!(impact_marks(&w, &cam).1, None);
+    }
+
+    #[test]
+    fn a_dead_royal_tumbles_onto_its_back_then_lies_flat() {
+        // R1.3603: upright when it dies, an eighth over after 3 ticks (9 / 50
+        // rounds down to 0, so still upright), part way at 10 (100 / 50 = 2)
+        assert_eq!(death_turn(0, 1), [1000, 0]);
+        assert_eq!(death_turn(10, 1), [924, -383]);
+        // flat on its back from 20 ticks (400 / 50 = 8), and stays there
+        assert_eq!(death_turn(20, 1), [0, -1000]);
+        assert_eq!(death_turn(5000, 1), [0, -1000]);
+        // facing left, it falls the other way
+        assert_eq!(death_turn(20, -1), [0, 1000]);
+    }
+
+    #[test]
+    fn royals_face_the_trebuchet_on_either_side() {
+        // R1.3602: a trebuchet at x 100 on the left; royals right of it face left
+        assert_eq!(facing(400, 100), -1);
+        // a trebuchet on the right: face right
+        assert_eq!(facing(400, 900), 1);
+        assert_eq!(facing(50, 100), 1);
     }
 
     #[test]

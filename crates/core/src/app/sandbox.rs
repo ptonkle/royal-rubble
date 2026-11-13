@@ -10,8 +10,9 @@
 use std::collections::BTreeMap;
 
 use super::field::{
-    cell_units, cloth_at, ground_line, material_name, terrain_of, tree_marks, world_parts, world_right,
-    Camera, Cue, Engine, Figure, Flag, Frame, Preview, Ring, CELL_TO_RAW,
+    body_turn, cell_units, cloth_at, facing, ground_line, impact_marks, material_name, terrain_of,
+    tree_marks, world_parts, world_right, Camera, Cue, Engine, Figure, Flag, Frame, Preview, Ring,
+    CELL_TO_RAW,
 };
 use crate::game::royals::RoyalKind;
 use crate::physics::trebuchet::{pose, Phase as Arm};
@@ -977,6 +978,7 @@ impl Sandbox {
         let (ground, water) = ground_line(&self.plot, &cam);
         let build = self.mode == Mode::Build;
         let (beams, nodes, shots, debris) = world_parts(&self.world, &cam, self.test.as_deref(), build);
+        let (puffs, shake) = impact_marks(&self.world, &cam);
         let royals = self
             .world
             .bodies
@@ -984,6 +986,7 @@ impl Sandbox {
             .zip(self.ranks.iter())
             .map(|(b, &k)| {
                 let p = cam.px(b.pos);
+                let treb_x = cam.px(self.engine_base())[0];
                 Figure {
                     x: p[0],
                     y: p[1],
@@ -991,6 +994,8 @@ impl Sandbox {
                     tall: cam.figure_tall(),
                     rank: rank_name(k),
                     dead: !b.alive,
+                    face: facing(p[0], treb_x),
+                    turn: body_turn(b, self.world.tick, facing(p[0], treb_x)),
                 }
             })
             .collect();
@@ -1036,6 +1041,8 @@ impl Sandbox {
             cues: self.cues.clone(),
             music: if build { "music_build" } else { "music_siege" },
             loops,
+            puffs,
+            shake,
             build: None,
         }
     }
@@ -1137,6 +1144,7 @@ impl Sandbox {
         let button = |id: &str, key: &str| Item::Button {
             tip: String::new(),
             icon: String::new(),
+            cost: String::new(),
             id: id.into(),
             text: s.get(key),
             quiet: false,
@@ -1152,6 +1160,7 @@ impl Sandbox {
         top.push(Item::Button {
             tip: String::new(),
             icon: String::new(),
+            cost: String::new(),
             id: "sandbox.leave".into(),
             text: s.get("play.leave"),
             quiet: true,

@@ -260,9 +260,14 @@ impl World {
                 node.prev -= dir * (push * share);
             }
         }
+        let tick = self.tick;
         for (bi, body) in self.bodies.iter_mut().enumerate() {
             if body.alive && body.touches(at, radius) {
-                body.alive = false;
+                let away = (body.pos - at).normalized();
+                body.kill(
+                    tick,
+                    away * Fx::ratio(1, 6) + Vec2::new(Fx::ZERO, Fx::ratio(1, 12)),
+                );
                 blast.bodies.push(bi);
             }
         }

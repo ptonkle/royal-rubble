@@ -231,7 +231,7 @@ tags = ["match"]
 
 [[rule]]
 name = "tests of the playfield"
-files = ["crates/core/src/app/field.rs", "crates/core/src/app/sandbox.rs", "crates/core/src/app/sandbox/**", "web/field.js", "web/field-draw.js", "web/treb-draw.js", "web/field.css", "data/field.json", "data/stitch.json", "data/palette.json", "data/stitch-sprites.json", "data/look/**", "tools/look/stitch.js", "tools/look/bake.html", "tools/look/bake_stitch.py"]
+files = ["crates/core/src/app/field.rs", "crates/core/src/app/sandbox.rs", "crates/core/src/app/sandbox/**", "web/field.js", "web/field-draw.js", "web/treb-draw.js", "web/field.css", "data/field.json", "data/stitch.json", "data/palette.json", "data/stitch-sprites.json", "data/paint.json", "data/paint-sprites.json", "data/look/**", "tools/look/stitch.js", "tools/look/paint.js", "tools/look/paint.html", "tools/look/bake.html", "tools/look/bake_stitch.py"]
 steps = ["core"]
 tags = ["field"]
 

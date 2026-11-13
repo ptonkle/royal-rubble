@@ -690,6 +690,7 @@ pub fn to_world(plan: &CastlePlan, plot: &Plot) -> (World, Vec<usize>) {
                     attached: None,
                     peak_y: pos.y,
                     alive: true,
+                    died: None,
                 });
                 royals.push(w.bodies.len() - 1);
             }

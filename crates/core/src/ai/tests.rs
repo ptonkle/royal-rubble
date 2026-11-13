@@ -471,6 +471,7 @@ fn ai_siege_targets_carry_each_royals_damage() {
         attached: None,
         peak_y: Fx::from_int(30),
         alive: true,
+        died: None,
     };
     w.bodies = vec![body(150), body(160), body(170)];
     w.bodies[2].alive = false;

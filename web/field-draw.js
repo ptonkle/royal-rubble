@@ -1,8 +1,10 @@
 // The playfield's renderer: the one file a chosen look replaces. It draws
-// the core's frame (crates/core/src/app/field.rs) on a 2D canvas as Bayeux
-// embroidery by placing pictures baked ahead of time with the stitch helpers
-// (tools/look/stitch.js, baked by tools/look/bake_stitch.py into
-// data/look/stitch/; sizes and anchors in data/stitch-sprites.json). Every
+// the core's frame (crates/core/src/app/field.rs) on a 2D canvas in a rough
+// hand-painted look (R1.3600) by placing pictures baked ahead of time: the
+// painted set (tools/look/paint.html, data/look/paint/, sizes in
+// data/paint-sprites.json, drawing numbers in data/paint.json) laid name for
+// name over the older stitched set (tools/look/stitch.js, data/look/stitch/,
+// data/stitch-sprites.json) for the pictures not yet repainted. Every
 // position, radius, width and segment length comes from the core in pixels;
 // scales from data/stitch.json; wool colors from data/palette.json; strain
 // and spot threads from field.css. It decides nothing and does no math of
@@ -15,6 +17,7 @@ let G = null;
 let K = null;
 let wool = null;
 let sprites = null;
+let P = null;
 const images = {};
 const patterns = {};
 const colors = {};
@@ -23,8 +26,9 @@ const layers = {};
 // field.json, stitch.json, palette.json, stitch-sprites.json; resolves when
 // the baked pictures have loaded and been drawn once on `into` (the field's
 // own 2D context, cleared again after), so the first view does not stall.
-export async function setLook(table, stitch, palette, baked, into) {
+export async function setLook(table, stitch, palette, baked, into, paint) {
   look = table;
+  P = paint;
   K = stitch;
   G = stitch.game;
   wool = palette.wool;
@@ -105,14 +109,14 @@ function beam(g, a, b, w, len, material, strain) {
   const uy = (by - ay) / len;
   const name = "beam-" + (K.materials[material] ? material : "wood");
   const sp = sprites[name];
-  const ww = most(w, G.beam_min_w);
+  const ww = most(w * P.beam_k, G.beam_min_w);
   const pat = strip(g, name, ww);
   g.save();
   g.transform(ux, uy, -uy, ux, ax, ay);
   g.fillStyle = pat;
   g.fillRect(0, -half(ww), len, ww);
   g.strokeStyle = sp.line;
-  g.lineWidth = ww * G.beam_line;
+  g.lineWidth = ww * P.beam_end;
   if (material !== "rope") {
     g.beginPath();
     g.moveTo(0, -half(ww));
@@ -154,8 +158,7 @@ function royals(g, f) {
 }
 
 function figure(g, f, r) {
-  const mid = half(f.size[0]);
-  const face = r.x > mid ? -1 : 1;
+  const face = r.face;
   if (K.huts[r.rank]) {
     const name = "hut-" + r.rank;
     const tall = most(r.r * G.hut_tall_r, G.hut_min_px);
@@ -166,12 +169,13 @@ function figure(g, f, r) {
   const name = "fig-" + rank + (r.dead ? "-dead" : "");
   const k = r.tall / sprites[name].tall;
   if (r.dead) {
-    // fallen: turned a quarter onto the floor
+    // tumbling onto its back about its feet, by the core's turn
+    const [c, s] = r.turn.map((v) => v * P.per_mille);
     g.save();
-    g.globalAlpha = G.dead_alpha;
+    g.globalAlpha = P.dead_alpha;
     g.translate(r.x, r.y + r.r);
-    g.transform(0, face, -face, 0, 0, 0);
-    place(g, name, 0, 0, k);
+    g.transform(c, s, -s, c, 0, 0);
+    place(g, name, 0, 0, k, face);
     g.restore();
     return;
   }
@@ -189,23 +193,7 @@ function trace(g, pts) {
   g.closePath();
 }
 
-// --- the background: linen, terrain, water, the plot (cached per view)
-
-function stroke(g, pts, wool_, w, dash, gap) {
-  g.beginPath();
-  pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
-  g.lineCap = "butt";
-  g.lineJoin = "round";
-  g.setLineDash([]);
-  g.strokeStyle = wool[wool_].dark;
-  g.lineWidth = w;
-  g.stroke();
-  g.setLineDash([dash, gap]);
-  g.strokeStyle = wool[wool_].mid;
-  g.lineWidth = w * K.stitch.cord_wrap;
-  g.stroke();
-  g.setLineDash([]);
-}
+// --- the background: sky, hills, water, the plot (cached per view)
 
 // The background is kept on its own canvas while the view holds still and
 // drawn straight onto the field while the view moves, which saves laying it
@@ -237,22 +225,23 @@ function background(out, slot, f) {
   out.drawImage(L.c, 0, 0);
 }
 
+// A terrain tile's pattern, laid from the core's origin point so it moves
+// with the ground.
+function tiled(g, name, cx, cy) {
+  const pat = pattern(g, "ground-" + name);
+  pat.setTransform(new DOMMatrix([P.tile_k, 0, 0, P.tile_k, cx, cy]));
+  return pat;
+}
+
+function path(g, pts) {
+  g.beginPath();
+  pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+}
+
 function paint(g, slot, f, w, h) {
-  // the cloth is laid from the core's origin point, so it moves with the ground
+  // the sky is laid to the screen, so it holds still while the view moves
+  g.drawImage(images.sky, 0, 0, w, h);
   const [cx, cy] = f.cloth;
-  const lin = pattern(g, "linen");
-  lin.setTransform(new DOMMatrix([1, 0, 0, 1, cx, cy]));
-  g.fillStyle = lin;
-  g.fillRect(0, 0, w, h);
-  // the top border band, behind the HUD; the main view only
-  if (slot === "main") {
-    const bh = h * G.border_share;
-    const k = bh / sprites.border.h;
-    const bp = pattern(g, "border");
-    bp.setTransform(new DOMMatrix([k, 0, 0, k, cx, 0]));
-    g.fillStyle = bp;
-    g.fillRect(0, 0, w, bh);
-  }
   // scenery trees, their feet tucked under the ground's edge
   (f.trees || []).forEach((t) => {
     const name = "tree-" + t.look;
@@ -262,64 +251,58 @@ function paint(g, slot, f, w, h) {
   if (pts.length > 1) {
     const last = pts[pts.length - 1][0];
     const first = pts[0][0];
-    // banded mounds: laid wool under the ground line, stitched edges
+    // the hills: deep earth, then rock, dirt and grass bands under the edge
     g.save();
-    g.beginPath();
-    pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    path(g, pts);
     g.lineTo(last, h);
     g.lineTo(first, h);
     g.closePath();
     g.clip();
-    // solid earth down to the bottom, the stitched bands laid over it
-    g.fillStyle = pattern(g, "wool-" + K.ground_fill);
+    g.fillStyle = tiled(g, P.ground_fill, cx, cy);
     g.fillRect(0, 0, w, h);
-    // a band's lower edge is the next band's upper edge, stitched over it,
-    // so only the last band's lower edge is sewn (R1.2901)
-    const lastBand = K.ground_bands[K.ground_bands.length - 1];
-    for (const band of K.ground_bands) {
-      const [name, a, b] = band;
-      const top = pts.map(([x, y]) => [x, y + G[a]]);
-      const bot = pts.map(([x, y]) => [x, y + G[b]]);
-      g.beginPath();
-      top.concat(bot.slice().reverse()).forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    for (const [name, a, b] of P.ground_bands.slice().reverse()) {
+      const top = pts.map(([x, y]) => [x, y + a]);
+      const bot = pts.map(([x, y]) => [x, y + b]);
+      path(g, top.concat(bot.slice().reverse()));
       g.closePath();
-      g.fillStyle = pattern(g, "wool-" + name);
+      g.fillStyle = tiled(g, name, cx, cy);
       g.fill();
-      stroke(g, top, "navy", G.ground_band_line, G.band_dash, G.band_gap);
-      if (band === lastBand) stroke(g, bot, "rule", G.ground_band_line, G.band_dash, G.band_gap);
+      path(g, bot);
+      g.strokeStyle = P.band_line;
+      g.lineWidth = P.band_line_w;
+      g.stroke();
     }
     g.restore();
-    // water: waves above the ground between the banks
+    // water between the banks
     if (f.water.length) {
       const [[ax, ay], [bx]] = f.water;
       g.save();
-      g.beginPath();
-      pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+      path(g, pts);
       g.lineTo(last, 0);
       g.lineTo(first, 0);
       g.closePath();
       g.clip();
-      g.globalAlpha = G.water_alpha;
-      g.fillStyle = pattern(g, "wool-bluegreen");
+      g.globalAlpha = P.water_alpha;
+      g.fillStyle = tiled(g, "water", cx, cy);
       g.fillRect(ax, ay, bx - ax, h - ay);
       g.globalAlpha = 1;
-      const wp = pattern(g, "water");
-      wp.setTransform(new DOMMatrix([1, 0, 0, 1, ax, ay]));
-      g.fillStyle = wp;
-      g.fillRect(ax, ay, bx - ax, h - ay);
+      path(g, [[ax, ay], [bx, ay]]);
+      g.strokeStyle = P.water_edge;
+      g.lineWidth = P.water_edge_w;
+      g.stroke();
       g.restore();
     }
-    // the walking line: a row of small humps, then the stem-stitched edge
-    const up = pts.map(([x, y]) => [x, y - G.scallop_up]);
-    g.beginPath();
-    up.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    // the grass edge: a dark rim and a lit top
     g.lineCap = "round";
-    g.setLineDash([half(G.scallop_dash), G.scallop_dash]);
-    g.strokeStyle = wool.slate.mid;
-    g.lineWidth = G.scallop_w;
+    g.lineJoin = "round";
+    path(g, pts);
+    g.strokeStyle = P.grass_edge;
+    g.lineWidth = P.grass_edge_w;
     g.stroke();
-    g.setLineDash([]);
-    stroke(g, pts, "rule", G.ground_line, G.ground_dash, G.ground_gap);
+    path(g, pts.map(([x, y]) => [x, y - P.grass_lit_up]));
+    g.strokeStyle = P.grass_lit;
+    g.lineWidth = P.grass_lit_w;
+    g.stroke();
   }
   // the plot: a fine running stitch round it and a faint grid
   if (f.zone) {
@@ -380,12 +363,12 @@ function dashed(g, pts, dark, light, w, len, gap) {
 }
 
 function balls(g, f) {
-  f.debris.forEach((d) => place(g, "debris", d.x, d.y, d.r / sprites.debris.r));
-  f.shots.forEach((s) => place(g, s.hot ? "ball-hot" : "ball", s.x, s.y, s.r / sprites.ball.r));
+  f.debris.forEach((d) => place(g, "debris", d.x, d.y, (d.r * P.debris_k) / sprites.debris.r));
+  f.shots.forEach((s) => place(g, s.hot ? "ball-hot" : "ball", s.x, s.y, (s.r * P.ball_k) / sprites.ball.r));
 }
 
 function engine(g, f) {
-  drawTreb(g, f.engine, { beam, place, dashed, pattern, sprites, wool, look });
+  drawTreb(g, f.engine, { beam, place, pattern, sprites, half, P });
 }
 
 function ring(g, r) {
@@ -435,8 +418,63 @@ function flag(g, f) {
 }
 
 // The map's spots: a band of wool laid along the ground.
+// The map's spots (R1.3607): ore veins in the rock under the ground, and
+// trees, a well, ruins or a watchtower marker standing on it, each with its
+// badge above. The core gives the spot's ends just under the ground line
+// and a width that scales with the view.
 function spots(g, f) {
-  (f.spots || []).forEach((s) => dashed(g, [s.a, s.b], color("spot-" + s.kind), color("spot-" + s.kind), s.w * G.spot_w, G.zone_run, G.grid_run));
+  const pts = f.ground;
+  const [cx, cy] = f.cloth;
+  const [w, h] = f.size;
+  (f.spots || []).forEach((s) => {
+    const [ax, ay] = s.a;
+    const [bx, by] = s.b;
+    const at = (t) => [ax + (bx - ax) * t, ay + (by - ay) * t - s.w];
+    const vein = P.spot_veins[s.kind];
+    if (vein && pts.length > 1) {
+      const top = s.w * P.vein_top;
+      const deep = s.w * P.vein_depth;
+      const ins = s.w * P.vein_inset;
+      g.save();
+      path(g, pts);
+      g.lineTo(w, h);
+      g.lineTo(0, h);
+      g.closePath();
+      g.clip();
+      path(g, [[ax, ay + top], [bx, by + top], [bx - ins, by + deep], [ax + ins, ay + deep]]);
+      g.closePath();
+      const pat = pattern(g, "vein-" + vein);
+      pat.setTransform(new DOMMatrix([P.vein_k, 0, 0, P.vein_k, cx, cy]));
+      g.fillStyle = pat;
+      g.fill();
+      g.strokeStyle = P.vein_edge;
+      g.lineWidth = P.vein_edge_w;
+      g.stroke();
+      g.restore();
+    }
+    const props = P.spot_props[s.kind] || [];
+    const spread = P.spot_spread[props.length] || [];
+    props.forEach((name, i) => {
+      const [x, y] = at(spread[i]);
+      const tall = s.w * (name.startsWith("tree") ? P.tree_tall : P.prop_tall);
+      place(g, name, x, y, tall / sprites[name].tall);
+    });
+    const [mx, my] = at(K.n.half);
+    const mr = most(s.w * P.mark_r, P.mark_min);
+    place(g, "mark-" + s.kind, mx, my - s.w * P.mark_up - mr, mr / sprites["mark-" + s.kind].r);
+  });
+}
+
+// Dust and chips from recent impacts, fading by the core's count (R1.3608).
+function puffs(g, f) {
+  (f.puffs || []).forEach((p) => {
+    g.globalAlpha = p.fade * P.per_mille * P.puff_alpha;
+    place(g, "puff", p.x, p.y, p.r / sprites.puff.r);
+    g.globalAlpha = p.fade * P.per_mille;
+    const name = "chip-" + p.kind;
+    (p.chips || []).forEach(([x, y]) => place(g, name, x, y, (p.chip_r * P.chip_k) / sprites[name].r));
+  });
+  g.globalAlpha = 1;
 }
 
 // A second view in a framed box (your own castle during a siege).
@@ -467,6 +505,7 @@ function draw(g, f, slot) {
   beams(g, f);
   royals(g, f);
   balls(g, f);
+  puffs(g, f);
   marks(g, f);
   flag(g, f);
 }
@@ -476,6 +515,10 @@ export function drawField(g, f) {
   if (!look || !sprites) return;
   // a fresh canvas each frame, so nothing from the last frame or mode stays
   g.clearRect(0, 0, g.canvas.width, g.canvas.height);
+  g.save();
+  // a big hit shakes the view, by the core's offset
+  if (f.shake) g.translate(f.shake[0], f.shake[1]);
   draw(g, f, "main");
+  g.restore();
   inset(g, f);
 }
