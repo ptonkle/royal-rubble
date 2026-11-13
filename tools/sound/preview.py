@@ -109,8 +109,8 @@ document.getElementById("mus").addEventListener("input", (e) => setMusicVolume(e
 def main():
     bank = (ROOT / "data" / "sound-programs.json").read_text().strip()
     noise = base64.b64encode((ROOT / "data" / "sound-noise.wav").read_bytes()).decode()
-    page = (PAGE.replace("__SYNTH__", module_body("web/sound/synth.js"))
-            .replace("__SOUND__", module_body("web/sound/sound.js"))
+    page = (PAGE.replace("__SYNTH__", module_body("web/synth.js"))
+            .replace("__SOUND__", module_body("web/sound.js"))
             .replace("__BANK__", bank).replace("__NOISE__", noise))
     out = ROOT / "notes" / "sound" / "preview.html"
     out.write_text(page)

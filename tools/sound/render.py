@@ -6,7 +6,7 @@ listen without running the game.
     python3 tools/sound/render.py impact          the sounds whose ids hold this word
     python3 tools/sound/render.py --seconds 10 music_build    the first ten seconds
 
-Ported from Fleeced. This is the page's synth (web/sound/synth.js) over again,
+Ported from Fleeced. This is the page's synth (web/synth.js) over again,
 in plain Python with no installs. It decides nothing: the schedules come from
 data/sound-programs.json (tools/sound/compile.py), and each stage follows the
 Web Audio definition: AudioParam ramps, oscillators with periodic waves, the

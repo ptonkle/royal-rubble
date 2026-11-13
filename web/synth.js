@@ -7,7 +7,7 @@
 // in seconds, every value final. This file holds no numbers; tools/sound/
 // render.py replays the same schedules offline, so keep the two in step.
 //
-// The page calls web/sound/sound.js, not this file.
+// The page calls web/sound.js, not this file.
 
 // A parameter's schedule: { m: the AudioParam method, t: seconds, v, tc }.
 function schedule(param, points, from) {

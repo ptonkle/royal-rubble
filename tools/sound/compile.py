@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Compile the sound recipes in data/sounds.json into the schedules the page's
-synth plays (web/sound/synth.js) and tools/sound/render.py renders.
+synth plays (web/synth.js) and tools/sound/render.py renders.
 
     python3 tools/sound/compile.py
 

@@ -6,7 +6,7 @@ Everything is synthesized; nothing is recorded or downloaded. The machinery is p
 
 1. `tools/sound/author.py` writes `data/sounds.json`: every recipe (layers of waves, noise, filters, envelopes, strikes) and the two music tracks (instruments plus a score: mode, tempo, sections, parts). Edit recipes there.
 2. `tools/sound/compile.py` compiles it to `data/sound-programs.json` (Web Audio schedules, every value final) and `data/sound-noise.wav` (one second of seeded noise, the synth's only buffer).
-3. `web/sound/synth.js` plays the programs (no numbers in it). `web/sound/sound.js` is the API below.
+3. `web/synth.js` plays the programs (no numbers in it). `web/sound.js` is the API below.
 4. `tools/sound/render.py` renders every sound to `notes/sound/wav/` (git-ignored; about 20 MB). `tools/sound/preview.py` writes `notes/sound/preview.html`, a one-file listening page that plays everything live through the game's own synth.
 
 Rerun after any recipe change:
@@ -17,7 +17,7 @@ Rerun after any recipe change:
 
 ```js
 import { initSound, play, startLoop, stopLoop, music, urgent,
-         setVolume, setMusicVolume, setEffectsVolume } from "./sound/sound.js";
+         setVolume, setMusicVolume, setEffectsVolume } from "./sound.js";
 
 await initSound();          // once at start; sound wakes on the first press or key
 setVolume(slider / max);    // main slider, 0 to 1; on a square, times master_scale (0.6)

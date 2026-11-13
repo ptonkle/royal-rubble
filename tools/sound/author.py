@@ -374,7 +374,7 @@ URGENT = {
 }
 
 DATA = {
-    "_note": "Every sound in Royal Rubble. There are no audio files: tools/sound/compile.py compiles these recipes into data/sound-programs.json, which web/sound/synth.js plays and tools/sound/render.py renders. Written by tools/sound/author.py; edit there. Frequencies in Hz, times in ms, gains 0 to 1.",
+    "_note": "Every sound in Royal Rubble. There are no audio files: tools/sound/compile.py compiles these recipes into data/sound-programs.json, which web/synth.js plays and tools/sound/render.py renders. Written by tools/sound/author.py; edit there. Frequencies in Hz, times in ms, gains 0 to 1.",
     "silence": SILENCE,
     "noise": {"samples": 44100, "seed": 7, "rate": 44100},
     "setup": {
