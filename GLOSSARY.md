@@ -14,6 +14,14 @@ Where slush comes out. Each line has up to {line.spouts} spouts.
 Not: tap, dispenser, nozzle
 -->
 
+### Air effect
+
+A trick you trigger on a shot in flight, such as dropping it straight down. One per shot.
+
+### Ammo
+
+The shots you take into a siege: normal shots and any special ones. Ammo you don't throw is wasted.
+
 ### Armory ruin
 
 A spot on the map. A building standing on it gives you an extra shot each round it survives.
@@ -50,6 +58,12 @@ A noble you place in your castle. Each royal killed in a siege costs you health.
 
 Not: VIP, unit
 
+### Segment
+
+One beam of a castle between two points on the build grid: wood, stone, metal or rope. Each material has a longest length.
+
+Not: piece, block
+
 ### Spot
 
 A place on the map worth defending, such as a deposit, forest or holy well. A building counts as on it when it stands inside both the spot and your plot.
@@ -61,6 +75,12 @@ Not: tile, node
 Wood, stone and metal you have banked. Building spends it before gold.
 
 Not: inventory, storage
+
+### Strain
+
+How close a segment is to breaking under the castle's weight, shown as a color while you build.
+
+Not: stress
 
 ### Upgrade
 

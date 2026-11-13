@@ -579,5 +579,82 @@
     "find": "let mass = pct(t.mass, mods.weight_pct);",
     "replace": "let mass = t.mass;",
     "test": "shot_mods_add_weight_blast_and_fire"
+  },
+  {
+    "name": "play: a shot that hits a royal kills it",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "BodyOwner::Royal(r) if !alive =>",
+    "replace": "BodyOwner::Royal(r) if alive && !alive =>",
+    "test": "siege_shot_on_a_royal_kills_it_and_costs_health"
+  },
+  {
+    "name": "play: a standing building pays",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "BodyOwner::Building(id) if alive =>",
+    "replace": "BodyOwner::Building(id) if !alive =>",
+    "test": "spot_gold_vein_building_that_survives_pays"
+  },
+  {
+    "name": "play: too long segment refused",
+    "file": "crates/core/src/play/castle.rs",
+    "find": "if len > TUNE.material(m).max_len {",
+    "replace": "if false {",
+    "test": "build_too_long_or_out_of_span_is_refused_for_free"
+  },
+  {
+    "name": "play: royal needs a floor",
+    "file": "crates/core/src/play/mod.rs",
+    "find": "        if castle::surface_at(&cw.world, at.to_fx()).is_none() {\n            return Err(Refusal::BadSpot);\n        }\n        let spot",
+    "replace": "        let spot",
+    "test": "royal_must_stand_on_a_floor_or_the_ground"
+  },
+  {
+    "name": "play: shot in water is spent",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "if b.alive && units::in_water(&self.plot, b.pos) {",
+    "replace": "if false {",
+    "test": "siege_shot_in_the_water_is_spent"
+  },
+  {
+    "name": "play: placed segment joins the castle",
+    "file": "crates/core/src/play/mod.rs",
+    "find": "self.castles[p as usize].geo.insert(id, Geo::Beam { a, b });",
+    "replace": "let _ = (id, a, b);",
+    "test": "build_segment_costs_gold_and_joins_the_castle"
+  },
+  {
+    "name": "play: strain reports load",
+    "file": "crates/core/src/play/mod.rs",
+    "find": "((s * 1000) >> 16).min(1000) as u32",
+    "replace": "0",
+    "test": "strain_shows_a_cantilever_and_not_a_beam_on_the_ground"
+  },
+  {
+    "name": "play: bot plan throws every shot",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "for _ in 0..*n {",
+    "replace": "for _ in 0..(*n).min(1) {",
+    "test": "full_match_bot_trebuchet_throws_its_shots"
+  },
+  {
+    "name": "play: release spends a shot",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "        self.shooter.ammo[slot].1 -= 1;\n",
+    "replace": "",
+    "test": "siege_swing_and_release_spend_a_shot"
+  },
+  {
+    "name": "play: rules plot is the terrain span",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "width: self.terrain.buildable(level).len() as i32,",
+    "replace": "width: 48,",
+    "test": "rules_plot_size_is_the_terrain_span"
+  },
+  {
+    "name": "play: level one throw reaches the plot",
+    "file": "crates/core/src/play/tune.rs",
+    "find": "pub const LAUNCH_BASE_PCT: i64 = 200;",
+    "replace": "pub const LAUNCH_BASE_PCT: i64 = 100;",
+    "test": "level_one_throw_reaches_the_plot_front"
   }
 ]
