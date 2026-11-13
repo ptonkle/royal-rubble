@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.2.13",
+    "date": "2026-11-13",
+    "notes": [
+      "Coarser grid: segments snap to half cells.",
+      "Nearby nodes are marked; a note shows when you need more gold.",
+      "Thicker wood and metal, and longer segments.",
+      "Test now runs your castle's physics for a few seconds.",
+      "Smoother siege view: no more texture sliding when it zooms."
+    ]
+  },
+  {
     "version": "0.2.12",
     "date": "2026-11-13",
     "notes": [
