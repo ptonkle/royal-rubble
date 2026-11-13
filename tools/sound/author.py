@@ -425,7 +425,7 @@ DATA = {
         {"label": "Impacts", "ids": ["impact_wood_1", "impact_wood_2", "impact_wood_3", "impact_stone_1", "impact_stone_2",
                                      "impact_stone_3", "impact_metal_1", "impact_metal_2", "impact_metal_3", "segment_snap",
                                      "collapse_small", "collapse_mid", "collapse_big", "debris_1", "debris_2"]},
-        {"label": "Shots and air effects", "ids": ["splash", "explosion", "fire_ignite", "fire_crackle", "phase_shimmer",
+        {"label": "Shots and tricks", "ids": ["splash", "explosion", "fire_ignite", "fire_crackle", "phase_shimmer",
                                                    "split_pop", "dive_whistle", "air_drop", "air_reverse"]},
         {"label": "Royals", "ids": ["royal_squire", "royal_knight", "royal_princess", "royal_prince", "royal_queen", "royal_king"]},
         {"label": "Building and gold", "ids": ["place_segment", "sell_segment", "coin", "buy_xp", "level_up",

@@ -247,7 +247,7 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R1.2902 | finding | Cache the terrain in world space and blit it with a transform | The siege camera changes zoom as well as position while a shot flies (`siege_camera` widens with the shot), so a translate-only cache would rarely hit. Instead a moving background is drawn straight onto the field (the layer only cost an extra full-screen copy and forced its raster on the main thread); the layer is used again once the view holds still for a frame (that frame pays one layer paint). Moving 13.5-13.9 ms to 7.18 ms main-thread time on perf.html; GPU raster time is not measured | `web/field-draw.js` `background`; MEASUREMENTS.md | | open |
 | R1.2903 | finding | perf.html still timed the old frame shape | It had no `cloth`, trees, wheels or figure heights, so it threw on the current renderer. Rewritten to the current Frame with a corner window and 80 debris, plus `?parts=1` timing each part and each canvas call turned off. Readback to wait for the GPU was tried and dropped: Chromium moves a canvas read back often onto the CPU | `notes/look/stitch/perf.html` | | open |
 | R1.3000 | finding | `play_match.py` could be stretched to 8 seats | A new `scripts/play_late.py` sets Players to 8 (the field sends on `change`, not `input`), builds each round, and shoots rounds 5-8 (build, siege frames after release, upgrade), the lobby and the results into `late-*.png`. Tagged with `play_match.py` in `tests/tags.toml` | `scripts/play_late.py` | | done |
-| R1.3001 | worklist | An 8-seat match runs until one castle stands | A ?fast match with 7 bots went to Results right after round 8 while the health list read 78-88 for everyone (`notes/shots/late-r8-siege1-2000ms.png`, `notes/shots/late-results.png`, the human 8th). Results comes only from `apply_siege` with at most one player above 0 health, and round-8 royal damage is at most about 13, so either the list shows stale health or something else ends the match. Not traced (time box); next step is a core run of 8 bot seats to round 9 | | | open |
+| R1.3001 | worklist | An 8-seat match runs until one castle stands | A ?fast match with 7 bots went to Results right after round 8 while the health list read 78-88 for everyone (`notes/shots/late-r8-siege1-2000ms.png`, `notes/shots/late-results.png`, the human 8th). Results comes only from `apply_siege` with at most one player above 0 health, and round-8 royal damage is at most about 13, so either the list shows stale health or something else ends the match. Traced in R1.3100: the match did not end at round 8; the script stopped shooting there | `game/flow.rs` tests `eight_seats_*` | | done |
 | R1.3002 | worklist | The corner inset shows your castle under fire | It uses `build_camera` (the whole build zone), so in a late round your castle is a few pixels wide in a mostly empty box (`notes/shots/late-r7-siege0-1200ms.png`). Frame it on `castle_box` of your own field instead, with the inset's aspect | `app/arena.rs` `frame` | | open |
 | R1.3003 | worklist | Bot castles grow by round 5-8 | Bot plots at rounds 5-8 are open A-frames around royals plus a hut or two, no walls or towers, so there is no big castle to bring down (`notes/shots/late-r8-siege1-2000ms.png`). A Crush the Castle player expects something to topple by mid game | `game/bots` | | open |
 | R1.3004 | finding | The script's drags build a castle | No beam takes: a drag up from the zone's bottom edge leaves gold unchanged and the royal stays unplaced (`notes/shots/late-build-fails.png`, round 1). `play_match.py`'s `build_some` does the same, which is why its player builds nothing. Not traced (time box): the page may need pointer events or a start on the ground line, which the DOM does not expose | `scripts/play_late.py` `build_castle` | | open |
@@ -259,6 +259,16 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R1.3802 | divergence | The building music is a rotating set, the menus get a theme | Four new original folk songs (village jig, pastoral, minor ballad, two mandolins) join `music_build`; the core picks one per round in turn, so a song lasts the upgrade and build phases and the change crossfades in at the siege. Not within a phase: a song loops if a phase outlasts it. The menus play `music_menu` (`ui.menu_music`, read by `web/field.js` when no field shows). New instruments: mandolin (a double course), tremolo mandolin, bodhran, tambourine, horn, a soft drone. Loudness matches `music_build` (RMS 0.046-0.059 against 0.058), and the master gain is unchanged (`master_scale` 0.6) | `BUILD_SONGS`, `build_song_for` in `app/arena.rs`; `MENU_MUSIC` in `app.rs`; `tools/sound/songs.py` | `arena_songs_…`, `the_menus_play_the_menu_theme_…` | done |
 | R1.3803 | divergence | A sample sound for the volume sliders | `sample` is a 0.7 s lute strum (D, A, D, F#) at peak 0.39. Another agent wires the slider blips; nothing plays it yet | `tools/sound/author.py` | | open |
 | R1.3804 | finding | The compiled sounds grew to 3.7 MB | `data/sound-programs.json` went from 1.4 MB to 3.7 MB with five more tracks, since every note is a layer with its schedules written out. It is fetched once at load, and gzip on Pages shrinks it about tenfold. To slim it, drop note-layer fields the synth defaults (`wobble: []`, `throb: []`) | `tools/sound/compile.py` | | open |
+| R1.3400 | divergence | Picking an upgrade card waits for everyone | The person: "immediately go to build once you choose your upgrade". Picking now makes you ready, and opens building for you (`Match::builds_now`) while the upgrade clock runs on; the shared Build clock starts when the last player picks or the upgrade timer ends. Pairings and wind moved from `begin_build` to `begin_round` so the early builder sees their target. Income, free XP, stock yields and new royals still come at the shared build start, so an early builder spends last round's gold. Buying a shot stays build-phase only (bought shots reset at build start). Online stays deterministic: picks and placements are ordinary inputs on the shared tick | `game/flow.rs` `builds_now`, `app/arena.rs` `view_phase` | | done |
+| R1.3401 | divergence | "Air effect" makes no sense to players | Renamed to "Trick" (the coordinator's call) in GLOSSARY.md (with `Not: air effect`, so the copy lint keeps it out), upgrades.json, upgrades.draft.json, sounds.json and its compiled bank, and notes. Code identifiers (`AirKind`, `air.*` string keys, `match.air`) and BRIEF.md (the person's file) keep the old word | GLOSSARY.md `Trick` | | done |
+| R1.3402 | divergence | HUD buttons explained the brief on hover | Buttons and bar options carry a core `tip` (1-4 words, or a label and a cost); the page shows it as the title and a tip wins over the glossary hover hint. Ready's glossary text is shortened too. Free reroll reads "Reroll" (no price means free); a stocked material reads "Wood · 6 in stock" in place of "Wood 6 free"; prices read "· N gold"; Buy XP reads "+4 XP · 4 gold" and Buy shot "Extra shot · 2 gold" | `view.rs` `tip`, `app/arena.rs` `button_tip`, `web/app.js` | | done |
+| R1.3403 | finding | The sound bank's group label changed | `data/sounds.json` and `data/sound-programs.json` held the label "Shots and air effects"; both now say "Shots and tricks". The sound agent may regenerate the bank; keep the new label | `data/sounds.json` | | done |
+| R1.3500 | divergence | What's New scrolled the whole page | `#menus` pads the window by the border strip plus 1.5rem top and bottom (216px at 1080p), and the notes panel was capped at the window less 6rem, so the page was 120px taller than the window | The notes panel is capped inside that padding and is a column whose list alone scrolls | `web/style.css` `.panel.notes` | done |
+| R1.3501 | finding | Settings could open during a match | Esc now asks the core what to do (`ui.escape`): in a match it opens Paused (Resume, Settings, Leave match); in Paused, Resume; in its Settings, Back; on Settings, What's New and Join, Back. A solo match stops its clock while paused and skips the time on Resume (`Arena::hold`); an online match plays on, with no keys from you | `app.rs` `Pause`, `escape`; tests `pause_*` | | done |
+| R1.3502 | worklist | Bots needed names | 40 lord-and-king names in `data/bot-names.json`, drawn without repeats from the match seed, so every browser in a room agrees. `seat.bot_n` ("Bot {n}") is gone. Read the list and strike or add names | `crates/core/src/app/bot_names.rs` | | person |
+| R1.3503 | finding | A flat map option needed new terrain | `Plot::generate_flat` keeps the seeded layout (pad, gap columns, plot, spots) with every column at the launch pad's height, the water emptied and the features cleared. The lobby option `Options::flat` is `#[serde(default)]`, so an older host's lobby still reads | `terrain/mod.rs`, `lobby.rs`, `game::flow::Settings::flat` | | done |
+| R1.3100 | finding | The late match ended right after round 8 | It did not. A core run of the same match (8 seats, the human only picks card 0 and readies, 7 Normal bots, the real bot castles and shot planner) runs to round 16 and ends with one player standing (seed 4: health 78-88 at round 8 as on screen, first knockouts in round 14, bot 7 wins at 31). `play_late.py` shoots only rounds 5-8 (`ROUNDS = range(5, 9)`) and then plays on unseen until Results, so the results shot looked like it followed round 8. The human placed a royal in the open each round, so going out first fits. The health list was current; nothing in the core or page changed | `game/flow.rs` tests `eight_seats_play_on_while_two_players_have_health`, `eight_seats_end_when_one_player_is_left` | | done |
+| R1.3101 | worklist | The late script says which round Results came in | `play_late.py` could print the round reached (or shoot a frame each later round) so a results shot is not read as following round 8. Left to the agent editing `scripts/play_*.py` | `scripts/play_late.py` | | open |
 
 ## Strings written by the agent
 
@@ -318,7 +328,6 @@ Each reader-visible string the agent wrote, with its key, for the person to read
 | ammo.normal / heavy / fire / spread | Normal, Heavy, Fire, Spread |
 | air.drop / reverse / phase / split | Drop, Reverse, Phase, Split |
 | GLOSSARY.md | Build, Drop, Fire, Heavy, Metal, Normal, Phase, Reverse, Rope, Sandbox, Siege, Split, Spread, Stone, Test, Wood |
-| seat.bot_n | Bot {n} |
 | phase.upgrade / build / siege | Upgrade, Build, Siege |
 | hud.round / hud.phase | Round {n}; {phase} {n} |
 | hud.gold / level / xp / xp_max | Gold {n}; Level {n}; XP {n}/{m}; XP max |
@@ -338,3 +347,41 @@ Each reader-visible string the agent wrote, with its key, for the person to read
 | results.lobby | Back to lobby |
 | online.desync | Out of sync |
 | GLOSSARY.md | Armory, Boost, Carpenter, Chain, Dive, Exploding, Gold, Hover, Level, Meteor, Mine, Prismatic, Quarry, Ready, Reroll, Results, Round, Scout, Silver, Target, XP |
+| hud.buy_xp | +{x} XP · {n} gold |
+| hud.buy_shot | Extra shot · {n} gold |
+| hud.reroll_plain | Reroll |
+| tool.priced | {name} · {n} gold |
+| tool.stocked | {name} · {n} in stock |
+| tip.ready | Finish this phase |
+| tip.buy_xp | Level up sooner |
+| tip.buy_shot | One more shot this siege |
+| tip.test | Show strain |
+| tip.scout | See other castles |
+| tip.skip | Skip the replay |
+| tip.reroll | New cards |
+| tip.leave | Quit the match |
+| tip.segment | {n} gold a segment |
+| tip.locked | Unlocks at level {n} |
+| tip.royal | Place your royals |
+| tip.carpenter | On a floor: +{n} wood each round |
+| tip.quarry | On a floor: +{n} stone each round |
+| tip.mine | On a floor: +{n} metal each round |
+| tip.armory | On a floor: +{n} shot next round |
+| tip.ammo.normal | Plain shot |
+| tip.ammo.heavy | Smashes harder |
+| tip.ammo.fire | Sets wood alight |
+| tip.ammo.spread | Breaks into three |
+| tip.ammo.exploding | Blows up on contact |
+| tip.ammo.chain | Cuts ropes and wood |
+| tip.ammo.meteor | Huge, heavy, burning |
+| tip.air.drop | Fall straight down |
+| tip.air.reverse | Turn back |
+| tip.air.phase | Pass through walls |
+| tip.air.split | Break into three |
+| tip.air.dive | Dive straight down |
+| tip.air.boost | Speed up |
+| tip.air.hover | Hang still |
+| lobby.flat | Flat map |
+| pause.heading / resume / leave | Paused; Resume; Leave match |
+| data/bot-names.json | 40 bot names (R1.3502) |
+| GLOSSARY.md | Flat map, Paused |

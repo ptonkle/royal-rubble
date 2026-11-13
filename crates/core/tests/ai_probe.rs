@@ -303,6 +303,7 @@ fn probe_bot_kills_per_siege() {
             seats: vec![Seat::Bot(Difficulty::Hard), Seat::Bot(Difficulty::Hard)],
             wind: false,
             seed,
+            flat: false,
         })
         .unwrap();
         play.start().unwrap();
