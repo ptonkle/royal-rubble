@@ -310,8 +310,8 @@
   {
     "name": "physics trebuchet power",
     "file": "crates/core/src/physics/trebuchet.rs",
-    "find": "speed * (TUNE.treb_power_base + power as i64) * TUNE.treb_time_scale",
-    "replace": "speed * (TUNE.treb_power_base + power as i64 / 8) * TUNE.treb_time_scale",
+    "find": "speed * (TUNE.treb_power_base + power as i64) * TUNE.treb_speed_pct",
+    "replace": "speed * (TUNE.treb_power_base + power as i64 / 8) * TUNE.treb_speed_pct",
     "test": "more_power_throws_faster"
   },
   {
@@ -779,22 +779,22 @@
   {
     "name": "wire: trebuchet level one reach",
     "file": "crates/core/src/physics/tune.rs",
-    "find": "treb_time_scale: 1340,",
-    "replace": "treb_time_scale: 600,",
+    "find": "treb_speed_pct: 234,",
+    "replace": "treb_speed_pct: 150,",
     "test": "trebuchet_level_one_reaches_the_whole_level_one_plot"
   },
   {
     "name": "wire: trebuchet level nine reach",
     "file": "crates/core/src/physics/tune.rs",
-    "find": "treb_time_scale: 1340,",
-    "replace": "treb_time_scale: 600,",
+    "find": "treb_speed_pct: 234,",
+    "replace": "treb_speed_pct: 150,",
     "test": "trebuchet_full_power_reaches_the_far_end_of_the_level_nine_plot"
   },
   {
     "name": "trebuchet best throw lands just past the farthest plot back",
     "file": "crates/core/src/physics/tune.rs",
-    "find": "treb_time_scale: 1340,",
-    "replace": "treb_time_scale: 1600,",
+    "find": "treb_speed_pct: 234,",
+    "replace": "treb_speed_pct: 280,",
     "test": "trebuchet_best_throw_lands_just_past_the_farthest_plot_back"
   },
   {
@@ -893,14 +893,14 @@
     "file": "crates/core/src/physics/trebuchet.rs",
     "find": "arm + (lead + past) * (arm - END_ANGLE) / (SLOW_ANGLE - END_ANGLE) - past",
     "replace": "arm + 2 * (lead + past) * (arm - END_ANGLE) / (SLOW_ANGLE - END_ANGLE) - past - lead",
-    "test": "trebuchet_level_one_plot_window_is_at_least_12_ticks"
+    "test": "trebuchet_level_one_plot_window_is_at_least_4_ticks"
   },
   {
     "name": "wire: trebuchet level nine plot window",
     "file": "crates/core/src/physics/trebuchet.rs",
     "find": "arm + (lead + past) * (arm - END_ANGLE) / (SLOW_ANGLE - END_ANGLE) - past",
     "replace": "arm + 2 * (lead + past) * (arm - END_ANGLE) / (SLOW_ANGLE - END_ANGLE) - past - lead",
-    "test": "trebuchet_level_nine_plot_window_is_at_least_12_ticks"
+    "test": "trebuchet_level_nine_plot_window_is_at_least_6_ticks"
   },
   {
     "name": "trebuchet arm speeds up once and slows once without jerks",
@@ -1048,5 +1048,12 @@
     "find": "let held = flying.is_some_and(|b| b.age < CAM_HOLD);",
     "replace": "let held = flying.is_some_and(|b| b.age < 0);",
     "test": "arena_the_view_keeps_the_trebuchet_in_just_after_release"
+  },
+  {
+    "name": "physics trebuchet steady arm speed band",
+    "file": "crates/core/src/physics/tune.rs",
+    "find": "(50, 305), (80, 305),",
+    "replace": "(50, 305), (80, 120),",
+    "test": "trebuchet_arm_turns_at_a_steady_speed_through_the_release_block"
   }
 ]

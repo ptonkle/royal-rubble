@@ -10,8 +10,8 @@
 //! adds to the arm tip's speed. An early release throws backward or lobs
 //! high, a later one is flatter, and too late throws into the ground.
 //!
-//! The swing is shown slowed down so it can be timed: the shot leaves at
-//! `treb_time_scale` percent of the pouch's speed (R1.1602).
+//! The arm turns at a steady natural speed (R1.1803); the shot leaves at
+//! `treb_speed_pct` percent of the pouch's real speed, which sets the range.
 //!
 //! [`pose`] gives every point the drawing needs, including the follow-through
 //! after release and the counterweight swinging on its hinge.
@@ -69,31 +69,21 @@ pub fn arm_at(t: u32) -> (i64, i64) {
     (TUNE.treb_start_angle - swept2(t) / 2, arm_speed(t))
 }
 
-/// Arm angle where the counterweight's drop ends and the arm turns slowly.
-const SLOW_ANGLE: i64 = TUNE.treb_start_angle - swept2(TUNE.treb_swing[2].0) / 2;
-
-/// The sling's direction (tip to pouch, brads) at arm angle `arm`. It hangs
-/// at a fixed angle to the arm while the counterweight drops, then swings
-/// round faster than the arm and passes the arm's line by `treb_sling_past`
-/// as the arm stops, so a release that late throws into the ground.
+/// The sling's direction (tip to pouch, brads) at arm angle `arm`. It
+/// starts lying forward under the frame and swings round steadily faster
+/// than the arm, passing the arm's line by `treb_sling_past` as the arm
+/// stops, so a release that late throws into the ground (R1.1803).
 fn sling_angle(arm: i64) -> i64 {
     let lead = TUNE.treb_sling_lead;
     let past = TUNE.treb_sling_past;
-    if arm >= SLOW_ANGLE {
-        arm + lead
-    } else {
-        arm + (lead + past) * (arm - END_ANGLE) / (SLOW_ANGLE - END_ANGLE) - past
-    }
+    let start = TUNE.treb_start_angle;
+    arm + (lead + past) * (arm - END_ANGLE) / (start - END_ANGLE) - past
 }
 
-/// How much faster than the arm the sling turns, in percent, at arm angle `arm`.
-fn sling_pct(arm: i64) -> i64 {
-    if arm >= SLOW_ANGLE {
-        100
-    } else {
-        let sweep = TUNE.treb_sling_lead + TUNE.treb_sling_past;
-        100 + 100 * sweep / (SLOW_ANGLE - END_ANGLE)
-    }
+/// How much faster than the arm the sling turns, in percent.
+fn sling_pct(_arm: i64) -> i64 {
+    let sweep = TUNE.treb_sling_lead + TUNE.treb_sling_past;
+    100 + 100 * sweep / (TUNE.treb_start_angle - END_ANGLE)
 }
 
 fn unit(a: i64) -> Vec2 {
@@ -129,7 +119,7 @@ fn mirror(v: Vec2, facing_left: bool) -> Vec2 {
 pub fn trebuchet_launch(base: Vec2, release_tick: u32, power: u8, facing_left: bool) -> Launch {
     let (_, pouch, shape, speed) = sling_at(release_tick);
     let base_pct = TUNE.treb_power_base * 100;
-    let w = speed * (TUNE.treb_power_base + power as i64) * TUNE.treb_time_scale / base_pct;
+    let w = speed * (TUNE.treb_power_base + power as i64) * TUNE.treb_speed_pct / base_pct;
     let vel = shape * brads_to_radians(w);
     Launch {
         pos: base + mirror(pouch, facing_left),

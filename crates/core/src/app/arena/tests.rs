@@ -63,9 +63,10 @@ fn arena_a_press_and_release_in_build_places_a_wood_segment_through_play() {
 /// Plays a whole match: Ready in every phase, and in the siege two taps of
 /// Space for each shot. Returns the ticks it took.
 fn play_out(a: &mut Arena) -> (u32, usize) {
-    // a release that finishes the bot on this seed: with the pivot 7/2 high
-    // only 120 of 100-190 (step 10) does inside 40,000 ticks (R1.1802)
-    play_out_at(a, 120, 200_000)
+    // a release that ends the match on this seed (R1.1802); with the steady
+    // 110-tick swing (R1.1803) every release 40-190 does, in 36,500-39,300
+    // ticks, and 120 is past the swing's end (the held swing throws itself)
+    play_out_at(a, 70, 200_000)
 }
 
 /// Swing ticks to release at for `play_out`: run with `--ignored` after a
