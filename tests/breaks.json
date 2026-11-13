@@ -1636,5 +1636,33 @@
     "find": "    let braced = |i: i64| i % 2 == 1;",
     "replace": "    let braced = |i: i64| i % 2 == 0;",
     "test": "ai_keep_puts_each_royal_in_its_own_room"
+  },
+  {
+    "name": "r4400 how tab press ignored",
+    "file": "crates/core/src/app.rs",
+    "find": "                    .map(|t| t.0)\n                    .find(|t| *t == value)",
+    "replace": "                    .map(|t| t.0)\n                    .find(|t| *t == value || true)",
+    "test": "how_to_play_opens_on_build_and_a_tab_shows_its_own_lines"
+  },
+  {
+    "name": "r4401 upgrade list ignores tier filter",
+    "file": "crates/core/src/app/guide.rs",
+    "find": "(filter == \"all\" || tier_key(r.tier) == filter)",
+    "replace": "(filter == \"all\" || filter != \"\")",
+    "test": "the_upgrade_list_filters_by_tier_and_shows_each_cards_icon"
+  },
+  {
+    "name": "r4402 how back stays on how",
+    "file": "crates/core/src/app.rs",
+    "find": "                if self.screen == Screen::How {\n                    self.back = Screen::Title;",
+    "replace": "                if self.screen == Screen::How {\n                    self.back = Screen::How;",
+    "test": "back_from_the_upgrade_list_returns_to_how_to_play_then_the_title"
+  },
+  {
+    "name": "r4403 how line split at last colon",
+    "file": "crates/core/src/app/guide.rs",
+    "find": "    match line.split_once(\": \") {",
+    "replace": "    match line.rsplit_once(\": \") {",
+    "test": "a_how_line_splits_into_label_and_text_at_its_first_colon"
   }
 ]

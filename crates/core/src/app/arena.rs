@@ -253,7 +253,7 @@ fn stat(id: &str, icon: &str, text: String, tip: String) -> Item {
 }
 
 /// An upgrade card's icon, by its first effect.
-fn card_icon(effects: &[crate::game::upgrades::Effect]) -> &'static str {
+pub(crate) fn card_icon(effects: &[crate::game::upgrades::Effect]) -> &'static str {
     use crate::game::upgrades::Effect as E;
     match effects.first() {
         Some(E::Ammo(k, _)) => ammo_name(Ammo::Special(*k)),
@@ -314,7 +314,7 @@ fn button_tip(id: &str) -> Option<&'static str> {
     })
 }
 
-fn tier_name(t: Tier) -> &'static str {
+pub(crate) fn tier_name(t: Tier) -> &'static str {
     match t {
         Tier::Silver => "silver",
         Tier::Gold => "gold",
@@ -362,7 +362,7 @@ impl CardText {
         Ok(CardText { map })
     }
 
-    fn get(&self, key: &str) -> (String, String) {
+    pub(crate) fn get(&self, key: &str) -> (String, String) {
         self.map
             .get(key)
             .cloned()

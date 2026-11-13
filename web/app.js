@@ -304,6 +304,36 @@ function card(item) {
   return b;
 }
 
+// Short label-value lines (How to Play).
+function pairs(item) {
+  const box = make("dl", "pairs");
+  box.id = item.id;
+  item.rows.forEach((r) => {
+    const row = make("div", "pair");
+    if (r.label) row.append(make("dt", "", r.label));
+    row.append(make("dd", "", r.text));
+    box.append(row);
+  });
+  return box;
+}
+
+// The upgrade list: each upgrade's icon, name, tier and text.
+function entries(item) {
+  const box = make("ul", "entries");
+  box.id = item.id;
+  item.entries.forEach((e) => {
+    const row = make("li", "entry");
+    row.id = e.id;
+    row.dataset.tier = e.look;
+    if (e.icon) row.append(icon(e.icon, e.look));
+    const head = make("div", "entry-head");
+    head.append(make("span", "entry-name", e.name), make("span", "entry-tier", e.tier));
+    row.append(head, make("span", "entry-text", e.text));
+    box.append(row);
+  });
+  return box;
+}
+
 // A top-bar value: icon and text.
 function stat(item) {
   const box = make("div", "stat");
@@ -354,7 +384,7 @@ function health(item) {
   return box;
 }
 
-const builders = { stat, timer, meter, health, button, slider, toggle, select, text, number, lines, notes, copy, code_box: codeBox, bar, card };
+const builders = { stat, timer, meter, health, button, slider, toggle, select, text, number, lines, notes, copy, code_box: codeBox, bar, card, pairs, entries };
 
 // One lobby seat: who sits there and the controls this browser may use.
 function seat(item) {

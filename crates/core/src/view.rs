@@ -229,6 +229,17 @@ pub enum Item {
         #[serde(skip_serializing_if = "String::is_empty")]
         tip: String,
     },
+    /// short label-value lines (How to Play); a row with no label is
+    /// all text
+    Pairs {
+        id: String,
+        rows: Vec<Pair>,
+    },
+    /// the upgrade list: each upgrade with its icon, name, tier and text
+    Entries {
+        id: String,
+        entries: Vec<Entry>,
+    },
     /// every player's health, sorted, as a column of hearts and bars
     Health {
         id: String,
@@ -265,6 +276,25 @@ pub struct BarOption {
     /// options with another group start a new run of slots after a gap
     #[serde(skip_serializing_if = "String::is_empty")]
     pub group: String,
+}
+
+/// One label-value line.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Pair {
+    pub label: String,
+    pub text: String,
+}
+
+/// One upgrade in the list: `look` is the tier's key for the stylesheet,
+/// `icon` the icon its card shows.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Entry {
+    pub id: String,
+    pub name: String,
+    pub tier: String,
+    pub look: String,
+    pub text: String,
+    pub icon: String,
 }
 
 /// One player in the health column.
