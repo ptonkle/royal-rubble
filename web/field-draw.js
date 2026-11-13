@@ -1,32 +1,40 @@
 // The playfield's renderer: the one file a chosen look replaces. It draws
 // the core's frame (crates/core/src/app/field.rs) on a 2D canvas as Bayeux
-// embroidery, with the stitch helpers in web/stitch.js. Every position,
-// radius and width comes from the core in pixels; the stitch sizes from
-// data/stitch.json, wool colors from data/palette.json, the strain and spot
-// threads from field.css (--strain-*, --spot-*). It decides nothing.
-//
-// Stitching is slow, so every stitched thing is drawn once into an offscreen
-// canvas and reused: segments by material, strain and size bucket; figures
-// and huts by rank and size; the linen by canvas size; the terrain while the
-// view holds still. Only cheap dashed strokes are drawn fresh each frame.
-
-import { create, parts, ellipse } from "./stitch.js";
+// embroidery by placing pictures baked ahead of time with the stitch helpers
+// (tools/look/stitch.js, baked by tools/look/bake_stitch.py into
+// web/look/stitch/; sizes and anchors in data/stitch-sprites.json). Every
+// position, radius, width and segment length comes from the core in pixels;
+// scales from data/stitch.json; wool colors from data/palette.json; strain
+// and spot threads from field.css. It decides nothing and does no math of
+// its own beyond scaling what it is given.
 
 let look = null;
-let K = null;
 let G = null;
-let S = null;
-let colors = {};
-const sprites = new Map();
-const layers = new Map();
-let linenCanvas = null;
+let K = null;
+let wool = null;
+let sprites = null;
+const images = {};
+const patterns = {};
+const colors = {};
+const layers = {};
 
-// field.json (stroke styles), stitch.json and palette.json.
-export function setLook(table, stitch, palette) {
+// field.json, stitch.json, palette.json, stitch-sprites.json; resolves when
+// the baked pictures have loaded.
+export async function setLook(table, stitch, palette, baked) {
   look = table;
   K = stitch;
   G = stitch.game;
-  S = create(document.createElement("canvas").getContext("2d"), palette, stitch, G.seed);
+  wool = palette.wool;
+  const loads = [];
+  for (const [name, sp] of Object.entries(baked)) {
+    if (!sp.file) continue;
+    const img = new Image();
+    img.src = sp.file;
+    images[name] = img;
+    loads.push(img.decode());
+  }
+  await Promise.all(loads);
+  sprites = baked;
 }
 
 function color(name) {
@@ -34,257 +42,195 @@ function color(name) {
   return colors[name];
 }
 
-// A wool from a field.css color, for the threads the core names by state.
-function cssWool(name) {
-  return S.addWool(name, color(name));
+function pattern(g, name) {
+  if (!patterns[name]) patterns[name] = g.createPattern(images[name], "repeat");
+  return patterns[name];
 }
 
 const half = (v) => v * K.n.half;
-const bucket = (v, step) => Math.max(step, Math.round(v / step) * step);
+const most = (a, b) => (a > b ? a : b);
 
-// An offscreen canvas drawn once with the stitch helpers; (ox, oy) is the
-// point of it that lands on the anchor.
-function sprite(key, w, h, ox, oy, draw) {
-  let sp = sprites.get(key);
-  if (sp) return sp;
-  if (sprites.size > G.cache_limit) sprites.clear();
-  const c = document.createElement("canvas");
-  c.width = Math.max(1, Math.ceil(w));
-  c.height = Math.max(1, Math.ceil(h));
-  S.on(c.getContext("2d"));
-  draw(S);
-  sp = { c, ox, oy };
-  sprites.set(key, sp);
-  return sp;
-}
-
-function put(g, sp, x, y) {
-  g.drawImage(sp.c, Math.round(x - sp.ox), Math.round(y - sp.oy));
-}
-
-// --- segments: couched wool along the length, by material
-
-function beamSprite(material, w, len, strain) {
-  const wb = bucket(Math.max(w, G.beam_min_w), K.n.two);
-  const lb = bucket(len, G.beam_bucket);
-  const pad = G.beam_pad;
-  const key = "beam|" + material + "|" + wb + "|" + lb + "|" + strain;
-  return sprite(key, lb + pad + pad, wb + pad + pad, pad, half(wb) + pad, (s) => {
-    const M = K.materials[material] || K.materials.wood;
-    const x0 = pad;
-    const y0 = pad;
-    const x1 = pad + lb;
-    const y1 = pad + wb;
-    const ym = half(y0 + y1);
-    const line = strain === "" ? M.line : cssWool("strain-" + strain);
-    const lineW = wb * (strain === "" ? G.beam_line : G.beam_line_strain);
-    if (M.rope) {
-      s.stem([[x0, ym], [x1, ym]], M.rope, { w: wb * G.rope_w + lineW * (strain === "" ? 0 : 1), slant: G.rope_slant });
-      if (strain !== "") s.stem([[x0, ym], [x1, ym]], line, { w: lineW });
-      return;
-    }
-    const ring = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
-    const shape = s.poly(ring);
-    s.couch(shape, M.fill, { angle: 0, scale: G.beam_scale });
-    if (M.grain) s.stem([[x0 + lineW, ym], [x1 - lineW, ym]], M.grain, { w: wb * G.beam_wood_grain });
-    if (M.courses) {
-      for (let x = x0 + wb * G.beam_course; x < x1 - lineW; x += wb * G.beam_course) s.stem([[x, y0], [x, y1]], M.courses, { w: lineW * K.n.half });
-    }
-    s.stem(ring, line, { closed: true, w: lineW });
-    if (M.rivets) {
-      for (let x = x0 + wb * G.rivet_every * K.n.half; x < x1; x += wb * G.rivet_every) s.knot(x, ym, M.rivets, wb * G.rivet_r);
-    }
-  });
-}
-
-function beam(g, a, b, w, material, strain) {
-  const [ax, ay] = a;
-  const [bx, by] = b;
-  const len = Math.hypot(bx - ax, by - ay);
-  if (len < 1) return;
-  const sp = beamSprite(material, w, len, strain === undefined ? "" : strain);
-  const lb = sp.c.width - sp.ox - sp.ox;
-  const k = len / lb;
+// A sprite scaled by k with its anchor on (x, y); face -1 mirrors it.
+function place(g, name, x, y, k, face) {
+  const sp = sprites[name];
   g.save();
-  g.translate(ax, ay);
-  g.rotate(Math.atan2(by - ay, bx - ax));
-  g.drawImage(sp.c, -sp.ox * k, -sp.oy, sp.c.width * k, sp.c.height);
+  g.translate(x, y);
+  if (face) g.scale(face, 1);
+  g.drawImage(images[name], -sp.ax * k, -sp.ay * k, sp.w * k, sp.h * k);
   g.restore();
 }
 
-function knotSprite(r, wool) {
-  const rb = bucket(r * G.node_r, 1);
-  return sprite("knot|" + rb + "|" + wool, rb * K.n.four, rb * K.n.four, rb + rb, rb + rb, (s) => s.knot(rb + rb, rb + rb, wool, rb));
-}
+// --- segments: the material's strip laid from a to b, len from the core
 
-function flames(g, a, b, w) {
+function beam(g, a, b, w, len, material, strain) {
+  if (len < 1) return;
   const [ax, ay] = a;
   const [bx, by] = b;
-  const len = Math.hypot(bx - ax, by - ay);
-  const step = Math.max(w, 1) * G.flame_every;
-  const sp = flameSprite(Math.max(w, G.beam_min_w));
-  for (let t = half(step); t < len; t += step) put(g, sp, ax + ((bx - ax) * t) / len, ay + ((by - ay) * t) / len);
+  const ux = (bx - ax) / len;
+  const uy = (by - ay) / len;
+  const name = "beam-" + (K.materials[material] ? material : "wood");
+  const sp = sprites[name];
+  const ww = most(w, G.beam_min_w);
+  const k = ww / sp.h;
+  const pat = pattern(g, name);
+  pat.setTransform(new DOMMatrix([k, 0, 0, k, 0, -half(ww)]));
+  g.save();
+  g.transform(ux, uy, -uy, ux, ax, ay);
+  g.fillStyle = pat;
+  g.fillRect(0, -half(ww), len, ww);
+  g.strokeStyle = sp.line;
+  g.lineWidth = ww * G.beam_line;
+  if (material !== "rope") {
+    g.beginPath();
+    g.moveTo(0, -half(ww));
+    g.lineTo(0, half(ww));
+    g.moveTo(len, -half(ww));
+    g.lineTo(len, half(ww));
+    g.stroke();
+  }
+  if (strain !== undefined) {
+    g.strokeStyle = color("strain-" + strain);
+    g.lineWidth = ww * G.beam_line_strain;
+    g.setLineDash([G.strain_dash, half(G.strain_dash)]);
+    g.strokeRect(0, -half(ww), len, ww);
+  }
+  g.restore();
 }
 
-function flameSprite(w) {
-  const wb = bucket(w, K.n.two);
-  const h = wb * G.flame_h;
-  const fw = wb * G.flame_w;
-  return sprite("flame|" + wb, fw * K.n.four, h + fw, fw + fw, h, (s) => {
-    const cx = fw + fw;
-    const tongue = (dx, hh, wool, line) =>
-      s.patch(s.curve([[cx + dx - fw, h], [cx + dx - half(fw), h - half(hh)], [cx + dx, h - hh], [cx + dx + half(fw), h - half(hh)], [cx + dx + fw, h]], K.n.three, true), wool, line, { angle: Math.PI * K.n.half, scale: G.beam_scale, lineW: wb * G.beam_line });
-    tongue(-half(fw), h * G.flame_w, "terracotta", "rule");
-    tongue(half(fw), h * G.flame_w, "terracotta", "rule");
-    tongue(0, h, "ochre", "terracotta");
+function flames(g, b) {
+  const [ax, ay] = b.a;
+  const [bx, by] = b.b;
+  if (b.len < 1) return;
+  const step = most(b.w, G.beam_min_w) * G.flame_every;
+  const k = (most(b.w, G.beam_min_w) * G.flame_h) / (sprites.flame.r + sprites.flame.r);
+  for (let t = half(step); t < b.len; t += step) place(g, "flame", ax + ((bx - ax) * t) / b.len, ay + ((by - ay) * t) / b.len, k);
+}
+
+function beams(g, f) {
+  f.beams.forEach((b) => {
+    beam(g, b.a, b.b, b.w, b.len, b.material, b.strain);
+    if (b.burning) flames(g, b);
   });
+  f.nodes.forEach((n) => place(g, n.hot ? "knot-ochre" : "knot-navy", n.x, n.y, (n.r * G.node_r) / sprites["knot-navy"].r));
 }
 
 // --- royals and buildings
-
-function figureSprite(rank, r, dead, f) {
-  const rb = bucket(r, G.sprite_bucket);
-  const tall = Math.max(rb * G.figure_tall_r, G.figure_min_px);
-  const s = tall / G.units;
-  const w = tall * G.fig_w;
-  const h = tall * G.fig_h;
-  const key = "fig|" + rank + "|" + rb + "|" + dead + "|" + f;
-  const hut = K.huts[rank];
-  if (hut) {
-    const hs = Math.max(rb * G.hut_units_r, G.hut_min_px / G.hut_units);
-    const hw = G.hut_units * hs;
-    return sprite(key, hw + hw, hw + hw, hw, hw + hw - hw * G.figure_pad, (st) => {
-      const flags = { [hut.tool]: true, checks: !!hut.checks };
-      parts(st, K.hut, { wall: hut.wall, roof: hut.roof, tiles_a: hut.tiles_a, tiles_b: hut.tiles_b }, hw, hw + hw - hw * G.figure_pad, hs, 1, flags);
-    });
-  }
-  const C = K.costumes[rank] || K.costumes.squire;
-  return sprite(key, w + w, h, w, h - tall * G.figure_pad, (st) => {
-    const flags = {};
-    C.flags.forEach((fl) => (flags[fl] = true));
-    const cols = dead ? Object.assign({}, C, K.dead_colors) : C;
-    parts(st, K.body, cols, w, h - tall * G.figure_pad, s, f, flags);
-  });
-}
 
 function royals(g, f) {
   const mid = half(f.size[0]);
   f.royals.forEach((r) => {
     const face = r.x > mid ? -1 : 1;
-    const sp = figureSprite(r.rank, r.r, r.dead, face);
-    const foot = r.y + r.r * (K.huts[r.rank] ? G.hut_foot_r : G.figure_foot_r);
-    if (r.dead && !K.huts[r.rank]) {
+    if (K.huts[r.rank]) {
+      const name = "hut-" + r.rank;
+      const tall = most(r.r * G.hut_tall_r, G.hut_min_px);
+      place(g, name, r.x, r.y + r.r * G.hut_foot_r, tall / sprites[name].tall, face);
+      return;
+    }
+    const rank = K.costumes[r.rank] ? r.rank : "squire";
+    const name = "fig-" + rank + (r.dead ? "-dead" : "");
+    const k = most(r.r * G.figure_tall_r, G.figure_min_px) / sprites[name].tall;
+    if (r.dead) {
+      // fallen: turned a quarter onto the floor
       g.save();
       g.globalAlpha = G.dead_alpha;
       g.translate(r.x, r.y + r.r);
-      g.rotate(G.figure_dead_turn * face);
-      g.drawImage(sp.c, -sp.ox, -sp.oy);
+      g.transform(0, face, -face, 0, 0, 0);
+      place(g, name, 0, 0, k);
       g.restore();
       return;
     }
-    put(g, sp, r.x, foot);
+    place(g, name, r.x, r.y + r.r * G.figure_foot_r, k, face);
   });
 }
 
 // --- the background: linen, terrain, water, the plot (cached per view)
 
-function linenLayer(w, h) {
-  if (linenCanvas && linenCanvas.width === w && linenCanvas.height === h) return linenCanvas;
-  linenCanvas = document.createElement("canvas");
-  linenCanvas.width = w;
-  linenCanvas.height = h;
-  S.on(linenCanvas.getContext("2d"));
-  S.linen(0, 0, w, h);
-  return linenCanvas;
-}
-
-// small humps along the ground, the tapestry's walking line
-function scallops(pts, r) {
-  const out = [];
-  let acc = 0;
-  for (let i = 1; i < pts.length; i++) {
-    const [px, py] = pts[i - 1];
-    const [qx, qy] = pts[i];
-    const l = Math.hypot(qx - px, qy - py) || 1;
-    for (let d = 0; d < l; d += G.ground_scallop_step) {
-      const hgt = Math.abs(Math.sin(((acc + d) / (r + r)) * Math.PI)) * r * G.ground_scallop_h;
-      const x = px + ((qx - px) * d) / l;
-      const y = py + ((qy - py) * d) / l;
-      out.push([x + ((qy - py) / l) * hgt, y - ((qx - px) / l) * hgt]);
-    }
-    acc += l;
-  }
-  return out;
-}
-
-function fine(pts) {
-  // the ground in short steps, so offsets bend smoothly
-  const out = [];
-  for (let i = 1; i < pts.length; i++) {
-    const [px, py] = pts[i - 1];
-    const [qx, qy] = pts[i];
-    const n = Math.max(1, Math.round(Math.hypot(qx - px, qy - py) / G.wave_step));
-    for (let k = 0; k < n; k++) out.push([px + ((qx - px) * k) / n, py + ((qy - py) * k) / n]);
-  }
-  if (pts.length) out.push(pts[pts.length - 1]);
-  return out;
+function stroke(g, pts, wool_, w, dash, gap) {
+  g.beginPath();
+  pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.lineCap = "butt";
+  g.lineJoin = "round";
+  g.setLineDash([]);
+  g.strokeStyle = wool[wool_].dark;
+  g.lineWidth = w;
+  g.stroke();
+  g.setLineDash([dash, gap]);
+  g.strokeStyle = wool[wool_].mid;
+  g.lineWidth = w * K.stitch.cord_wrap;
+  g.stroke();
+  g.setLineDash([]);
 }
 
 function background(slot, f) {
   const [w, h] = f.size;
   const key = JSON.stringify([w, h, f.ground, f.water, f.zone, f.grid]);
-  let L = layers.get(slot);
+  let L = layers[slot];
   if (L && L.key === key) return L.c;
   if (!L || L.c.width !== w || L.c.height !== h) {
     L = { c: document.createElement("canvas") };
     L.c.width = w;
     L.c.height = h;
-    layers.set(slot, L);
+    layers[slot] = L;
   }
   L.key = key;
   const g = L.c.getContext("2d");
-  g.drawImage(linenLayer(w, h), 0, 0);
-  S.on(g);
-  // terrain: banded mounds under a scalloped ground line
-  const pts = fine(f.ground);
+  g.fillStyle = pattern(g, "linen");
+  g.fillRect(0, 0, w, h);
+  const pts = f.ground;
   if (pts.length > 1) {
-    const under = pts.concat([[pts[pts.length - 1][0], h], [pts[0][0], h]]);
+    const last = pts[pts.length - 1][0];
+    const first = pts[0][0];
+    // banded mounds: laid wool under the ground line, stitched edges
     g.save();
-    g.clip(S.poly(under).path);
-    for (const [wool, a, b] of K.ground_bands) {
+    g.beginPath();
+    pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    g.lineTo(last, h);
+    g.lineTo(first, h);
+    g.closePath();
+    g.clip();
+    for (const [name, a, b] of K.ground_bands) {
       const top = pts.map(([x, y]) => [x, y + G[a]]);
       const bot = pts.map(([x, y]) => [x, y + G[b]]);
-      g.fillStyle = S.tile(wool, 0, G.tile_scale);
-      g.fill(S.poly(top.concat(bot.slice().reverse())).path);
-      S.cord(top, "navy", G.ground_band_line);
-      S.cord(bot, "rule", G.ground_band_line);
+      g.beginPath();
+      top.concat(bot.slice().reverse()).forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+      g.closePath();
+      g.fillStyle = pattern(g, "wool-" + name);
+      g.fill();
+      stroke(g, top, "navy", G.ground_band_line, G.band_dash, G.band_gap);
+      stroke(g, bot, "rule", G.ground_band_line, G.band_dash, G.band_gap);
     }
     g.restore();
-    S.stem(scallops(pts, G.ground_scallop), "slate", { w: G.ground_scallop_w });
-    S.stem(pts, "rule", { w: G.ground_line });
-  }
-  // water: a faint wash, stitched wave lines in several wools, a fish or two
-  if (f.water.length && pts.length > 1) {
-    g.save();
-    g.clip(S.poly(pts.concat([[pts[pts.length - 1][0], 0], [pts[0][0], 0]])).path);
-    const [[ax, ay], [bx]] = f.water;
-    g.save();
-    g.globalAlpha = G.water_alpha;
-    g.fillStyle = S.tile("bluegreen", 0, G.tile_scale);
-    g.fillRect(ax, ay, bx - ax, h - ay);
-    g.restore();
-    let i = 0;
-    for (let y = ay + G.wave_gap; y < h; y += G.wave_gap, i++) {
-      const pts = [];
-      for (let x = ax; x <= bx; x += G.wave_step) pts.push([x, y + Math.sin((x / G.wave_len) * Math.PI + i) * G.wave_amp]);
-      S.stem(pts, K.wave_wools[i % K.wave_wools.length], { w: G.wave_w });
+    // water: waves above the ground between the banks
+    if (f.water.length) {
+      const [[ax, ay], [bx]] = f.water;
+      g.save();
+      g.beginPath();
+      pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+      g.lineTo(last, 0);
+      g.lineTo(first, 0);
+      g.closePath();
+      g.clip();
+      g.globalAlpha = G.water_alpha;
+      g.fillStyle = pattern(g, "wool-bluegreen");
+      g.fillRect(ax, ay, bx - ax, h - ay);
+      g.globalAlpha = 1;
+      const wp = pattern(g, "water");
+      wp.setTransform(new DOMMatrix([1, 0, 0, 1, ax, ay]));
+      g.fillStyle = wp;
+      g.fillRect(ax, ay, bx - ax, h - ay);
+      g.restore();
     }
-    for (let x = ax + half(G.fish_every); x < bx - G.fish_len; x += G.fish_every) {
-      const y = ay + G.wave_gap * (K.n.two + ((x / G.fish_every) & 1)) + half(G.wave_gap);
-      const L2 = G.fish_len;
-      S.patch([[x, y], [x + half(L2), y - L2 / K.n.four], [x + L2, y], [x + half(L2), y + L2 / K.n.four], [x, y], [x - L2 / K.n.four, y - L2 / K.n.four], [x - L2 / K.n.four, y + L2 / K.n.four]], "ochre", "navy", { scale: G.tile_scale, lineW: G.wave_w });
-    }
-    g.restore();
+    // the walking line: a row of small humps, then the stem-stitched edge
+    const up = pts.map(([x, y]) => [x, y - G.scallop_up]);
+    g.beginPath();
+    up.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    g.lineCap = "round";
+    g.setLineDash([half(G.scallop_dash), G.scallop_dash]);
+    g.strokeStyle = wool.slate.mid;
+    g.lineWidth = G.scallop_w;
+    g.stroke();
+    g.setLineDash([]);
+    stroke(g, pts, "rule", G.ground_line, G.ground_dash, G.ground_gap);
   }
   // the plot: a fine running stitch round it and a faint grid
   if (f.zone) {
@@ -317,127 +263,81 @@ function background(slot, f) {
   return L.c;
 }
 
-// --- shots, debris, the trail
+// --- shots, debris, the trail, small marks
 
-function ballSprite(r, hot) {
-  const rb = bucket(r, 1);
-  const pad = rb;
-  return sprite("ball|" + rb + "|" + hot, (rb + pad) * K.n.two, (rb + pad) * K.n.two, rb + pad, rb + pad, (s) => {
-    const c = rb + pad;
-    const ring = ellipse(c, c, rb, rb, 0, Math.PI + Math.PI, K.n.eight + K.n.eight);
-    s.patch(ring, hot ? "terracotta" : "navy", hot ? "ochre" : "buff", { angle: K.n.half, scale: G.beam_scale, lineW: rb * G.ball_line + 1 });
-    s.stem(ellipse(c, c, rb * G.ball_shine, rb * G.ball_shine, Math.PI, Math.PI * K.n.half * K.n.three, K.n.six), hot ? "ochre" : "slate", { w: rb * G.ball_line });
-  });
-}
-
-function debrisSprite(r) {
-  const rb = bucket(r, 1);
-  const c = rb + rb;
-  return sprite("debris|" + rb, c + c, c + c, c, c, (s) => {
-    s.patch([[c - rb, c - half(rb)], [c + half(rb), c - rb], [c + rb, c + half(rb)], [c - half(rb), c + rb]], "tan", "rule", { scale: G.beam_scale, lineW: rb * G.ball_line + 1 });
-  });
-}
-
-function dashed(g, pts, wool, w, len, gap) {
+function dashed(g, pts, dark, light, w, len, gap) {
   if (pts.length < K.n.two) return;
-  const W = S.wool(wool);
   g.save();
   g.beginPath();
   pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
   g.lineCap = "round";
   g.setLineDash([len, gap]);
   g.lineWidth = w;
-  g.strokeStyle = "rgb(" + W.dark.map((v) => v | 0).join(",") + ")";
+  g.strokeStyle = dark;
   g.stroke();
-  g.lineWidth = w * K.n.half;
-  g.strokeStyle = "rgb(" + W.light.map((v) => v | 0).join(",") + ")";
+  g.lineWidth = half(w);
+  g.strokeStyle = light;
   g.stroke();
   g.restore();
 }
 
 function balls(g, f) {
-  f.debris.forEach((d, i) => {
-    const sp = debrisSprite(d.r);
-    g.save();
-    g.translate(d.x, d.y);
-    g.rotate(i * G.debris_turn);
-    g.drawImage(sp.c, -sp.ox, -sp.oy);
-    g.restore();
-  });
-  f.shots.forEach((s) => put(g, ballSprite(s.r, s.hot), s.x, s.y));
+  f.debris.forEach((d) => place(g, "debris", d.x, d.y, d.r / sprites.debris.r));
+  f.shots.forEach((s) => place(g, s.hot ? "ball-hot" : "ball", s.x, s.y, s.r / sprites.ball.r));
 }
-
-// --- the trebuchet
 
 function engine(g, f) {
   const e = f.engine;
   const [f0, f1] = e.feet;
-  const w = e.arm_w;
-  beam(g, f0, e.pivot, w, "frame");
-  beam(g, f1, e.pivot, w, "frame");
-  beam(g, f0, f1, w, "base");
-  beam(g, e.weight, e.tip, w, "arm");
-  const wr = bucket(e.weight_r, K.n.two);
-  put(g, sprite("weight|" + wr, wr * K.n.four, wr * K.n.four, wr + wr, wr + wr, (s) => {
-    const c = wr + wr;
-    s.patch([[c - wr, c - wr], [c + wr, c - wr], [c + wr, c + wr], [c - wr, c + wr]], "buff", "navy", { scale: G.beam_scale, lineW: wr * G.ball_line + 1 });
-    for (let i = 0; i < K.n.four; i++) {
-      for (let j = 0; j < K.n.four; j++) {
-        if ((i + j) & 1) continue;
-        const q = half(wr);
-        const x = c - wr + i * q;
-        const y = c - wr + j * q;
-        s.couch(s.poly([[x, y], [x + q, y], [x + q, y + q], [x, y + q]]), "navy", { scale: G.beam_scale, noBars: true });
-      }
-    }
-  }), e.weight[0], e.weight[1]);
-  const [px, py] = e.pivot;
-  put(g, knotSprite(w, "ochre"), px, py);
-  if (e.loaded) put(g, ballSprite(e.loaded.r, e.loaded.hot), e.loaded.x, e.loaded.y);
+  const [l0, l1, base, arm] = e.lens;
+  beam(g, f0, e.pivot, e.arm_w, l0, "frame");
+  beam(g, f1, e.pivot, e.arm_w, l1, "frame");
+  beam(g, f0, f1, e.arm_w, base, "base");
+  beam(g, e.weight, e.tip, e.arm_w, arm, "arm");
+  place(g, "weight", e.weight[0], e.weight[1], e.weight_r / sprites.weight.r);
+  place(g, "knot-ochre", e.pivot[0], e.pivot[1], e.arm_w / sprites["knot-ochre"].r);
+  if (e.loaded) place(g, e.loaded.hot ? "ball-hot" : "ball", e.loaded.x, e.loaded.y, e.loaded.r / sprites.ball.r);
 }
-
-// --- small marks
 
 function marks(g, f) {
   if (f.ring) {
-    const pts = ellipse(f.ring.x, f.ring.y, f.ring.r, f.ring.r, 0, Math.PI + Math.PI, G.units);
-    dashed(g, pts, f.ring.ok ? "navy" : cssWool("field-bad"), G.ring_w, G.trail_len, G.trail_gap);
+    g.save();
+    g.beginPath();
+    g.arc(f.ring.x, f.ring.y, f.ring.r, 0, look.full_turn);
+    g.setLineDash([G.trail_len, G.trail_gap]);
+    g.lineWidth = G.ring_w;
+    g.strokeStyle = f.ring.ok ? wool.navy.mid : color("field-bad");
+    g.stroke();
+    g.restore();
   }
   if (f.preview) {
     const p = f.preview;
     g.globalAlpha = G.preview_alpha;
-    beam(g, p.a, p.b, p.w, p.ok ? p.material : "wood", p.ok ? undefined : K.n.four);
+    beam(g, p.a, p.b, p.w, p.len, p.material, p.ok ? undefined : K.n.four);
     g.globalAlpha = 1;
   }
 }
 
 function flag(g, f) {
   if (!f.flag) return;
-  const [p0, p1] = f.flag.pole;
-  beam(g, p0, p1, G.beam_min_w, "base");
-  const cloth = f.flag.cloth;
-  const xs = cloth.map(([x]) => x);
-  const ys = cloth.map(([, y]) => y);
-  const x0 = Math.min(...xs) - G.beam_pad;
-  const y0 = Math.min(...ys) - G.beam_pad;
-  const key = "flag|" + JSON.stringify(cloth.map(([x, y]) => [x - x0, y - y0]));
-  const sp = sprite(key, Math.max(...xs) - x0 + G.beam_pad, Math.max(...ys) - y0 + G.beam_pad, 0, 0, (s) => {
-    s.patch(cloth.map(([x, y]) => [x - x0, y - y0]), "terracotta", "navy", { scale: G.beam_scale, lineW: G.beam_min_w * G.flag_line });
-  });
-  g.drawImage(sp.c, x0, y0);
+  const [[px, py], [qx, qy]] = f.flag.pole;
+  dashed(g, [[px, py], [qx, qy]], wool.navy.dark, wool.navy.light, look.pole_width, look.pole_width, 0);
+  g.save();
+  g.beginPath();
+  f.flag.cloth.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.closePath();
+  g.fillStyle = pattern(g, "wool-terracotta");
+  g.fill();
+  g.setLineDash([G.band_dash, G.band_gap]);
+  g.strokeStyle = wool.navy.mid;
+  g.lineWidth = look.edge_width;
+  g.stroke();
+  g.restore();
 }
 
 // The map's spots: a band of wool laid along the ground.
 function spots(g, f) {
-  (f.spots || []).forEach((s) => dashed(g, [s.a, s.b], cssWool("spot-" + s.kind), s.w * G.spot_w, G.zone_run, G.grid_run));
-}
-
-function beams(g, f) {
-  f.beams.forEach((b) => {
-    beam(g, b.a, b.b, b.w, b.material, b.strain);
-    if (b.burning) flames(g, b.a, b.b, b.w);
-  });
-  f.nodes.forEach((n) => put(g, knotSprite(n.r, n.hot ? "ochre" : "navy"), n.x, n.y));
+  (f.spots || []).forEach((s) => dashed(g, [s.a, s.b], color("spot-" + s.kind), color("spot-" + s.kind), s.w * G.spot_w, G.zone_run, G.grid_run));
 }
 
 // A second view in a framed box (your own castle during a siege).
@@ -452,16 +352,19 @@ function inset(g, f) {
   g.clip();
   draw(g, f.inset.frame, "inset");
   g.restore();
-  S.on(g);
-  S.cord([[x, y], [x + w, y], [x + w, y + h], [x, y + h], [x, y]], "rule", G.inset_edge);
+  g.save();
+  g.setLineDash([G.band_dash, G.band_gap]);
+  g.strokeStyle = wool.rule.mid;
+  g.lineWidth = G.inset_edge;
+  g.strokeRect(x, y, w, h);
+  g.restore();
 }
 
 function draw(g, f, slot) {
   g.drawImage(background(slot, f), 0, 0);
-  // the arm swings down past the ground line: drawn under the ground band
   engine(g, f);
   spots(g, f);
-  dashed(g, f.trail, "rule", G.trail_w, G.trail_len, G.trail_gap);
+  dashed(g, f.trail, wool.rule.dark, wool.rule.light, G.trail_w, G.trail_len, G.trail_gap);
   beams(g, f);
   royals(g, f);
   balls(g, f);
@@ -471,7 +374,7 @@ function draw(g, f, slot) {
 
 // Draws one frame on the canvas's 2D context.
 export function drawField(g, f) {
-  if (!look || !S) return;
+  if (!look || !sprites) return;
   draw(g, f, "main");
   inset(g, f);
 }

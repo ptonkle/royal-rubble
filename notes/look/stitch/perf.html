@@ -10,8 +10,9 @@
 // the view a pixel each frame so the terrain layer redraws, as in a siege.
 import { drawField, setLook } from "../../../web/field-draw.js";
 const json = async (p) => (await fetch(p)).json();
-const [table, stitch, palette] = await Promise.all([json("../../../data/field.json"), json("../../../data/stitch.json"), json("../../../data/palette.json")]);
-setLook(table, stitch, palette);
+const [table, stitch, palette, baked] = await Promise.all(["field", "stitch", "palette", "stitch-sprites"].map((n) => json("../../../data/" + n + ".json")));
+for (const sp of Object.values(baked)) if (sp.file) sp.file = "../../../web/" + sp.file;
+await setLook(table, stitch, palette, baked);
 const g = document.getElementById("c").getContext("2d");
 function frame(dx) {
   const ground = [];
@@ -20,16 +21,16 @@ function frame(dx) {
   const cols = 10, rows = 5, cw = 60, rh = 70, x0 = 1200 + dx, y0 = 760;
   for (let r = 0; r < rows; r++) for (let c = 0; c <= cols; c++) {
     const x = x0 + c * cw, y = y0 - r * rh;
-    beams.push({ a: [x, y], b: [x, y - rh], w: 10, material: mats[(r + c) % 3] });
-    if (c < cols) beams.push({ a: [x, y - rh], b: [x + cw, y - rh], w: 10, material: mats[(r * 3 + c) % 3] });
-    if (c < cols) beams.push({ a: [x, y], b: [x + cw, y - rh], w: 8, material: (c + r) % 4 ? "wood" : "rope" });
+    beams.push({ a: [x, y], b: [x, y - rh], len: rh, w: 10, material: mats[(r + c) % 3] });
+    if (c < cols) beams.push({ a: [x, y - rh], b: [x + cw, y - rh], len: cw, w: 10, material: mats[(r * 3 + c) % 3] });
+    if (c < cols) beams.push({ a: [x, y], b: [x + cw, y - rh], len: 92, w: 8, material: (c + r) % 4 ? "wood" : "rope" });
   }
   const royals = ["squire", "knight", "princess", "prince", "queen", "king"].map((rank, i) => ({ x: x0 + 40 + i * 100, y: y0 - rh * (i % 3) - 14, r: 14, rank, dead: false }));
   royals.push({ x: x0 + 660, y: y0 - 16, r: 16, rank: "quarry", dead: false });
   return {
     mode: "siege", size: [1920, 1080], ground, water: [[700 + dx, 790], [900 + dx, 790]], zone: [x0 - 20, 300, x0 + 700, y0], grid: 30,
     beams: beams.slice(0, 150), nodes: [], royals, shots: [{ x: 900, y: 300, r: 9, hot: false }], debris: [{ x: 1100, y: 600, r: 5 }],
-    engine: { feet: [[200 + dx, 760], [320 + dx, 760]], pivot: [260 + dx, 640], tip: [180 + dx, 520], weight: [300 + dx, 680], arm_w: 9, weight_r: 14, loaded: null },
+    engine: { feet: [[200 + dx, 760], [320 + dx, 760]], pivot: [260 + dx, 640], tip: [180 + dx, 520], weight: [300 + dx, 680], arm_w: 9, weight_r: 14, lens: [134, 134, 120, 152], loaded: null },
     trail: [[300, 500], [600, 300], [900, 300]], spots: [], cues: [], loops: [], music: "",
   };
 }

@@ -1,0 +1,100 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Stitch bake</title></head>
+<body>
+<script type="module">
+// Bakes the playfield's stitched textures with tools/look/stitch.js: the
+// linen, wool tiles, water, one strip per segment material, the figures by
+// rank (standing and fallen), the huts, and the small sprites. bake_stitch.py
+// writes them to web/look/stitch/ and the sizes to data/stitch-sprites.json,
+// so the page only places pictures.
+import { create, parts, ellipse } from "./stitch.js";
+const K = await (await fetch("../../data/stitch.json")).json();
+const palette = await (await fetch("../../data/palette.json")).json();
+const B = K.bake;
+const G = K.game;
+const S = create(document.createElement("canvas").getContext("2d"), palette, K, G.seed);
+const files = {}, sprites = {};
+function canvas(w, h) { const c = document.createElement("canvas"); c.width = Math.ceil(w); c.height = Math.ceil(h); S.on(c.getContext("2d")); return c; }
+function save(name, c, meta, jpeg) {
+  const file = name + (jpeg ? ".jpg" : ".png");
+  files[file] = jpeg ? c.toDataURL("image/jpeg", 0.88) : c.toDataURL("image/png");
+  sprites[name] = Object.assign({ file: "look/stitch/" + file, w: c.width, h: c.height }, meta || {});
+}
+
+// linen
+{ const c = canvas(B.linen_w, B.linen_h); S.linen(0, 0, B.linen_w, B.linen_h); save("linen", c, {}, true); }
+// wool tiles for terrain, water and the flag
+for (const name of B.tiles) {
+  const T = B.tile; const c = canvas(T, T);
+  S.couch(S.poly([[0, 0], [T, 0], [T, T], [0, T]]), name, { scale: G.tile_scale, phase: 0 });
+  save("wool-" + name, c);
+}
+// water: wave rows in several wools with a fish, on bare cloth
+{
+  const w = B.water_w, h = G.wave_gap * K.wave_wools.length, c = canvas(w, h);
+  K.wave_wools.forEach((name, i) => {
+    const y = G.wave_gap * (i + 0.5), pts = [];
+    for (let x = -G.wave_step; x <= w + G.wave_step; x += G.wave_step) pts.push([x, y + Math.sin((x / G.wave_len) * Math.PI + i) * G.wave_amp]);
+    S.stem(pts, name, { w: G.wave_w });
+  });
+  const x = w * 0.4, y = G.wave_gap * 1.5, L = G.fish_len;
+  S.patch([[x, y], [x + L / 2, y - L / 4], [x + L, y], [x + L / 2, y + L / 4], [x, y], [x - L / 4, y - L / 4], [x - L / 4, y + L / 4]], "ochre", "navy", { scale: G.tile_scale, lineW: G.wave_w });
+  save("water", c);
+}
+// segment strips: laid along the length, outlined top and bottom
+for (const [mat, M] of Object.entries(K.materials)) {
+  const L = B.strip_len, H = B.strip_h, pad = 0, c = canvas(L, H);
+  const lineW = H * G.beam_line, ym = H / 2;
+  if (M.rope) {
+    S.stem([[-H, ym], [L + H, ym]], M.rope, { w: H * G.rope_w, slant: G.rope_slant });
+  } else {
+    S.couch(S.poly([[0, 0], [L, 0], [L, H], [0, H]]), M.fill, { angle: 0, scale: G.beam_scale * B.strip_scale, phase: 0 });
+    if (M.grain) S.stem([[-H, ym], [L + H, ym]], M.grain, { w: H * G.beam_wood_grain });
+    if (M.courses) for (let x = H * G.beam_course / 2; x < L; x += H * G.beam_course) S.stem([[x, 0], [x, H]], M.courses, { w: lineW / 2 });
+    S.stem([[-H, lineW / 2], [L + H, lineW / 2]], M.line, { w: lineW });
+    S.stem([[-H, H - lineW / 2], [L + H, H - lineW / 2]], M.line, { w: lineW });
+    if (M.rivets) for (let x = H * G.rivet_every / 2; x < L; x += H * G.rivet_every) S.knot(x, ym, M.rivets, H * G.rivet_r);
+  }
+  save("beam-" + mat, c, { line: M.line ? palette.wool[M.line].dark : palette.wool[M.rope].dark });
+}
+// figures by rank, standing and fallen, facing right, feet at the anchor
+const tall = B.figure;
+const s = tall / G.units;
+for (const [rank, C] of Object.entries(K.costumes)) {
+  for (const dead of [false, true]) {
+    const w = tall * G.fig_w * 2, h = tall * G.fig_h, foot = h - tall * G.figure_pad;
+    const c = canvas(w, h);
+    const flags = {}; C.flags.forEach(f => flags[f] = true);
+    parts(S, K.body, dead ? Object.assign({}, C, K.dead_colors) : C, w / 2, foot, s, 1, flags);
+    save("fig-" + rank + (dead ? "-dead" : ""), c, { ax: w / 2, ay: foot, tall });
+  }
+}
+// huts
+for (const [kind, H] of Object.entries(K.huts)) {
+  const hs = B.hut / G.hut_units, w = B.hut * 2, h = B.hut * 2, foot = h - B.hut * G.figure_pad;
+  const c = canvas(w, h);
+  parts(S, K.hut, { wall: H.wall, roof: H.roof, tiles_a: H.tiles_a, tiles_b: H.tiles_b }, w / 2, foot, hs, 1, { [H.tool]: true, checks: !!H.checks });
+  save("hut-" + kind, c, { ax: w / 2, ay: foot, tall: B.hut });
+}
+// small sprites, each centered, with its radius
+const R = B.small;
+function small(name, draw) { const c = canvas(R * 4, R * 4); draw(R * 2); save(name, c, { ax: R * 2, ay: R * 2, r: R }); }
+for (const hot of [false, true]) small(hot ? "ball-hot" : "ball", c => {
+  S.patch(ellipse(c, c, R, R, 0, Math.PI * 2, 24), hot ? "terracotta" : "navy", hot ? "ochre" : "buff", { angle: 0.5, scale: G.beam_scale, lineW: R * G.ball_line });
+  S.stem(ellipse(c, c, R * G.ball_shine, R * G.ball_shine, Math.PI, Math.PI * 1.5, 6), hot ? "ochre" : "slate", { w: R * G.ball_line });
+});
+for (const wool of ["navy", "ochre"]) small("knot-" + wool, c => S.knot(c, c, wool, R));
+small("debris", c => S.patch([[c - R, c - R / 2], [c + R / 2, c - R], [c + R, c + R / 2], [c - R / 2, c + R]], "tan", "rule", { scale: G.beam_scale, lineW: R * G.ball_line }));
+small("weight", c => {
+  S.patch([[c - R, c - R], [c + R, c - R], [c + R, c + R], [c - R, c + R]], "buff", "navy", { scale: G.beam_scale, lineW: R * G.ball_line });
+  const q = R / 2;
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if (!((i + j) & 1)) S.couch(S.poly([[c - R + i * q, c - R + j * q], [c - R + (i + 1) * q, c - R + j * q], [c - R + (i + 1) * q, c - R + (j + 1) * q], [c - R + i * q, c - R + (j + 1) * q]]), "navy", { scale: G.beam_scale, noBars: true });
+});
+small("flame", c => {
+  const fw = R / 2;
+  const tongue = (dx, hh, wool, line) => S.patch(S.curve([[c + dx - fw, c + R], [c + dx - fw / 2, c + R - hh / 2], [c + dx, c + R - hh], [c + dx + fw / 2, c + R - hh / 2], [c + dx + fw, c + R]], 3, true), wool, line, { angle: Math.PI / 2, scale: G.beam_scale, lineW: R * G.ball_line });
+  tongue(-fw / 2, R * 1.3, "terracotta", "rule"); tongue(fw / 2, R * 1.3, "terracotta", "rule"); tongue(0, R * 2, "ochre", "terracotta");
+});
+window.RESULT = { files, sprites };
+window.DONE = true;
+</script></body></html>

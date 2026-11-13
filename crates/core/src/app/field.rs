@@ -96,6 +96,8 @@ pub struct Beam {
     /// line width, pixels
     pub w: i32,
     pub material: &'static str,
+    /// the distance from `a` to `b`, pixels (the page places textures by it)
+    pub len: i32,
     /// strain after a Test, 0 (easy) to 4 (broke); absent when not shown
     #[serde(skip_serializing_if = "Option::is_none")]
     pub strain: Option<u8>,
@@ -141,6 +143,9 @@ pub struct Engine {
     pub weight: [i32; 2],
     pub arm_w: i32,
     pub weight_r: i32,
+    /// pixel lengths of the two legs (feet to pivot), the base (foot to
+    /// foot) and the arm (weight to tip), for placing textures
+    pub lens: [i32; 4],
     /// a shot sitting at the tip, waiting to be thrown
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loaded: Option<Dot>,
@@ -155,6 +160,36 @@ pub struct Preview {
     pub material: &'static str,
     /// false when it cannot be placed there
     pub ok: bool,
+    /// the distance from `a` to `b`, pixels
+    pub len: i32,
+}
+
+/// The distance between two pixel points, rounded down.
+pub fn px_len(a: [i32; 2], b: [i32; 2]) -> i32 {
+    let dx = (b[0] - a[0]) as i64;
+    let dy = (b[1] - a[1]) as i64;
+    crate::physics::fixed::isqrt((dx * dx + dy * dy) as u64) as i32
+}
+
+impl Engine {
+    /// Fills in `lens` from the points.
+    pub fn measured(mut self) -> Engine {
+        self.lens = [
+            px_len(self.feet[0], self.pivot),
+            px_len(self.feet[1], self.pivot),
+            px_len(self.feet[0], self.feet[1]),
+            px_len(self.weight, self.tip),
+        ];
+        self
+    }
+}
+
+impl Preview {
+    /// Fills in `len` from the ends.
+    pub fn measured(mut self) -> Preview {
+        self.len = px_len(self.a, self.b);
+        self
+    }
 }
 
 /// A circle around a point: the reach of a segment, a royal's spacing.
@@ -289,9 +324,11 @@ pub fn world_parts(
             continue;
         }
         let m = TUNE.material(s.material);
+        let (a, b) = (cam.px(world.nodes[s.a].pos), cam.px(world.nodes[s.b].pos));
         beams.push(Beam {
-            a: cam.px(world.nodes[s.a].pos),
-            b: cam.px(world.nodes[s.b].pos),
+            a,
+            b,
+            len: px_len(a, b),
             w: cam.len(m.thickness, 2),
             material: material_name(s.material),
             strain: tested,
@@ -351,6 +388,14 @@ mod tests {
         assert_eq!(strain_bucket(Fx::ratio(3, 5), false), 2);
         assert_eq!(strain_bucket(Fx::ratio(99, 100), false), 3);
         assert_eq!(strain_bucket(Fx::ratio(1, 5), true), 4);
+    }
+
+    #[test]
+    fn pixel_length_is_the_rounded_down_distance() {
+        // a 3-4-5 triangle, and 1 by 1 (1.414...) rounds down to 1
+        assert_eq!(px_len([10, 20], [13, 24]), 5);
+        assert_eq!(px_len([0, 0], [-1, 1]), 1);
+        assert_eq!(px_len([5, 5], [5, 5]), 0);
     }
 
     #[test]

@@ -1101,6 +1101,7 @@ impl Arena {
             weight: cam.px(weight),
             arm_w: cam.len(Fx::ratio(1, 6), 3),
             weight_r: cam.len(Fx::ratio(1, 2), 4),
+            lens: [0; 4],
             loaded: loaded.map(|(r, hot)| {
                 let p = cam.px(tip);
                 Dot {
@@ -1111,6 +1112,7 @@ impl Arena {
                 }
             }),
         }
+        .measured()
     }
 
     fn flag(&self) -> Flag {
@@ -1328,7 +1330,9 @@ impl Arena {
                     w: cam.len(TUNE.material(m).thickness, 2),
                     material: material_name(m),
                     ok: a != b && self.in_zone(b),
-                };
+                    len: 0,
+                }
+                .measured();
                 let ring = Ring {
                     x: pa[0],
                     y: pa[1],

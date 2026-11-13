@@ -1,348 +1,2229 @@
 {
-  "_about": "Every number the stitch helpers (web/stitch.js) and the playfield's tapestry renderer (web/field-draw.js) use: thread sizes in fabric pixels at zoom 1, shares, angles in radians, and the figure and hut shapes in units of a figure 100 tall with its feet at (0, 0), facing right. Colors live in data/palette.json. The detail pass (v3) made the wool chunkier, the couching denser and more irregular, and the stem stitches longer and more distinct, after the photos in ../ctc-journal/img/look/ref/.",
-  "n": { "half": 0.5, "two": 2, "three": 3, "four": 4, "six": 6, "eight": 8 },
-  "rng": { "mul": 1664525, "add": 1013904223, "mod": 4294967296 },
-  "hex": { "base": 16, "r_shift": 16, "g_shift": 8, "mask": 255 },
-  "cr": { "half": 0.5, "two": 2, "three": 3, "four": 4, "five": 5 },
-  "white": [255, 250, 242],
-  "black": [20, 16, 14],
-  "shadow": [34, 27, 23],
-  "linen_light": [250, 245, 235],
-  "linen_dark": [120, 104, 90],
-  "foxing": [150, 115, 80],
-  "bare": "#d3c8be",
-  "tile": { "size": 192 },
-  "stitch": {
-    "zoom": 1,
-    "wool_lift": 0.32,
-    "wool_drop": 0.4,
-    "shade_count": 7,
-    "shade_spread": 0.62,
-    "thread": 4.2,
-    "thread_gap": 0.06,
-    "under_dark": 0.18,
-    "seg": 1.3,
-    "row_wobble": 0.22,
-    "drift": 0.32,
-    "wander": 0.1,
-    "settle": 0.9,
-    "hi_off": 0.24,
-    "lo_off": 0.42,
-    "hi_alpha": 0.22,
-    "hi_w": 0.28,
-    "lo_alpha": 0.3,
-    "lo_w": 0.24,
-    "fiber": 1.25,
-    "twist_min": 0.7,
-    "twist_span": 0.6,
-    "tick_back": 0.3,
-    "tick_fwd": 0.24,
-    "tick_h": 0.42,
-    "tick_alpha": 0.46,
-    "tick_w": 0.2,
-    "lit_back": 0.0,
-    "lit_fwd": 0.42,
-    "lit_h": 0.34,
-    "lit_alpha": 0.26,
-    "lit_w": 0.2,
-    "fuzz": 0.4,
-    "fuzz_min": 0.3,
-    "fuzz_span": 0.7,
-    "fuzz_alpha": 0.28,
-    "fuzz_w": 0.1,
-    "bar_every": 3.5,
-    "bar_min": 0.55,
-    "bar_span": 0.9,
-    "bar_jog": 0.34,
-    "bar_lean": 0.16,
-    "bar_settle": 0.93,
-    "bar_mid": 0.4,
-    "bar_width": 0.66,
-    "bar_shadow_w": 1.35,
-    "bar_shadow_alpha": 0.4,
-    "bar_shadow_dark": 0.3,
-    "bar_hi_off": 0.13,
-    "bar_hi_alpha": 0.3,
-    "bar_hi_w": 0.2,
-    "tack": 0.46,
-    "tack_alpha": 0.75,
-    "tack_dark": 0.35,
-    "tack_w": 0.32,
-    "stem_width": 4.0,
-    "stem_length": 2.6,
-    "stem_step": 0.72,
-    "stem_slant": 0.6,
-    "stem_shades": 5,
-    "stem_spread": 0.6,
-    "stem_jitter": 0.18,
-    "stem_thread": 0.66,
-    "stem_hi_side": 0.12,
-    "stem_hi_a": 0.55,
-    "stem_hi_b": 0.4,
-    "stem_hi_alpha": 0.36,
-    "stem_hi_w": 0.2,
-    "stem_gap_end": 0.7,
-    "stem_gap_alpha": 0.5,
-    "stem_gap_dark": 0.4,
-    "stem_gap_w": 0.14,
-    "cord_wrap": 0.7,
-    "cord_dash": 1.1,
-    "cord_gap": 0.5,
-    "cord_hi": 0.24,
-    "cord_hi_dash": 0.6,
-    "cord_hi_shift": 0.3,
-    "cord_hi_alpha": 0.5,
-    "run_length": 8,
-    "run_gap": 6,
-    "run_width": 2.4,
-    "run_spread": 0.4,
-    "run_jitter": 0.3,
-    "knot": 2.6,
-    "knot_wind": 0.55,
-    "knot_sweep": 4.2,
-    "knot_hi": 0.3,
-    "knot_hi_alpha": 0.5
+ "_about": "Every number the stitch helpers (web/stitch.js) and the playfield's tapestry renderer (web/field-draw.js) use: thread sizes in fabric pixels at zoom 1, shares, angles in radians, and the figure and hut shapes in units of a figure 100 tall with its feet at (0, 0), facing right. Colors live in data/palette.json. The detail pass (v3) made the wool chunkier, the couching denser and more irregular, and the stem stitches longer and more distinct, after the photos in ../ctc-journal/img/look/ref/.",
+ "n": {
+  "half": 0.5,
+  "two": 2,
+  "three": 3,
+  "four": 4,
+  "six": 6,
+  "eight": 8
+ },
+ "rng": {
+  "mul": 1664525,
+  "add": 1013904223,
+  "mod": 4294967296
+ },
+ "hex": {
+  "base": 16,
+  "r_shift": 16,
+  "g_shift": 8,
+  "mask": 255
+ },
+ "cr": {
+  "half": 0.5,
+  "two": 2,
+  "three": 3,
+  "four": 4,
+  "five": 5
+ },
+ "white": [
+  255,
+  250,
+  242
+ ],
+ "black": [
+  20,
+  16,
+  14
+ ],
+ "shadow": [
+  34,
+  27,
+  23
+ ],
+ "linen_light": [
+  250,
+  245,
+  235
+ ],
+ "linen_dark": [
+  120,
+  104,
+  90
+ ],
+ "foxing": [
+  150,
+  115,
+  80
+ ],
+ "bare": "#d3c8be",
+ "tile": {
+  "size": 192
+ },
+ "stitch": {
+  "zoom": 1,
+  "wool_lift": 0.32,
+  "wool_drop": 0.4,
+  "shade_count": 7,
+  "shade_spread": 0.62,
+  "thread": 4.2,
+  "thread_gap": 0.06,
+  "under_dark": 0.18,
+  "seg": 1.3,
+  "row_wobble": 0.22,
+  "drift": 0.32,
+  "wander": 0.1,
+  "settle": 0.9,
+  "hi_off": 0.24,
+  "lo_off": 0.42,
+  "hi_alpha": 0.22,
+  "hi_w": 0.28,
+  "lo_alpha": 0.3,
+  "lo_w": 0.24,
+  "fiber": 1.25,
+  "twist_min": 0.7,
+  "twist_span": 0.6,
+  "tick_back": 0.3,
+  "tick_fwd": 0.24,
+  "tick_h": 0.42,
+  "tick_alpha": 0.46,
+  "tick_w": 0.2,
+  "lit_back": 0.0,
+  "lit_fwd": 0.42,
+  "lit_h": 0.34,
+  "lit_alpha": 0.26,
+  "lit_w": 0.2,
+  "fuzz": 0.4,
+  "fuzz_min": 0.3,
+  "fuzz_span": 0.7,
+  "fuzz_alpha": 0.28,
+  "fuzz_w": 0.1,
+  "bar_every": 3.5,
+  "bar_min": 0.55,
+  "bar_span": 0.9,
+  "bar_jog": 0.34,
+  "bar_lean": 0.16,
+  "bar_settle": 0.93,
+  "bar_mid": 0.4,
+  "bar_width": 0.66,
+  "bar_shadow_w": 1.35,
+  "bar_shadow_alpha": 0.4,
+  "bar_shadow_dark": 0.3,
+  "bar_hi_off": 0.13,
+  "bar_hi_alpha": 0.3,
+  "bar_hi_w": 0.2,
+  "tack": 0.46,
+  "tack_alpha": 0.75,
+  "tack_dark": 0.35,
+  "tack_w": 0.32,
+  "stem_width": 4.0,
+  "stem_length": 2.6,
+  "stem_step": 0.72,
+  "stem_slant": 0.6,
+  "stem_shades": 5,
+  "stem_spread": 0.6,
+  "stem_jitter": 0.18,
+  "stem_thread": 0.66,
+  "stem_hi_side": 0.12,
+  "stem_hi_a": 0.55,
+  "stem_hi_b": 0.4,
+  "stem_hi_alpha": 0.36,
+  "stem_hi_w": 0.2,
+  "stem_gap_end": 0.7,
+  "stem_gap_alpha": 0.5,
+  "stem_gap_dark": 0.4,
+  "stem_gap_w": 0.14,
+  "cord_wrap": 0.7,
+  "cord_dash": 1.1,
+  "cord_gap": 0.5,
+  "cord_hi": 0.24,
+  "cord_hi_dash": 0.6,
+  "cord_hi_shift": 0.3,
+  "cord_hi_alpha": 0.5,
+  "run_length": 8,
+  "run_gap": 6,
+  "run_width": 2.4,
+  "run_spread": 0.4,
+  "run_jitter": 0.3,
+  "knot": 2.6,
+  "knot_wind": 0.55,
+  "knot_sweep": 4.2,
+  "knot_hi": 0.3,
+  "knot_hi_alpha": 0.5
+ },
+ "linen": {
+  "weave": 1.25,
+  "tile": 256,
+  "slub": 0.035,
+  "warp_share": 0.6,
+  "round_mid": 0.6,
+  "round_amp": 0.03,
+  "grain": 0.02,
+  "opaque": 255,
+  "slub_share": 0.1,
+  "slub_alpha": 0.03,
+  "slub_min": 0.6,
+  "tones": 18,
+  "tone_min": 200,
+  "tone_span": 500,
+  "tone_alpha": 0.05,
+  "creases": 30,
+  "per_px": 1000,
+  "crease_min": 0.12,
+  "crease_span": 0.5,
+  "crease_lead": 0.3,
+  "crease_amp": 3,
+  "crease_freq": 0.004,
+  "crease_depth": 0.9,
+  "crease_floor": 0.35,
+  "crease_tilt": 0.03,
+  "crease_steps": 60,
+  "fade_in": 0.2,
+  "fade_out": 0.6,
+  "valley_alpha": 0.85,
+  "blur": 1.6,
+  "valley_w": 4,
+  "ridge_w": 3,
+  "ridge_off": 3.5,
+  "deep_alpha": 0.7,
+  "deep_w": 0.9,
+  "deep_off": 0.6,
+  "stains": 14,
+  "per_mpx": 1000000,
+  "stain_min": 3,
+  "stain_span": 14,
+  "stain_alpha": 0.05
+ },
+ "figure": {
+  "line": 0.5,
+  "fill": 0.62,
+  "knot_unit": 0.5,
+  "tile_rise": 1.5,
+  "tile_tall": 1.2,
+  "tile_w": 0.55
+ },
+ "costumes": {
+  "squire": {
+   "flags": [
+    "legs",
+    "tunic",
+    "cap",
+    "hair"
+   ],
+   "tunic": "tan",
+   "legs": "slate",
+   "garter": "buff",
+   "hair": "terracotta",
+   "fold": "rule",
+   "shoe": "navy"
   },
-  "linen": {
-    "weave": 1.25,
-    "tile": 256,
-    "slub": 0.035,
-    "warp_share": 0.6,
-    "round_mid": 0.6,
-    "round_amp": 0.03,
-    "grain": 0.02,
-    "opaque": 255,
-    "slub_share": 0.1,
-    "slub_alpha": 0.03,
-    "slub_min": 0.6,
-    "tones": 18,
-    "tone_min": 200,
-    "tone_span": 500,
-    "tone_alpha": 0.05,
-    "creases": 30,
-    "per_px": 1000,
-    "crease_min": 0.12,
-    "crease_span": 0.5,
-    "crease_lead": 0.3,
-    "crease_amp": 3,
-    "crease_freq": 0.004,
-    "crease_depth": 0.9,
-    "crease_floor": 0.35,
-    "crease_tilt": 0.03,
-    "crease_steps": 60,
-    "fade_in": 0.2,
-    "fade_out": 0.6,
-    "valley_alpha": 0.85,
-    "blur": 1.6,
-    "valley_w": 4,
-    "ridge_w": 3,
-    "ridge_off": 3.5,
-    "deep_alpha": 0.7,
-    "deep_w": 0.9,
-    "deep_off": 0.6,
-    "stains": 14,
-    "per_mpx": 1000000,
-    "stain_min": 3,
-    "stain_span": 14,
-    "stain_alpha": 0.05
+  "knight": {
+   "flags": [
+    "legs",
+    "tunic",
+    "helm",
+    "shield",
+    "spear",
+    "mail"
+   ],
+   "tunic": "slate",
+   "legs": "terracotta",
+   "garter": "buff",
+   "fold": "buff",
+   "shoe": "navy",
+   "shield": "terracotta"
   },
-  "figure": {
-    "line": 0.5,
-    "fill": 0.62,
-    "knot_unit": 0.5,
-    "tile_rise": 1.5,
-    "tile_tall": 1.2,
-    "tile_w": 0.55
+  "princess": {
+   "flags": [
+    "robe",
+    "crown",
+    "longhair",
+    "hair"
+   ],
+   "tunic": "olive",
+   "hair": "tan",
+   "fold": "buff",
+   "shoe": "navy"
   },
-  "costumes": {
-    "squire": { "flags": ["legs", "tunic", "cap", "hair"], "tunic": "tan", "legs": "slate", "garter": "buff", "hair": "terracotta", "fold": "rule", "shoe": "navy" },
-    "knight": { "flags": ["legs", "tunic", "helm", "shield", "spear", "mail"], "tunic": "slate", "legs": "terracotta", "garter": "buff", "fold": "buff", "shoe": "navy", "shield": "terracotta" },
-    "princess": { "flags": ["robe", "crown", "longhair", "hair"], "tunic": "olive", "hair": "tan", "fold": "buff", "shoe": "navy" },
-    "prince": { "flags": ["legs", "tunic", "cloak", "crown", "hair", "spear"], "tunic": "bluegreen", "cloak": "terracotta", "legs": "tan", "garter": "rule", "hair": "rule", "fold": "buff", "shoe": "navy" },
-    "queen": { "flags": ["robe", "crown_high", "veil", "cloak"], "tunic": "terracotta", "cloak": "navy", "veil": "slate", "fold": "buff", "shoe": "navy" },
-    "king": { "flags": ["robe", "crown", "beard", "scepter", "cloak", "hair"], "tunic": "tan", "cloak": "navy", "hair": "slate", "fold": "rule", "shoe": "navy" }
+  "prince": {
+   "flags": [
+    "legs",
+    "tunic",
+    "cloak",
+    "crown",
+    "hair",
+    "spear"
+   ],
+   "tunic": "bluegreen",
+   "cloak": "terracotta",
+   "legs": "tan",
+   "garter": "rule",
+   "hair": "rule",
+   "fold": "buff",
+   "shoe": "navy"
   },
-  "dead_colors": { "tunic": "sage", "legs": "sage", "cloak": "sage", "hair": "sage", "veil": "sage", "shield": "sage", "fold": "tan", "garter": "tan", "shoe": "sage" },
-  "body": [
-    { "kind": "patch", "when": "cloak", "pts": [[-5, -72], [-15, -64], [-21, -40], [-24, -12], [-14, -16], [-7, -40]], "curve": 3, "fill": "cloak", "line": "rule", "angle": 1.4 },
-    { "kind": "stem", "when": "cloak", "pts": [[-10, -62], [-16, -36], [-19, -18]], "color": "fold", "w": 0.8 },
-    { "kind": "patch", "when": "scepter", "pts": [[-3, -70], [-9, -60], [-7, -50], [-3, -52], [-4, -60]], "fill": "tunic", "angle": 1.2 },
-    { "kind": "stem", "when": "scepter", "pts": [[-5, -42], [-3, -98]], "color": "ochre", "w": 1.3 },
-    { "kind": "knot", "when": "scepter", "at": [-3, -101], "color": "ochre", "r": 2.2 },
-    { "kind": "knot", "when": "scepter", "at": [-6.5, -97], "color": "ochre", "r": 1.7 },
-    { "kind": "knot", "when": "scepter", "at": [0.5, -97], "color": "ochre", "r": 1.7 },
-    { "kind": "stem", "when": "spear", "pts": [[-4, -2], [-4, -116]], "color": "rule", "w": 0.9 },
-    { "kind": "patch", "when": "spear", "pts": [[-4, -127], [-1, -116], [-4, -112], [-7, -116]], "fill": "slate", "w": 0.7 },
-    { "kind": "patch", "when": "legs", "pts": [[-5, -42], [1, -42], [-8, -4], [-13, -4]], "fill": "legs", "angle": 1.8 },
-    { "kind": "patch", "when": "legs", "pts": [[0, -42], [6, -42], [13, -4], [8, -4]], "fill": "legs", "angle": 1.35 },
-    { "kind": "stem", "when": "legs", "pts": [[-4, -30], [0, -34]], "color": "garter", "w": 0.7 },
-    { "kind": "stem", "when": "legs", "pts": [[-6, -20], [-2, -24]], "color": "garter", "w": 0.7 },
-    { "kind": "stem", "when": "legs", "pts": [[-8, -11], [-4, -15]], "color": "garter", "w": 0.7 },
-    { "kind": "stem", "when": "legs", "pts": [[3, -30], [8, -34]], "color": "garter", "w": 0.7 },
-    { "kind": "stem", "when": "legs", "pts": [[5, -20], [10, -24]], "color": "garter", "w": 0.7 },
-    { "kind": "stem", "when": "legs", "pts": [[7, -10], [12, -14]], "color": "garter", "w": 0.7 },
-    { "kind": "patch", "when": "legs", "pts": [[-13, -4], [-8, -4], [-7, 0], [-19, 0]], "fill": "shoe", "line": "navy", "w": 0.7 },
-    { "kind": "patch", "when": "legs", "pts": [[8, -4], [13, -4], [21, 0], [9, 0]], "fill": "shoe", "line": "navy", "w": 0.7 },
-    { "kind": "patch", "when": "robe", "pts": [[-8, -4], [0, -4], [5, 0], [-6, 0]], "fill": "shoe", "line": "navy", "w": 0.7 },
-    { "kind": "patch", "when": "tunic", "pts": [[-7, -73], [7, -73], [10, -58], [19, -36], [-17, -36], [-10, -58]], "fill": "tunic", "angle": 1.5 },
-    { "kind": "patch", "when": "robe", "pts": [[-7, -73], [7, -73], [10, -58], [17, -3], [-16, -3], [-10, -58]], "fill": "tunic", "angle": 1.5 },
-    { "kind": "stem", "when": "mail", "pts": [[-9, -66], [9, -66]], "color": "navy", "w": 0.6 },
-    { "kind": "stem", "when": "mail", "pts": [[-10, -60], [10, -60]], "color": "navy", "w": 0.6 },
-    { "kind": "stem", "when": "mail", "pts": [[-13, -48], [14, -48]], "color": "navy", "w": 0.6 },
-    { "kind": "stem", "when": "mail", "pts": [[-15, -42], [16, -42]], "color": "navy", "w": 0.6 },
-    { "kind": "stem", "when": "tunic", "pts": [[-3, -56], [-8, -38]], "color": "fold", "w": 0.8 },
-    { "kind": "stem", "when": "tunic", "pts": [[2, -56], [3, -38]], "color": "fold", "w": 0.8 },
-    { "kind": "stem", "when": "tunic", "pts": [[6, -56], [13, -38]], "color": "fold", "w": 0.8 },
-    { "kind": "stem", "when": "robe", "pts": [[-4, -56], [-6, -30], [-9, -6]], "curve": 4, "color": "fold", "w": 0.8 },
-    { "kind": "stem", "when": "robe", "pts": [[1, -56], [2, -30], [1, -6]], "curve": 4, "color": "fold", "w": 0.8 },
-    { "kind": "stem", "when": "robe", "pts": [[6, -56], [10, -30], [12, -6]], "curve": 4, "color": "fold", "w": 0.8 },
-    { "kind": "stem", "when": "robe", "pts": [[-15, -9], [-5, -7], [5, -9], [16, -8]], "curve": 4, "color": "fold", "w": 0.8 },
-    { "kind": "stem", "pts": [[-10, -58], [10, -58]], "color": "fold", "w": 0.8 },
-    { "kind": "patch", "pts": [[3, -71], [9, -72], [17, -61], [12, -57]], "fill": "tunic", "angle": -0.9 },
-    { "kind": "patch", "pts": [[12, -57], [17, -61], [27, -58], [26, -53]], "fill": "tunic", "angle": -0.2 },
-    { "kind": "stem", "pts": [[20, -59], [21, -54]], "color": "fold", "w": 0.6 },
-    { "kind": "stem", "pts": [[23, -59], [24, -54]], "color": "fold", "w": 0.6 },
-    { "kind": "bare", "pts": [[26, -58], [30, -59], [32, -56], [29, -53], [26, -53]], "line": "navy", "w": 0.6 },
-    { "kind": "stem", "pts": [[31, -58], [36, -61]], "color": "navy", "w": 0.55 },
-    { "kind": "stem", "pts": [[32, -56], [37, -57]], "color": "navy", "w": 0.55 },
-    { "kind": "stem", "pts": [[31, -54], [36, -53]], "color": "navy", "w": 0.55 },
-    { "kind": "stem", "pts": [[29, -53], [32, -50]], "color": "navy", "w": 0.55 },
-    { "kind": "patch", "when": "shield", "pts": [[13, -72], [27, -70], [25, -52], [18, -38], [12, -52]], "curve": 3, "fill": "shield", "line": "navy", "angle": 1.5 },
-    { "kind": "stem", "when": "shield", "pts": [[20, -70], [19, -42]], "color": "ochre", "w": 0.7 },
-    { "kind": "stem", "when": "shield", "pts": [[13, -60], [26, -60]], "color": "ochre", "w": 0.7 },
-    { "kind": "knot", "when": "shield", "at": [19.5, -60], "color": "ochre", "r": 2 },
-    { "kind": "bare", "pts": [[-2, -72], [3, -72], [2, -77], [-1, -77]], "w": 0.6 },
-    { "kind": "patch", "when": "longhair", "pts": [[-4, -89], [-9, -82], [-11, -58], [-5, -60], [-3, -78]], "fill": "hair", "line": "rule", "angle": 1.5 },
-    { "kind": "patch", "when": "veil", "pts": [[-8, -70], [-10, -86], [-5, -94], [4, -95], [8, -90], [5, -88], [1, -91], [-3, -86], [-2, -74], [4, -72]], "fill": "veil", "angle": 1.4 },
-    { "kind": "bare", "pts": [[1, -91], [6, -88.5], [8.5, -83], [7.5, -78], [4, -75.5], [-1, -75.5], [-5, -79], [-6, -84], [-4, -89]], "curve": 3, "line": "rule", "w": 0.75 },
-    { "kind": "patch", "when": "hair", "unless": "helm", "pts": [[6, -88], [1, -92], [-4, -90.5], [-6.6, -85], [-6, -79], [-3.6, -79], [-3, -85], [2, -88.4]], "fill": "hair", "line": "rule", "angle": 0.2, "w": 0.8 },
-    { "kind": "stem", "pts": [[3, -86.3], [6.6, -86.8]], "color": "navy", "w": 0.55 },
-    { "kind": "knot", "at": [5, -84.6], "color": "navy", "r": 1.1 },
-    { "kind": "stem", "pts": [[7.2, -85.5], [9.8, -80.8], [7.2, -80]], "color": "rule", "w": 0.6 },
-    { "kind": "stem", "pts": [[4.8, -77.9], [7.2, -78.3]], "color": "rule", "w": 0.55 },
-    { "kind": "patch", "when": "beard", "pts": [[0, -80], [7.5, -78.5], [6, -73], [2, -70], [-1, -75]], "fill": "hair", "line": "navy", "angle": 1.5, "w": 0.6 },
-    { "kind": "stem", "when": "cap", "pts": [[-6.5, -88], [6.5, -88]], "color": "navy", "w": 0.9 },
-    { "kind": "patch", "when": "helm", "pts": [[-7, -83], [0, -100], [8, -83], [8, -81], [-7, -81]], "fill": "navy", "line": "buff", "angle": 1.2, "w": 0.7 },
-    { "kind": "stem", "when": "helm", "pts": [[7, -83], [9, -77]], "color": "navy", "w": 0.9 },
-    { "kind": "patch", "when": "crown", "pts": [[-6.5, -89], [7.5, -89], [7.5, -94], [5.5, -100], [3.5, -94], [0.5, -102], [-2, -94], [-4.5, -100], [-6.5, -94]], "fill": "ochre", "line": "navy", "w": 0.8 },
-    { "kind": "knot", "when": "crown", "at": [5.5, -101], "color": "ochre", "r": 1.8 },
-    { "kind": "knot", "when": "crown", "at": [0.5, -103.5], "color": "ochre", "r": 1.8 },
-    { "kind": "knot", "when": "crown", "at": [-4.5, -101], "color": "ochre", "r": 1.8 },
-    { "kind": "patch", "when": "crown_high", "pts": [[-6.5, -93], [7.5, -93], [7.5, -98], [5.5, -104], [3.5, -98], [0.5, -106], [-2, -98], [-4.5, -104], [-6.5, -98]], "fill": "ochre", "line": "navy", "w": 0.8 },
-    { "kind": "knot", "when": "crown_high", "at": [0.5, -107.5], "color": "ochre", "r": 1.8 }
+  "queen": {
+   "flags": [
+    "robe",
+    "crown_high",
+    "veil",
+    "cloak"
+   ],
+   "tunic": "terracotta",
+   "cloak": "navy",
+   "veil": "slate",
+   "fold": "buff",
+   "shoe": "navy"
+  },
+  "king": {
+   "flags": [
+    "robe",
+    "crown",
+    "beard",
+    "scepter",
+    "cloak",
+    "hair"
+   ],
+   "tunic": "tan",
+   "cloak": "navy",
+   "hair": "slate",
+   "fold": "rule",
+   "shoe": "navy"
+  }
+ },
+ "dead_colors": {
+  "tunic": "sage",
+  "legs": "sage",
+  "cloak": "sage",
+  "hair": "sage",
+  "veil": "sage",
+  "shield": "sage",
+  "fold": "tan",
+  "garter": "tan",
+  "shoe": "sage"
+ },
+ "body": [
+  {
+   "kind": "patch",
+   "when": "cloak",
+   "pts": [
+    [
+     -5,
+     -72
+    ],
+    [
+     -15,
+     -64
+    ],
+    [
+     -21,
+     -40
+    ],
+    [
+     -24,
+     -12
+    ],
+    [
+     -14,
+     -16
+    ],
+    [
+     -7,
+     -40
+    ]
+   ],
+   "curve": 3,
+   "fill": "cloak",
+   "line": "rule",
+   "angle": 1.4
+  },
+  {
+   "kind": "stem",
+   "when": "cloak",
+   "pts": [
+    [
+     -10,
+     -62
+    ],
+    [
+     -16,
+     -36
+    ],
+    [
+     -19,
+     -18
+    ]
+   ],
+   "color": "fold",
+   "w": 0.8
+  },
+  {
+   "kind": "patch",
+   "when": "scepter",
+   "pts": [
+    [
+     -3,
+     -70
+    ],
+    [
+     -9,
+     -60
+    ],
+    [
+     -7,
+     -50
+    ],
+    [
+     -3,
+     -52
+    ],
+    [
+     -4,
+     -60
+    ]
+   ],
+   "fill": "tunic",
+   "angle": 1.2
+  },
+  {
+   "kind": "stem",
+   "when": "scepter",
+   "pts": [
+    [
+     -5,
+     -42
+    ],
+    [
+     -3,
+     -98
+    ]
+   ],
+   "color": "ochre",
+   "w": 1.3
+  },
+  {
+   "kind": "knot",
+   "when": "scepter",
+   "at": [
+    -3,
+    -101
+   ],
+   "color": "ochre",
+   "r": 2.2
+  },
+  {
+   "kind": "knot",
+   "when": "scepter",
+   "at": [
+    -6.5,
+    -97
+   ],
+   "color": "ochre",
+   "r": 1.7
+  },
+  {
+   "kind": "knot",
+   "when": "scepter",
+   "at": [
+    0.5,
+    -97
+   ],
+   "color": "ochre",
+   "r": 1.7
+  },
+  {
+   "kind": "stem",
+   "when": "spear",
+   "pts": [
+    [
+     -4,
+     -2
+    ],
+    [
+     -4,
+     -116
+    ]
+   ],
+   "color": "rule",
+   "w": 0.9
+  },
+  {
+   "kind": "patch",
+   "when": "spear",
+   "pts": [
+    [
+     -4,
+     -127
+    ],
+    [
+     -1,
+     -116
+    ],
+    [
+     -4,
+     -112
+    ],
+    [
+     -7,
+     -116
+    ]
+   ],
+   "fill": "slate",
+   "w": 0.7
+  },
+  {
+   "kind": "patch",
+   "when": "legs",
+   "pts": [
+    [
+     -5,
+     -42
+    ],
+    [
+     1,
+     -42
+    ],
+    [
+     -8,
+     -4
+    ],
+    [
+     -13,
+     -4
+    ]
+   ],
+   "fill": "legs",
+   "angle": 1.8
+  },
+  {
+   "kind": "patch",
+   "when": "legs",
+   "pts": [
+    [
+     0,
+     -42
+    ],
+    [
+     6,
+     -42
+    ],
+    [
+     13,
+     -4
+    ],
+    [
+     8,
+     -4
+    ]
+   ],
+   "fill": "legs",
+   "angle": 1.35
+  },
+  {
+   "kind": "stem",
+   "when": "legs",
+   "pts": [
+    [
+     -4,
+     -30
+    ],
+    [
+     0,
+     -34
+    ]
+   ],
+   "color": "garter",
+   "w": 0.7
+  },
+  {
+   "kind": "stem",
+   "when": "legs",
+   "pts": [
+    [
+     -6,
+     -20
+    ],
+    [
+     -2,
+     -24
+    ]
+   ],
+   "color": "garter",
+   "w": 0.7
+  },
+  {
+   "kind": "stem",
+   "when": "legs",
+   "pts": [
+    [
+     -8,
+     -11
+    ],
+    [
+     -4,
+     -15
+    ]
+   ],
+   "color": "garter",
+   "w": 0.7
+  },
+  {
+   "kind": "stem",
+   "when": "legs",
+   "pts": [
+    [
+     3,
+     -30
+    ],
+    [
+     8,
+     -34
+    ]
+   ],
+   "color": "garter",
+   "w": 0.7
+  },
+  {
+   "kind": "stem",
+   "when": "legs",
+   "pts": [
+    [
+     5,
+     -20
+    ],
+    [
+     10,
+     -24
+    ]
+   ],
+   "color": "garter",
+   "w": 0.7
+  },
+  {
+   "kind": "stem",
+   "when": "legs",
+   "pts": [
+    [
+     7,
+     -10
+    ],
+    [
+     12,
+     -14
+    ]
+   ],
+   "color": "garter",
+   "w": 0.7
+  },
+  {
+   "kind": "patch",
+   "when": "legs",
+   "pts": [
+    [
+     -13,
+     -4
+    ],
+    [
+     -8,
+     -4
+    ],
+    [
+     -7,
+     0
+    ],
+    [
+     -19,
+     0
+    ]
+   ],
+   "fill": "shoe",
+   "line": "navy",
+   "w": 0.7
+  },
+  {
+   "kind": "patch",
+   "when": "legs",
+   "pts": [
+    [
+     8,
+     -4
+    ],
+    [
+     13,
+     -4
+    ],
+    [
+     21,
+     0
+    ],
+    [
+     9,
+     0
+    ]
+   ],
+   "fill": "shoe",
+   "line": "navy",
+   "w": 0.7
+  },
+  {
+   "kind": "patch",
+   "when": "robe",
+   "pts": [
+    [
+     -8,
+     -4
+    ],
+    [
+     0,
+     -4
+    ],
+    [
+     5,
+     0
+    ],
+    [
+     -6,
+     0
+    ]
+   ],
+   "fill": "shoe",
+   "line": "navy",
+   "w": 0.7
+  },
+  {
+   "kind": "patch",
+   "when": "tunic",
+   "pts": [
+    [
+     -7,
+     -73
+    ],
+    [
+     7,
+     -73
+    ],
+    [
+     10,
+     -58
+    ],
+    [
+     19,
+     -36
+    ],
+    [
+     -17,
+     -36
+    ],
+    [
+     -10,
+     -58
+    ]
+   ],
+   "fill": "tunic",
+   "angle": 1.5
+  },
+  {
+   "kind": "patch",
+   "when": "robe",
+   "pts": [
+    [
+     -7,
+     -73
+    ],
+    [
+     7,
+     -73
+    ],
+    [
+     10,
+     -58
+    ],
+    [
+     17,
+     -3
+    ],
+    [
+     -16,
+     -3
+    ],
+    [
+     -10,
+     -58
+    ]
+   ],
+   "fill": "tunic",
+   "angle": 1.5
+  },
+  {
+   "kind": "stem",
+   "when": "mail",
+   "pts": [
+    [
+     -9,
+     -66
+    ],
+    [
+     9,
+     -66
+    ]
+   ],
+   "color": "navy",
+   "w": 0.6
+  },
+  {
+   "kind": "stem",
+   "when": "mail",
+   "pts": [
+    [
+     -10,
+     -60
+    ],
+    [
+     10,
+     -60
+    ]
+   ],
+   "color": "navy",
+   "w": 0.6
+  },
+  {
+   "kind": "stem",
+   "when": "mail",
+   "pts": [
+    [
+     -13,
+     -48
+    ],
+    [
+     14,
+     -48
+    ]
+   ],
+   "color": "navy",
+   "w": 0.6
+  },
+  {
+   "kind": "stem",
+   "when": "mail",
+   "pts": [
+    [
+     -15,
+     -42
+    ],
+    [
+     16,
+     -42
+    ]
+   ],
+   "color": "navy",
+   "w": 0.6
+  },
+  {
+   "kind": "stem",
+   "when": "tunic",
+   "pts": [
+    [
+     -3,
+     -56
+    ],
+    [
+     -8,
+     -38
+    ]
+   ],
+   "color": "fold",
+   "w": 0.8
+  },
+  {
+   "kind": "stem",
+   "when": "tunic",
+   "pts": [
+    [
+     2,
+     -56
+    ],
+    [
+     3,
+     -38
+    ]
+   ],
+   "color": "fold",
+   "w": 0.8
+  },
+  {
+   "kind": "stem",
+   "when": "tunic",
+   "pts": [
+    [
+     6,
+     -56
+    ],
+    [
+     13,
+     -38
+    ]
+   ],
+   "color": "fold",
+   "w": 0.8
+  },
+  {
+   "kind": "stem",
+   "when": "robe",
+   "pts": [
+    [
+     -4,
+     -56
+    ],
+    [
+     -6,
+     -30
+    ],
+    [
+     -9,
+     -6
+    ]
+   ],
+   "curve": 4,
+   "color": "fold",
+   "w": 0.8
+  },
+  {
+   "kind": "stem",
+   "when": "robe",
+   "pts": [
+    [
+     1,
+     -56
+    ],
+    [
+     2,
+     -30
+    ],
+    [
+     1,
+     -6
+    ]
+   ],
+   "curve": 4,
+   "color": "fold",
+   "w": 0.8
+  },
+  {
+   "kind": "stem",
+   "when": "robe",
+   "pts": [
+    [
+     6,
+     -56
+    ],
+    [
+     10,
+     -30
+    ],
+    [
+     12,
+     -6
+    ]
+   ],
+   "curve": 4,
+   "color": "fold",
+   "w": 0.8
+  },
+  {
+   "kind": "stem",
+   "when": "robe",
+   "pts": [
+    [
+     -15,
+     -9
+    ],
+    [
+     -5,
+     -7
+    ],
+    [
+     5,
+     -9
+    ],
+    [
+     16,
+     -8
+    ]
+   ],
+   "curve": 4,
+   "color": "fold",
+   "w": 0.8
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     -10,
+     -58
+    ],
+    [
+     10,
+     -58
+    ]
+   ],
+   "color": "fold",
+   "w": 0.8
+  },
+  {
+   "kind": "patch",
+   "pts": [
+    [
+     3,
+     -71
+    ],
+    [
+     9,
+     -72
+    ],
+    [
+     17,
+     -61
+    ],
+    [
+     12,
+     -57
+    ]
+   ],
+   "fill": "tunic",
+   "angle": -0.9
+  },
+  {
+   "kind": "patch",
+   "pts": [
+    [
+     12,
+     -57
+    ],
+    [
+     17,
+     -61
+    ],
+    [
+     27,
+     -58
+    ],
+    [
+     26,
+     -53
+    ]
+   ],
+   "fill": "tunic",
+   "angle": -0.2
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     20,
+     -59
+    ],
+    [
+     21,
+     -54
+    ]
+   ],
+   "color": "fold",
+   "w": 0.6
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     23,
+     -59
+    ],
+    [
+     24,
+     -54
+    ]
+   ],
+   "color": "fold",
+   "w": 0.6
+  },
+  {
+   "kind": "bare",
+   "pts": [
+    [
+     26,
+     -58
+    ],
+    [
+     30,
+     -59
+    ],
+    [
+     32,
+     -56
+    ],
+    [
+     29,
+     -53
+    ],
+    [
+     26,
+     -53
+    ]
+   ],
+   "line": "navy",
+   "w": 0.6
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     31,
+     -58
+    ],
+    [
+     36,
+     -61
+    ]
+   ],
+   "color": "navy",
+   "w": 0.55
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     32,
+     -56
+    ],
+    [
+     37,
+     -57
+    ]
+   ],
+   "color": "navy",
+   "w": 0.55
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     31,
+     -54
+    ],
+    [
+     36,
+     -53
+    ]
+   ],
+   "color": "navy",
+   "w": 0.55
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     29,
+     -53
+    ],
+    [
+     32,
+     -50
+    ]
+   ],
+   "color": "navy",
+   "w": 0.55
+  },
+  {
+   "kind": "patch",
+   "when": "shield",
+   "pts": [
+    [
+     13,
+     -72
+    ],
+    [
+     27,
+     -70
+    ],
+    [
+     25,
+     -52
+    ],
+    [
+     18,
+     -38
+    ],
+    [
+     12,
+     -52
+    ]
+   ],
+   "curve": 3,
+   "fill": "shield",
+   "line": "navy",
+   "angle": 1.5
+  },
+  {
+   "kind": "stem",
+   "when": "shield",
+   "pts": [
+    [
+     20,
+     -70
+    ],
+    [
+     19,
+     -42
+    ]
+   ],
+   "color": "ochre",
+   "w": 0.7
+  },
+  {
+   "kind": "stem",
+   "when": "shield",
+   "pts": [
+    [
+     13,
+     -60
+    ],
+    [
+     26,
+     -60
+    ]
+   ],
+   "color": "ochre",
+   "w": 0.7
+  },
+  {
+   "kind": "knot",
+   "when": "shield",
+   "at": [
+    19.5,
+    -60
+   ],
+   "color": "ochre",
+   "r": 2
+  },
+  {
+   "kind": "bare",
+   "pts": [
+    [
+     -2,
+     -72
+    ],
+    [
+     3,
+     -72
+    ],
+    [
+     2,
+     -77
+    ],
+    [
+     -1,
+     -77
+    ]
+   ],
+   "w": 0.6
+  },
+  {
+   "kind": "patch",
+   "when": "longhair",
+   "pts": [
+    [
+     -4,
+     -89
+    ],
+    [
+     -9,
+     -82
+    ],
+    [
+     -11,
+     -58
+    ],
+    [
+     -5,
+     -60
+    ],
+    [
+     -3,
+     -78
+    ]
+   ],
+   "fill": "hair",
+   "line": "rule",
+   "angle": 1.5
+  },
+  {
+   "kind": "patch",
+   "when": "veil",
+   "pts": [
+    [
+     -8,
+     -70
+    ],
+    [
+     -10,
+     -86
+    ],
+    [
+     -5,
+     -94
+    ],
+    [
+     4,
+     -95
+    ],
+    [
+     8,
+     -90
+    ],
+    [
+     5,
+     -88
+    ],
+    [
+     1,
+     -91
+    ],
+    [
+     -3,
+     -86
+    ],
+    [
+     -2,
+     -74
+    ],
+    [
+     4,
+     -72
+    ]
+   ],
+   "fill": "veil",
+   "angle": 1.4
+  },
+  {
+   "kind": "bare",
+   "pts": [
+    [
+     1,
+     -91
+    ],
+    [
+     6,
+     -88.5
+    ],
+    [
+     8.5,
+     -83
+    ],
+    [
+     7.5,
+     -78
+    ],
+    [
+     4,
+     -75.5
+    ],
+    [
+     -1,
+     -75.5
+    ],
+    [
+     -5,
+     -79
+    ],
+    [
+     -6,
+     -84
+    ],
+    [
+     -4,
+     -89
+    ]
+   ],
+   "curve": 3,
+   "line": "rule",
+   "w": 0.75
+  },
+  {
+   "kind": "patch",
+   "when": "hair",
+   "unless": "helm",
+   "pts": [
+    [
+     6,
+     -88
+    ],
+    [
+     1,
+     -92
+    ],
+    [
+     -4,
+     -90.5
+    ],
+    [
+     -6.6,
+     -85
+    ],
+    [
+     -6,
+     -79
+    ],
+    [
+     -3.6,
+     -79
+    ],
+    [
+     -3,
+     -85
+    ],
+    [
+     2,
+     -88.4
+    ]
+   ],
+   "fill": "hair",
+   "line": "rule",
+   "angle": 0.2,
+   "w": 0.8
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     3,
+     -86.3
+    ],
+    [
+     6.6,
+     -86.8
+    ]
+   ],
+   "color": "navy",
+   "w": 0.55
+  },
+  {
+   "kind": "knot",
+   "at": [
+    5,
+    -84.6
+   ],
+   "color": "navy",
+   "r": 1.1
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     7.2,
+     -85.5
+    ],
+    [
+     9.8,
+     -80.8
+    ],
+    [
+     7.2,
+     -80
+    ]
+   ],
+   "color": "rule",
+   "w": 0.6
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     4.8,
+     -77.9
+    ],
+    [
+     7.2,
+     -78.3
+    ]
+   ],
+   "color": "rule",
+   "w": 0.55
+  },
+  {
+   "kind": "patch",
+   "when": "beard",
+   "pts": [
+    [
+     0,
+     -80
+    ],
+    [
+     7.5,
+     -78.5
+    ],
+    [
+     6,
+     -73
+    ],
+    [
+     2,
+     -70
+    ],
+    [
+     -1,
+     -75
+    ]
+   ],
+   "fill": "hair",
+   "line": "navy",
+   "angle": 1.5,
+   "w": 0.6
+  },
+  {
+   "kind": "stem",
+   "when": "cap",
+   "pts": [
+    [
+     -6.5,
+     -88
+    ],
+    [
+     6.5,
+     -88
+    ]
+   ],
+   "color": "navy",
+   "w": 0.9
+  },
+  {
+   "kind": "patch",
+   "when": "helm",
+   "pts": [
+    [
+     -7,
+     -83
+    ],
+    [
+     0,
+     -100
+    ],
+    [
+     8,
+     -83
+    ],
+    [
+     8,
+     -81
+    ],
+    [
+     -7,
+     -81
+    ]
+   ],
+   "fill": "navy",
+   "line": "buff",
+   "angle": 1.2,
+   "w": 0.7
+  },
+  {
+   "kind": "stem",
+   "when": "helm",
+   "pts": [
+    [
+     7,
+     -83
+    ],
+    [
+     9,
+     -77
+    ]
+   ],
+   "color": "navy",
+   "w": 0.9
+  },
+  {
+   "kind": "patch",
+   "when": "crown",
+   "pts": [
+    [
+     -6.5,
+     -89
+    ],
+    [
+     7.5,
+     -89
+    ],
+    [
+     7.5,
+     -94
+    ],
+    [
+     5.5,
+     -100
+    ],
+    [
+     3.5,
+     -94
+    ],
+    [
+     0.5,
+     -102
+    ],
+    [
+     -2,
+     -94
+    ],
+    [
+     -4.5,
+     -100
+    ],
+    [
+     -6.5,
+     -94
+    ]
+   ],
+   "fill": "ochre",
+   "line": "navy",
+   "w": 0.8
+  },
+  {
+   "kind": "knot",
+   "when": "crown",
+   "at": [
+    5.5,
+    -101
+   ],
+   "color": "ochre",
+   "r": 1.8
+  },
+  {
+   "kind": "knot",
+   "when": "crown",
+   "at": [
+    0.5,
+    -103.5
+   ],
+   "color": "ochre",
+   "r": 1.8
+  },
+  {
+   "kind": "knot",
+   "when": "crown",
+   "at": [
+    -4.5,
+    -101
+   ],
+   "color": "ochre",
+   "r": 1.8
+  },
+  {
+   "kind": "patch",
+   "when": "crown_high",
+   "pts": [
+    [
+     -6.5,
+     -93
+    ],
+    [
+     7.5,
+     -93
+    ],
+    [
+     7.5,
+     -98
+    ],
+    [
+     5.5,
+     -104
+    ],
+    [
+     3.5,
+     -98
+    ],
+    [
+     0.5,
+     -106
+    ],
+    [
+     -2,
+     -98
+    ],
+    [
+     -4.5,
+     -104
+    ],
+    [
+     -6.5,
+     -98
+    ]
+   ],
+   "fill": "ochre",
+   "line": "navy",
+   "w": 0.8
+  },
+  {
+   "kind": "knot",
+   "when": "crown_high",
+   "at": [
+    0.5,
+    -107.5
+   ],
+   "color": "ochre",
+   "r": 1.8
+  }
+ ],
+ "huts": {
+  "carpenter": {
+   "wall": "terracotta",
+   "roof": "tan",
+   "tiles_a": "buff",
+   "tiles_b": "rule",
+   "tool": "hammer"
+  },
+  "quarry": {
+   "wall": "buff",
+   "roof": "slate",
+   "tiles_a": "buff",
+   "tiles_b": "tan",
+   "tool": "pick",
+   "checks": true
+  },
+  "mine": {
+   "wall": "slate",
+   "roof": "terracotta",
+   "tiles_a": "tan",
+   "tiles_b": "buff",
+   "tool": "ore"
+  },
+  "armory": {
+   "wall": "tan",
+   "roof": "bluegreen",
+   "tiles_a": "buff",
+   "tiles_b": "slate",
+   "tool": "shield",
+   "checks": true
+  }
+ },
+ "hut": [
+  {
+   "kind": "patch",
+   "pts": [
+    [
+     -32,
+     0
+    ],
+    [
+     -32,
+     -42
+    ],
+    [
+     32,
+     -42
+    ],
+    [
+     32,
+     0
+    ]
+   ],
+   "fill": "wall",
+   "line": "navy",
+   "angle": 1.5708
+  },
+  {
+   "kind": "checks",
+   "when": "checks",
+   "box": [
+    [
+     -30,
+     -40
+    ],
+    [
+     -12,
+     -4
+    ]
+   ],
+   "n": 3,
+   "color": "navy"
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     -32,
+     -14
+    ],
+    [
+     32,
+     -14
+    ]
+   ],
+   "color": "rule",
+   "w": 0.7
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     -32,
+     -28
+    ],
+    [
+     32,
+     -28
+    ]
+   ],
+   "color": "rule",
+   "w": 0.7
+  },
+  {
+   "kind": "patch",
+   "pts": [
+    [
+     -9,
+     0
+    ],
+    [
+     -9,
+     -18
+    ],
+    [
+     -6,
+     -24
+    ],
+    [
+     0,
+     -27
+    ],
+    [
+     6,
+     -24
+    ],
+    [
+     9,
+     -18
+    ],
+    [
+     9,
+     0
+    ]
+   ],
+   "fill": "navy",
+   "line": "rule",
+   "angle": 1.5708
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     -32,
+     -42
+    ],
+    [
+     -26,
+     -50
+    ],
+    [
+     -20,
+     -42
+    ]
+   ],
+   "color": "rule",
+   "w": 0.7
+  },
+  {
+   "kind": "tiles",
+   "pts": [
+    [
+     -40,
+     -40
+    ],
+    [
+     0,
+     -78
+    ],
+    [
+     40,
+     -40
+    ]
+   ],
+   "fill": "roof",
+   "a": "tiles_a",
+   "b": "tiles_b",
+   "r": 5,
+   "line": "navy"
+  },
+  {
+   "kind": "knot",
+   "at": [
+    0,
+    -80
+   ],
+   "color": "ochre",
+   "r": 3
+  },
+  {
+   "kind": "stem",
+   "when": "hammer",
+   "pts": [
+    [
+     14,
+     -6
+    ],
+    [
+     24,
+     -32
+    ]
+   ],
+   "color": "rule",
+   "w": 1.4
+  },
+  {
+   "kind": "patch",
+   "when": "hammer",
+   "pts": [
+    [
+     18,
+     -34
+    ],
+    [
+     30,
+     -30
+    ],
+    [
+     28,
+     -25
+    ],
+    [
+     16,
+     -29
+    ]
+   ],
+   "fill": "navy",
+   "line": "navy",
+   "w": 0.7
+  },
+  {
+   "kind": "stem",
+   "when": "pick",
+   "pts": [
+    [
+     16,
+     -5
+    ],
+    [
+     22,
+     -34
+    ]
+   ],
+   "color": "rule",
+   "w": 1.4
+  },
+  {
+   "kind": "stem",
+   "when": "pick",
+   "pts": [
+    [
+     11,
+     -30
+    ],
+    [
+     17,
+     -35
+    ],
+    [
+     22,
+     -35
+    ],
+    [
+     28,
+     -32
+    ],
+    [
+     32,
+     -27
+    ]
+   ],
+   "curve": 3,
+   "color": "navy",
+   "w": 1.6
+  },
+  {
+   "kind": "stem",
+   "when": "ore",
+   "pts": [
+    [
+     14,
+     -5
+    ],
+    [
+     20,
+     -33
+    ]
+   ],
+   "color": "rule",
+   "w": 1.4
+  },
+  {
+   "kind": "stem",
+   "when": "ore",
+   "pts": [
+    [
+     10,
+     -29
+    ],
+    [
+     16,
+     -34
+    ],
+    [
+     24,
+     -33
+    ],
+    [
+     29,
+     -28
+    ]
+   ],
+   "curve": 3,
+   "color": "buff",
+   "w": 1.6
+  },
+  {
+   "kind": "knot",
+   "when": "ore",
+   "at": [
+    24,
+    -8
+   ],
+   "color": "ochre",
+   "r": 3
+  },
+  {
+   "kind": "knot",
+   "when": "ore",
+   "at": [
+    28,
+    -12
+   ],
+   "color": "navy",
+   "r": 3
+  },
+  {
+   "kind": "patch",
+   "when": "shield",
+   "pts": [
+    [
+     13,
+     -36
+    ],
+    [
+     29,
+     -35
+    ],
+    [
+     27,
+     -20
+    ],
+    [
+     21,
+     -6
+    ],
+    [
+     14,
+     -20
+    ]
+   ],
+   "curve": 3,
+   "fill": "terracotta",
+   "line": "navy",
+   "angle": 1.5708
+  },
+  {
+   "kind": "stem",
+   "when": "shield",
+   "pts": [
+    [
+     21,
+     -35
+    ],
+    [
+     21,
+     -9
+    ]
+   ],
+   "color": "ochre",
+   "w": 0.8
+  },
+  {
+   "kind": "knot",
+   "when": "shield",
+   "at": [
+    21,
+    -24
+   ],
+   "color": "ochre",
+   "r": 2.4
+  }
+ ],
+ "game": {
+  "_about": "The playfield's sizes, as multiples of what the core gives (a beam's width, a royal's radius) or in screen pixels.",
+  "figure_tall_r": 5,
+  "figure_min_px": 46,
+  "hut_min_px": 50,
+  "figure_foot_r": 1.25,
+  "figure_pad": 0.3,
+  "figure_dead_turn": 1.5708,
+  "hut_units_r": 0.035,
+  "hut_foot_r": 1,
+  "sprite_bucket": 2,
+  "beam_bucket": 8,
+  "beam_scale": 0.6,
+  "beam_line": 0.45,
+  "beam_line_strain": 0.8,
+  "beam_pad": 6,
+  "beam_min_w": 3,
+  "beam_wood_grain": 0.45,
+  "beam_course": 2.4,
+  "rivet_every": 3,
+  "rivet_r": 0.32,
+  "rope_slant": 0.95,
+  "rope_w": 0.85,
+  "cache_limit": 900,
+  "zero": 0,
+  "ground_band_a": 6,
+  "ground_band_b": 22,
+  "ground_band_c": 46,
+  "ground_band_d": 80,
+  "ground_line": 4.5,
+  "ground_band_line": 2.6,
+  "ground_scallop": 9,
+  "ground_scallop_h": 0.7,
+  "ground_scallop_step": 3,
+  "ground_scallop_w": 2.4,
+  "tile_scale": 0.8,
+  "wave_gap": 9,
+  "wave_len": 18,
+  "wave_amp": 3,
+  "wave_w": 2.4,
+  "wave_step": 4,
+  "fish_every": 140,
+  "fish_len": 16,
+  "grid_run": 2,
+  "grid_gap": 9,
+  "grid_alpha": 0.32,
+  "grid_width": 1,
+  "zone_run": 7,
+  "zone_gap": 6,
+  "zone_width": 1.8,
+  "zone_alpha": 0.55,
+  "ball_line": 0.28,
+  "ball_shine": 0.55,
+  "trail_len": 9,
+  "trail_gap": 7,
+  "trail_w": 3,
+  "flame_h": 2.2,
+  "flame_w": 0.9,
+  "flame_every": 1.6,
+  "debris_turn": 0.7,
+  "node_r": 0.85,
+  "engine_line": 0.5,
+  "engine_wheel": 1.2,
+  "flag_line": 0.6,
+  "spot_w": 0.7,
+  "dead_alpha": 0.8,
+  "preview_alpha": 0.7,
+  "inset_edge": 4,
+  "ring_w": 2.4,
+  "seed": 1066,
+  "units": 100,
+  "fig_w": 1.0,
+  "fig_h": 1.45,
+  "hut_units": 90,
+  "water_alpha": 0.35,
+  "hut_tall_r": 3.2,
+  "beam_end": 0.6,
+  "strain_dash": 4,
+  "scallop_up": 3,
+  "scallop_w": 5,
+  "scallop_dash": 6,
+  "band_dash": 5,
+  "band_gap": 3,
+  "ground_dash": 6,
+  "ground_gap": 3
+ },
+ "materials": {
+  "wood": {
+   "fill": "terracotta",
+   "line": "navy",
+   "grain": "tan"
+  },
+  "stone": {
+   "fill": "buff",
+   "line": "rule",
+   "courses": "rule"
+  },
+  "metal": {
+   "fill": "navy",
+   "line": "buff",
+   "rivets": "buff"
+  },
+  "rope": {
+   "rope": "tan"
+  },
+  "frame": {
+   "fill": "tan",
+   "line": "rule"
+  },
+  "arm": {
+   "fill": "ochre",
+   "line": "rule",
+   "courses": "rule"
+  },
+  "base": {
+   "fill": "terracotta",
+   "line": "navy",
+   "grain": "tan"
+  }
+ },
+ "ground_bands": [
+  [
+   "olive",
+   "zero",
+   "ground_band_a"
   ],
-  "huts": {
-    "carpenter": { "wall": "terracotta", "roof": "tan", "tiles_a": "buff", "tiles_b": "rule", "tool": "hammer" },
-    "quarry": { "wall": "buff", "roof": "slate", "tiles_a": "buff", "tiles_b": "tan", "tool": "pick", "checks": true },
-    "mine": { "wall": "slate", "roof": "terracotta", "tiles_a": "tan", "tiles_b": "buff", "tool": "ore" },
-    "armory": { "wall": "tan", "roof": "bluegreen", "tiles_a": "buff", "tiles_b": "slate", "tool": "shield", "checks": true }
-  },
-  "hut": [
-    { "kind": "patch", "pts": [[-32, 0], [-32, -42], [32, -42], [32, 0]], "fill": "wall", "line": "navy", "angle": 1.5708 },
-    { "kind": "checks", "when": "checks", "box": [[-30, -40], [-12, -4]], "n": 3, "color": "navy" },
-    { "kind": "stem", "pts": [[-32, -14], [32, -14]], "color": "rule", "w": 0.7 },
-    { "kind": "stem", "pts": [[-32, -28], [32, -28]], "color": "rule", "w": 0.7 },
-    { "kind": "patch", "pts": [[-9, 0], [-9, -18], [-6, -24], [0, -27], [6, -24], [9, -18], [9, 0]], "fill": "navy", "line": "rule", "angle": 1.5708 },
-    { "kind": "stem", "pts": [[-32, -42], [-26, -50], [-20, -42]], "color": "rule", "w": 0.7 },
-    { "kind": "tiles", "pts": [[-40, -40], [0, -78], [40, -40]], "fill": "roof", "a": "tiles_a", "b": "tiles_b", "r": 5, "line": "navy" },
-    { "kind": "knot", "at": [0, -80], "color": "ochre", "r": 3 },
-    { "kind": "stem", "when": "hammer", "pts": [[14, -6], [24, -32]], "color": "rule", "w": 1.4 },
-    { "kind": "patch", "when": "hammer", "pts": [[18, -34], [30, -30], [28, -25], [16, -29]], "fill": "navy", "line": "navy", "w": 0.7 },
-    { "kind": "stem", "when": "pick", "pts": [[16, -5], [22, -34]], "color": "rule", "w": 1.4 },
-    { "kind": "stem", "when": "pick", "pts": [[11, -30], [17, -35], [22, -35], [28, -32], [32, -27]], "curve": 3, "color": "navy", "w": 1.6 },
-    { "kind": "stem", "when": "ore", "pts": [[14, -5], [20, -33]], "color": "rule", "w": 1.4 },
-    { "kind": "stem", "when": "ore", "pts": [[10, -29], [16, -34], [24, -33], [29, -28]], "curve": 3, "color": "buff", "w": 1.6 },
-    { "kind": "knot", "when": "ore", "at": [24, -8], "color": "ochre", "r": 3 },
-    { "kind": "knot", "when": "ore", "at": [28, -12], "color": "navy", "r": 3 },
-    { "kind": "patch", "when": "shield", "pts": [[13, -36], [29, -35], [27, -20], [21, -6], [14, -20]], "curve": 3, "fill": "terracotta", "line": "navy", "angle": 1.5708 },
-    { "kind": "stem", "when": "shield", "pts": [[21, -35], [21, -9]], "color": "ochre", "w": 0.8 },
-    { "kind": "knot", "when": "shield", "at": [21, -24], "color": "ochre", "r": 2.4 }
+  [
+   "tan",
+   "ground_band_a",
+   "ground_band_b"
   ],
-  "game": {
-    "_about": "The playfield's sizes, as multiples of what the core gives (a beam's width, a royal's radius) or in screen pixels.",
-    "figure_tall_r": 5,
-    "figure_min_px": 46,
-    "hut_min_px": 50,
-    "figure_foot_r": 1.25,
-    "figure_pad": 0.3,
-    "figure_dead_turn": 1.5708,
-    "hut_units_r": 0.035,
-    "hut_foot_r": 1,
-    "sprite_bucket": 2,
-    "beam_bucket": 8,
-    "beam_scale": 0.6,
-    "beam_line": 0.45,
-    "beam_line_strain": 0.8,
-    "beam_pad": 6,
-    "beam_min_w": 3,
-    "beam_wood_grain": 0.45,
-    "beam_course": 2.4,
-    "rivet_every": 3,
-    "rivet_r": 0.32,
-    "rope_slant": 0.95,
-    "rope_w": 0.85,
-    "cache_limit": 900,
-    "zero": 0,
-    "ground_band_a": 6,
-    "ground_band_b": 22,
-    "ground_band_c": 46,
-    "ground_band_d": 80,
-    "ground_line": 4.5,
-    "ground_band_line": 2.6,
-    "ground_scallop": 9,
-    "ground_scallop_h": 0.7,
-    "ground_scallop_step": 3,
-    "ground_scallop_w": 2.4,
-    "tile_scale": 0.8,
-    "wave_gap": 9,
-    "wave_len": 18,
-    "wave_amp": 3,
-    "wave_w": 2.4,
-    "wave_step": 4,
-    "fish_every": 140,
-    "fish_len": 16,
-    "grid_run": 2,
-    "grid_gap": 9,
-    "grid_alpha": 0.32,
-    "grid_width": 1,
-    "zone_run": 7,
-    "zone_gap": 6,
-    "zone_width": 1.8,
-    "zone_alpha": 0.55,
-    "ball_line": 0.28,
-    "ball_shine": 0.55,
-    "trail_len": 9,
-    "trail_gap": 7,
-    "trail_w": 3,
-    "flame_h": 2.2,
-    "flame_w": 0.9,
-    "flame_every": 1.6,
-    "debris_turn": 0.7,
-    "node_r": 0.85,
-    "engine_line": 0.5,
-    "engine_wheel": 1.2,
-    "flag_line": 0.6,
-    "spot_w": 0.7,
-    "dead_alpha": 0.8,
-    "preview_alpha": 0.7,
-    "inset_edge": 4,
-    "ring_w": 2.4,
-    "seed": 1066,
-    "units": 100,
-    "fig_w": 1.0,
-    "fig_h": 1.45,
-    "hut_units": 90,
-    "water_alpha": 0.35
-  },
-  "materials": {
-    "wood": { "fill": "terracotta", "line": "navy", "grain": "tan" },
-    "stone": { "fill": "buff", "line": "rule", "courses": "rule" },
-    "metal": { "fill": "navy", "line": "buff", "rivets": "buff" },
-    "rope": { "rope": "tan" },
-    "frame": { "fill": "tan", "line": "rule" },
-    "arm": { "fill": "ochre", "line": "rule", "courses": "rule" },
-    "base": { "fill": "terracotta", "line": "navy", "grain": "tan" }
-  },
-  "ground_bands": [["olive", "zero", "ground_band_a"], ["tan", "ground_band_a", "ground_band_b"], ["terracotta", "ground_band_c", "ground_band_d"]],
-  "wave_wools": ["bluegreen", "buff", "slate", "tan"]
+  [
+   "terracotta",
+   "ground_band_c",
+   "ground_band_d"
+  ]
+ ],
+ "wave_wools": [
+  "bluegreen",
+  "buff",
+  "slate",
+  "tan"
+ ],
+ "bake": {
+  "_about": "Sizes tools/look/bake.html bakes at, in pixels.",
+  "linen_w": 2048,
+  "linen_h": 1152,
+  "tile": 192,
+  "tiles": [
+   "olive",
+   "tan",
+   "terracotta",
+   "bluegreen"
+  ],
+  "water_w": 288,
+  "strip_len": 256,
+  "strip_h": 24,
+  "strip_scale": 1.0,
+  "figure": 160,
+  "hut": 120,
+  "small": 24
+ }
 }

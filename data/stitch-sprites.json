@@ -1,0 +1,259 @@
+{
+ "_about": "Written by tools/look/bake_stitch.py: each baked texture's file, size in pixels, anchor (ax, ay) and the size it was baked at (tall or r), so web/field-draw.js can scale it to what the core gives.",
+ "linen": {
+  "file": "look/stitch/linen.jpg",
+  "w": 2048,
+  "h": 1152
+ },
+ "wool-olive": {
+  "file": "look/stitch/wool-olive.png",
+  "w": 192,
+  "h": 192
+ },
+ "wool-tan": {
+  "file": "look/stitch/wool-tan.png",
+  "w": 192,
+  "h": 192
+ },
+ "wool-terracotta": {
+  "file": "look/stitch/wool-terracotta.png",
+  "w": 192,
+  "h": 192
+ },
+ "wool-bluegreen": {
+  "file": "look/stitch/wool-bluegreen.png",
+  "w": 192,
+  "h": 192
+ },
+ "water": {
+  "file": "look/stitch/water.png",
+  "w": 288,
+  "h": 36
+ },
+ "beam-wood": {
+  "file": "look/stitch/beam-wood.png",
+  "w": 256,
+  "h": 24,
+  "line": "#1f262e"
+ },
+ "beam-stone": {
+  "file": "look/stitch/beam-stone.png",
+  "w": 256,
+  "h": 24,
+  "line": "#5e3426"
+ },
+ "beam-metal": {
+  "file": "look/stitch/beam-metal.png",
+  "w": 256,
+  "h": 24,
+  "line": "#a8917e"
+ },
+ "beam-rope": {
+  "file": "look/stitch/beam-rope.png",
+  "w": 256,
+  "h": 24,
+  "line": "#8a705a"
+ },
+ "beam-frame": {
+  "file": "look/stitch/beam-frame.png",
+  "w": 256,
+  "h": 24,
+  "line": "#5e3426"
+ },
+ "beam-arm": {
+  "file": "look/stitch/beam-arm.png",
+  "w": 256,
+  "h": 24,
+  "line": "#5e3426"
+ },
+ "beam-base": {
+  "file": "look/stitch/beam-base.png",
+  "w": 256,
+  "h": 24,
+  "line": "#1f262e"
+ },
+ "fig-squire": {
+  "file": "look/stitch/fig-squire.png",
+  "w": 320,
+  "h": 232,
+  "ax": 160,
+  "ay": 184,
+  "tall": 160
+ },
+ "fig-squire-dead": {
+  "file": "look/stitch/fig-squire-dead.png",
+  "w": 320,
+  "h": 232,
+  "ax": 160,
+  "ay": 184,
+  "tall": 160
+ },
+ "fig-knight": {
+  "file": "look/stitch/fig-knight.png",
+  "w": 320,
+  "h": 232,
+  "ax": 160,
+  "ay": 184,
+  "tall": 160
+ },
+ "fig-knight-dead": {
+  "file": "look/stitch/fig-knight-dead.png",
+  "w": 320,
+  "h": 232,
+  "ax": 160,
+  "ay": 184,
+  "tall": 160
+ },
+ "fig-princess": {
+  "file": "look/stitch/fig-princess.png",
+  "w": 320,
+  "h": 232,
+  "ax": 160,
+  "ay": 184,
+  "tall": 160
+ },
+ "fig-princess-dead": {
+  "file": "look/stitch/fig-princess-dead.png",
+  "w": 320,
+  "h": 232,
+  "ax": 160,
+  "ay": 184,
+  "tall": 160
+ },
+ "fig-prince": {
+  "file": "look/stitch/fig-prince.png",
+  "w": 320,
+  "h": 232,
+  "ax": 160,
+  "ay": 184,
+  "tall": 160
+ },
+ "fig-prince-dead": {
+  "file": "look/stitch/fig-prince-dead.png",
+  "w": 320,
+  "h": 232,
+  "ax": 160,
+  "ay": 184,
+  "tall": 160
+ },
+ "fig-queen": {
+  "file": "look/stitch/fig-queen.png",
+  "w": 320,
+  "h": 232,
+  "ax": 160,
+  "ay": 184,
+  "tall": 160
+ },
+ "fig-queen-dead": {
+  "file": "look/stitch/fig-queen-dead.png",
+  "w": 320,
+  "h": 232,
+  "ax": 160,
+  "ay": 184,
+  "tall": 160
+ },
+ "fig-king": {
+  "file": "look/stitch/fig-king.png",
+  "w": 320,
+  "h": 232,
+  "ax": 160,
+  "ay": 184,
+  "tall": 160
+ },
+ "fig-king-dead": {
+  "file": "look/stitch/fig-king-dead.png",
+  "w": 320,
+  "h": 232,
+  "ax": 160,
+  "ay": 184,
+  "tall": 160
+ },
+ "hut-carpenter": {
+  "file": "look/stitch/hut-carpenter.png",
+  "w": 240,
+  "h": 240,
+  "ax": 120,
+  "ay": 204,
+  "tall": 120
+ },
+ "hut-quarry": {
+  "file": "look/stitch/hut-quarry.png",
+  "w": 240,
+  "h": 240,
+  "ax": 120,
+  "ay": 204,
+  "tall": 120
+ },
+ "hut-mine": {
+  "file": "look/stitch/hut-mine.png",
+  "w": 240,
+  "h": 240,
+  "ax": 120,
+  "ay": 204,
+  "tall": 120
+ },
+ "hut-armory": {
+  "file": "look/stitch/hut-armory.png",
+  "w": 240,
+  "h": 240,
+  "ax": 120,
+  "ay": 204,
+  "tall": 120
+ },
+ "ball": {
+  "file": "look/stitch/ball.png",
+  "w": 96,
+  "h": 96,
+  "ax": 48,
+  "ay": 48,
+  "r": 24
+ },
+ "ball-hot": {
+  "file": "look/stitch/ball-hot.png",
+  "w": 96,
+  "h": 96,
+  "ax": 48,
+  "ay": 48,
+  "r": 24
+ },
+ "knot-navy": {
+  "file": "look/stitch/knot-navy.png",
+  "w": 96,
+  "h": 96,
+  "ax": 48,
+  "ay": 48,
+  "r": 24
+ },
+ "knot-ochre": {
+  "file": "look/stitch/knot-ochre.png",
+  "w": 96,
+  "h": 96,
+  "ax": 48,
+  "ay": 48,
+  "r": 24
+ },
+ "debris": {
+  "file": "look/stitch/debris.png",
+  "w": 96,
+  "h": 96,
+  "ax": 48,
+  "ay": 48,
+  "r": 24
+ },
+ "weight": {
+  "file": "look/stitch/weight.png",
+  "w": 96,
+  "h": 96,
+  "ax": 48,
+  "ay": 48,
+  "r": 24
+ },
+ "flame": {
+  "file": "look/stitch/flame.png",
+  "w": 96,
+  "h": 96,
+  "ax": 48,
+  "ay": 48,
+  "r": 24
+ }
+}

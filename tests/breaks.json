@@ -936,5 +936,12 @@
     "find": ".position(|st| st.person == client)",
     "replace": ".position(|st| st.person != client)",
     "test": "arena_starts_a_real_match_in_build_with_you_in_the_first_seat"
+  },
+  {
+    "name": "pixel length is the distance between beam ends",
+    "file": "crates/core/src/app/field.rs",
+    "find": "isqrt((dx * dx + dy * dy) as u64)",
+    "replace": "isqrt((dx * dx + dx * dx) as u64)",
+    "test": "pixel_length_is_the_rounded_down_distance"
   }
 ]

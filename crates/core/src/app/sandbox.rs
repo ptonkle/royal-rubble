@@ -975,7 +975,9 @@ impl Sandbox {
                     w: cam.len(TUNE.material(m).thickness, 2),
                     material: material_name(m),
                     ok: self.can_place(a, b),
-                };
+                    len: 0,
+                }
+                .measured();
                 let ring = Ring {
                     x: pa[0],
                     y: pa[1],
@@ -1027,8 +1029,10 @@ impl Sandbox {
             weight: cam.px(weight),
             arm_w: cam.len(Fx::ratio(1, 6), 3),
             weight_r: cam.len(Fx::ratio(1, 2), 4),
+            lens: [0; 4],
             loaded,
         }
+        .measured()
     }
 
     /// The wind flag at the top right, in pixels: longer for stronger wind,
