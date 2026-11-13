@@ -9,9 +9,9 @@ use serde::Serialize;
 use crate::physics::{Fx, Material, Vec2, World, TUNE};
 use crate::terrain::Plot;
 
-/// Fixed-point raw units per terrain cell unit: a cell is half a world unit
-/// (1024 cell units become 32768 raw, `Fx::HALF`).
-const CELL_TO_RAW: i64 = 32;
+/// Fixed-point raw units per terrain cell unit: a cell is one world unit
+/// (1024 cell units become 65536 raw, `Fx::ONE`), as play/ has it (R1.700).
+pub const CELL_TO_RAW: i64 = 64;
 
 /// A terrain height or column edge (cell units) as world units.
 pub fn cell_units(v: i32) -> Fx {
@@ -329,7 +329,7 @@ mod tests {
     }
 
     #[test]
-    fn a_terrain_cell_is_half_a_world_unit() {
-        assert_eq!(cell_units(crate::terrain::CELL), Fx::HALF);
+    fn a_terrain_cell_is_one_world_unit() {
+        assert_eq!(cell_units(crate::terrain::CELL), Fx::ONE);
     }
 }

@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 
 use super::field::{
     cell_units, ground_line, material_name, terrain_of, world_parts, Camera, Cue, Dot, Engine, Figure, Flag,
-    Frame, Preview, Ring,
+    Frame, Preview, Ring, CELL_TO_RAW,
 };
 use crate::game::royals::RoyalKind;
 use crate::physics::fixed::{cos, sin, TURN};
@@ -50,8 +50,8 @@ pub fn keys() -> BTreeMap<String, u32> {
 }
 
 /// The sandbox's trebuchet power (the rules will hand in the player's).
-/// At 0 a shot reaches about 20 units; the plot's front is farther.
-pub const POWER: u8 = 3;
+/// At 7 the farthest throw just reaches the level-1 plot's back edge.
+pub const POWER: u8 = 7;
 /// Wind per level, raw units per tick squared (about 2 units of drift over a
 /// two-second flight).
 const WIND_STEP: i64 = 18;
@@ -63,8 +63,8 @@ const TRAIL_EVERY: u32 = 2;
 const TEST_TICKS: u32 = 240;
 /// A royal's body radius.
 const ROYAL_RADIUS: Fx = Fx::ratio(1, 4);
-/// One segment length, for the royal spacing (a floor height).
-const SEGMENT_LENGTH: Fx = Fx::ONE;
+/// One segment length, for the royal spacing (wood's longest, as play/ has it).
+const SEGMENT_LENGTH: Fx = Fx::from_int(2);
 /// Breaks in one frame that sound as a collapse.
 const COLLAPSE_MIN: u32 = 3;
 /// Cues kept for the page.
@@ -397,22 +397,31 @@ impl Sandbox {
             Mode::Siege => {
                 let base = self.engine_base();
                 let left = base.x - Fx::from_int(6);
-                let mut cam = Camera::spanning(left, zr + margin - left, Fx::ZERO, w, h);
+                // as far as the castle reaches, not the whole plot: a bigger castle
+                let reach = self
+                    .world
+                    .nodes
+                    .iter()
+                    .map(|n| n.pos.x)
+                    .max()
+                    .unwrap_or(zl)
+                    .max(zl + Fx::from_int(10));
+                let right = (reach + Fx::from_int(6)).min(zr + margin);
+                let mut cam = Camera::spanning(left, right - left, Fx::ZERO, w, h);
                 cam.bottom = base.y - cam.height() / 4;
-                // light follow: keep the shot inside the top and right edges
+                // light follow: zoom out, keeping the ground and the castle,
+                // while the shot would leave the top or right edge
                 if let Some(b) = self
                     .shot
                     .and_then(|i| self.world.projectiles.get(i))
                     .filter(|b| b.alive)
                 {
-                    let top = cam.bottom + cam.height() * 7 / 8;
-                    if b.pos.y > top {
-                        cam.bottom += b.pos.y - top;
-                    }
-                    let right = cam.left + cam.width() * 15 / 16;
-                    if b.pos.x > right {
-                        cam.left += b.pos.x - right;
-                    }
+                    let margin = Fx::from_int(3);
+                    let tall = b.pos.y + margin - cam.bottom;
+                    let wide = b.pos.x + margin - cam.left;
+                    let ppu_y = Fx::from_int(h as i64) / tall.max(Fx::ONE);
+                    let ppu_x = Fx::from_int(w as i64) / wide.max(Fx::ONE);
+                    cam.ppu = cam.ppu.min(ppu_y).min(ppu_x);
                 }
                 cam
             }
@@ -423,7 +432,7 @@ impl Sandbox {
 
     pub fn engine_base(&self) -> Vec2 {
         let col = cell_units(COL_W);
-        let x = col * self.plot.launch_col as i64 + col / 2;
+        let x = col * self.plot.launch_col as i64;
         Vec2::new(x, self.ground(x))
     }
 
@@ -569,7 +578,7 @@ impl Sandbox {
             if b.alive
                 && self
                     .plot
-                    .in_water((b.pos.x.0 / 32) as i32, (b.pos.y.0 / 32) as i32)
+                    .in_water((b.pos.x.0 / CELL_TO_RAW) as i32, (b.pos.y.0 / CELL_TO_RAW) as i32)
             {
                 self.world.projectiles[i].alive = false;
                 self.cue("splash", 0);
@@ -759,7 +768,7 @@ impl Sandbox {
         if let Some(k) = self
             .royals
             .iter()
-            .position(|s| (self.seat_pos(s) - p).len() <= ROYAL_RADIUS * 2)
+            .position(|s| (self.seat_pos(s) - p).len() <= ROYAL_RADIUS)
         {
             self.royals.remove(k);
         } else if let Some((i, _)) = self.beam_near(p, false) {

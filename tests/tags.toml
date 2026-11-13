@@ -29,6 +29,7 @@ page = "the app and its door: app.rs, api.rs, view.rs, icon.rs, the shim, web/"
 saves = "the save and the settings it keeps: save.rs, the storage fence"
 notes = "the version and What's New: patch_notes.rs, data/patch-notes.json"
 copy = "reader-visible words: GLOSSARY.md, TONE.md, data/strings.json, strings.rs, glossary.rs"
+field = "the playfield and sandbox: app/field.rs, app/sandbox*, web/field*.js, web/field.css, data/field.json"
 
 # A hit tag on the left also hits the tags on the right, transitively.
 [implies]
@@ -50,6 +51,8 @@ tags = ["boundary"]
 "test:online_fence" = ["online"]
 "lib:api" = ["page"]
 "lib:app" = ["page"]
+"lib:app::field" = ["field"]
+"lib:app::sandbox" = ["field"]
 "lib:icon" = ["page"]
 "lib:view" = ["page"]
 "lib:lobby" = ["online"]
@@ -146,3 +149,9 @@ name = "the sound tools"
 # they write data/sound*.json, which crates/core/tests/sound.rs reads
 files = ["tools/sound/**"]
 steps = ["core"]
+
+[[rule]]
+name = "tests of the playfield"
+files = ["crates/core/src/app/field.rs", "crates/core/src/app/sandbox.rs", "crates/core/src/app/sandbox/**", "web/field.js", "web/field-draw.js", "web/field.css", "data/field.json"]
+steps = ["core"]
+tags = ["field"]
