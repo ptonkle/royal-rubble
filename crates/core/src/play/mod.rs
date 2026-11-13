@@ -327,7 +327,7 @@ impl Play {
                 Seat::Human => None,
             };
             let bot = stand_in || difficulty.is_some();
-            let mut shooter = Shooter::new(attacker, bot, &a.loadout());
+            let mut shooter = Shooter::new(attacker, bot, &a.loadout(), &a.mods);
             let base = units::trebuchet_base(&o.terrain);
             if bot {
                 let view = SiegeView {
@@ -349,6 +349,7 @@ impl Play {
                 shooter,
                 base,
                 plot: o.terrain.clone(),
+                fuses: Vec::new(),
             });
         }
         self.siege = Some(Siege {

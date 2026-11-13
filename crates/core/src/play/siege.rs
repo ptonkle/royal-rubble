@@ -2,12 +2,12 @@
 //! field, and the shots each shooter has left this round.
 
 use super::castle::{BodyOwner, CastleWorld};
-use super::tune::{self, ShotRow};
+use super::tune;
 use super::units;
 use crate::game::flow::{Difficulty, Loadout};
-use crate::game::upgrades::{AirKind, AmmoKind};
+use crate::game::upgrades::{AirKind, AmmoKind, Modifiers};
 use crate::game::{CastleOutcome, PlayerId, Refusal};
-use crate::physics::{trebuchet_launch, AirEffect, Event, Fx, Vec2, World};
+use crate::physics::{trebuchet_launch, AirEffect, Event, Fuse, Fx, ShotKind, ShotMods, Vec2, World};
 use crate::terrain;
 
 /// One kind of shot in a shooter's bar.
@@ -18,15 +18,16 @@ pub enum Ammo {
 }
 
 impl Ammo {
-    pub fn row(self) -> &'static ShotRow {
+    /// The physics shot kind (`physics::ammo::SHOTS` holds its numbers).
+    pub fn kind(self) -> ShotKind {
         match self {
-            Ammo::Normal => &tune::NORMAL_SHOT,
-            Ammo::Special(AmmoKind::Heavy) => &tune::HEAVY_SHOT,
-            Ammo::Special(AmmoKind::Fire) => &tune::FIRE_SHOT,
-            Ammo::Special(AmmoKind::Exploding) => &tune::EXPLODING_SHOT,
-            Ammo::Special(AmmoKind::Spread) => &tune::SPREAD_SHOT,
-            // Stand-ins until play/ fires shots through physics::ammo (R1.715).
-            Ammo::Special(AmmoKind::Chain) | Ammo::Special(AmmoKind::Meteor) => &tune::HEAVY_SHOT,
+            Ammo::Normal => ShotKind::Normal,
+            Ammo::Special(AmmoKind::Heavy) => ShotKind::Heavy,
+            Ammo::Special(AmmoKind::Fire) => ShotKind::Fire,
+            Ammo::Special(AmmoKind::Exploding) => ShotKind::Exploding,
+            Ammo::Special(AmmoKind::Spread) => ShotKind::Spread,
+            Ammo::Special(AmmoKind::Chain) => ShotKind::Chain,
+            Ammo::Special(AmmoKind::Meteor) => ShotKind::Meteor,
         }
     }
 }
@@ -107,6 +108,12 @@ pub struct Shooter {
     pub live: Vec<usize>,
     pub air_used: bool,
     pub plan: Vec<PlannedShot>,
+    /// The shooter's upgrades as they touch each shot.
+    pub mods: ShotMods,
+    /// Balls the first shot of the round fires (Second Volley), 1 without.
+    pub first_copies: u32,
+    /// Shots released this siege.
+    pub fired: u32,
     /// Release tick and air trigger tick still to come for a planned shot.
     pending_air: Option<(u8, u32)>,
 }
@@ -119,7 +126,7 @@ pub fn launch_power(pct: u32) -> u8 {
 }
 
 impl Shooter {
-    pub fn new(player: PlayerId, bot: bool, loadout: &Loadout) -> Shooter {
+    pub fn new(player: PlayerId, bot: bool, loadout: &Loadout, mods: &Modifiers) -> Shooter {
         let mut ammo = vec![(Ammo::Normal, loadout.normal)];
         ammo.extend(loadout.ammo.iter().map(|(k, n)| (Ammo::Special(*k), *n)));
         Shooter {
@@ -133,6 +140,13 @@ impl Shooter {
             live: Vec::new(),
             air_used: false,
             plan: Vec::new(),
+            mods: ShotMods {
+                weight_pct: mods.weight_pct,
+                blast_pct: mods.blast_pct,
+                ignite: mods.all_ignite,
+            },
+            first_copies: mods.first_shot_copies.max(1),
+            fired: 0,
             pending_air: None,
         }
     }
@@ -152,6 +166,8 @@ pub struct Field {
     pub shooter: Shooter,
     pub base: Vec2,
     pub plot: terrain::Plot,
+    /// Exploding shots still in the air.
+    pub fuses: Vec<Fuse>,
 }
 
 impl Field {
@@ -183,15 +199,25 @@ impl Field {
         self.shooter.ammo[slot].1 -= 1;
         self.shooter.swing_from = None;
         let launch = trebuchet_launch(self.base, now - from, self.shooter.power, false);
-        let row = ammo.row();
-        let w = &mut self.castle.world;
-        let i = w.fire(launch, row.radius, row.mass);
-        w.projectiles[i].fire = row.fire;
-        self.shooter.live = if row.spread {
-            w.air_effect(i, AirEffect::Split)
+        let copies = if self.shooter.fired == 0 {
+            self.shooter.first_copies
         } else {
-            vec![i]
+            1
         };
+        self.shooter.fired += 1;
+        self.shooter.live.clear();
+        for k in 0..copies as i64 {
+            // each copy a little slower, so it lands a little short of the last
+            let slow = 100 - tune::VOLLEY_SLOWER_PCT * k;
+            let vel = Vec2::new(launch.vel.x * slow / 100, launch.vel.y * slow / 100);
+            let shot = self.castle.world.fire_shot(
+                crate::physics::Launch { pos: launch.pos, vel },
+                ammo.kind(),
+                self.shooter.mods,
+            );
+            self.shooter.live.extend(shot.balls);
+            self.fuses.extend(shot.fuse);
+        }
         self.shooter.air_used = false;
         // an empty slot moves the bar to the next one with shots
         if self.shooter.ammo[slot].1 == 0 {
@@ -255,6 +281,7 @@ impl Field {
     /// One physics tick; shots in the water are spent.
     pub fn step(&mut self) -> Vec<Event> {
         let ev = self.castle.world.step();
+        self.castle.world.step_fuses(&mut self.fuses);
         for b in self.castle.world.projectiles.iter_mut() {
             if b.alive && units::in_water(&self.plot, b.pos) {
                 b.alive = false;
@@ -266,7 +293,7 @@ impl Field {
     /// Shots or debris still moving.
     pub fn active(&self) -> bool {
         let w = &self.castle.world;
-        w.projectiles.iter().chain(w.debris.iter()).any(|b| b.alive)
+        !self.fuses.is_empty() || w.projectiles.iter().chain(w.debris.iter()).any(|b| b.alive)
     }
 
     /// A bot is done when its plan is spent and nothing it threw still flies.

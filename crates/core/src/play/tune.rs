@@ -27,46 +27,9 @@ pub const WIND_PER_STEP: i64 = 4;
 /// this many ticks before the outcome is counted.
 pub const DRAIN_TICKS: u32 = 240;
 
-/// Shot kinds: radius and mass in cells and physics mass units.
-pub struct ShotRow {
-    pub radius: Fx,
-    pub mass: Fx,
-    pub fire: bool,
-    /// Splits into three as it leaves the arm.
-    pub spread: bool,
-}
-
-pub const NORMAL_SHOT: ShotRow = ShotRow {
-    radius: Fx::ratio(1, 4),
-    mass: Fx::from_int(2),
-    fire: false,
-    spread: false,
-};
-pub const HEAVY_SHOT: ShotRow = ShotRow {
-    radius: Fx::ratio(3, 8),
-    mass: Fx::from_int(5),
-    fire: false,
-    spread: false,
-};
-pub const FIRE_SHOT: ShotRow = ShotRow {
-    radius: Fx::ratio(1, 4),
-    mass: Fx::from_int(2),
-    fire: true,
-    spread: false,
-};
-/// No blast in the physics yet: a big heavy shot stands in (R1.705).
-pub const EXPLODING_SHOT: ShotRow = ShotRow {
-    radius: Fx::ratio(1, 2),
-    mass: Fx::from_int(4),
-    fire: false,
-    spread: false,
-};
-pub const SPREAD_SHOT: ShotRow = ShotRow {
-    radius: Fx::ratio(1, 4),
-    mass: Fx::from_int(3),
-    fire: false,
-    spread: true,
-};
+/// Second Volley: each extra copy of the first shot leaves this many
+/// percent slower than the one before, so the copies land apart.
+pub const VOLLEY_SLOWER_PCT: i64 = 6;
 
 /// The stand-in shot plan for bot trebuchets until the aiming AI lands:
 /// release this many ticks into the swing, one shot every `BOT_SHOT_EVERY`.
