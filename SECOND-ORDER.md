@@ -98,6 +98,7 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R1.712 | worklist | Test tags for play | `lib:play` and `test:play_probe` carry a new `match` tag with a narrow rule. `scripts/tags.py guard` already fails on main: 82 game, physics and terrain tests (and 5 probes) have no tags | Coordinator: tag game/physics/terrain | `tests/tags.toml` | open |
 | R1.713 | finding | Ruins longer than stone allows | Ruin segments up to about 5 cells (R1.304) are split into equal pieces no longer than stone's longest, all keyed by the one ledger id; strain reports the highest piece | | `castle::add_long_beam` | done |
 | R1.714 | worklist | No browser or wasm check | Only fmt, clippy and the core tests ran (agent brief) | Coordinator runs the rest at merge | | open |
+| R1.715 | worklist | play/ and the upgrades landed separately | play/ maps Chain and Meteor ammo to its heavy shot and Hover to Drop as stand-ins, and does not yet read strength, blast, extra lives or second-volley values from the upgrades | Stand-in arms in play/siege.rs | — | open: wiring agent |
 
 ## Strings written by the agent
 

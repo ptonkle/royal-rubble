@@ -25,6 +25,8 @@ impl Ammo {
             Ammo::Special(AmmoKind::Fire) => &tune::FIRE_SHOT,
             Ammo::Special(AmmoKind::Exploding) => &tune::EXPLODING_SHOT,
             Ammo::Special(AmmoKind::Spread) => &tune::SPREAD_SHOT,
+            // Stand-ins until play/ fires shots through physics::ammo (R1.715).
+            Ammo::Special(AmmoKind::Chain) | Ammo::Special(AmmoKind::Meteor) => &tune::HEAVY_SHOT,
         }
     }
 }
@@ -37,6 +39,8 @@ pub fn air_effect(k: AirKind) -> AirEffect {
         AirKind::Split => AirEffect::Split,
         AirKind::Dive => AirEffect::Dive,
         AirKind::Boost => AirEffect::Boost,
+        // Stand-in until physics has a hover effect (R1.715).
+        AirKind::Hover => AirEffect::Drop,
     }
 }
 
