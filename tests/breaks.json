@@ -1629,5 +1629,12 @@
     "find": "                    if self.own_field().is_some() {\n                        // the corner window's label",
     "replace": "                    if false {\n                        // the corner window's label",
     "test": "arena_a_hit_on_your_castle_flashes_the_labeled_corner_window"
+  },
+  {
+    "name": "r4002 keep royal in a braced bay",
+    "file": "crates/core/src/ai/build.rs",
+    "find": "    let braced = |i: i64| i % 2 == 1;",
+    "replace": "    let braced = |i: i64| i % 2 == 0;",
+    "test": "ai_keep_puts_each_royal_in_its_own_room"
   }
 ]
