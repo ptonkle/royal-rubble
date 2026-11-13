@@ -1,0 +1,185 @@
+//! Seeded terrain: one plot layout, in profile, that every player gets a copy
+//! of. From the left: the launch pad (flat-ish, where the trebuchet stands),
+//! the gap (a moat, river or valley with water in it), then the castle plot,
+//! which is generated at its widest (level 9) and opened up by level from its
+//! front edge at the gap.
+//!
+//! Units: the ground is a list of columns, each [`COL_W`] wide; heights are in
+//! the same fixed-point units, [`CELL`] to one grid cell. No floats.
+
+mod gen;
+pub mod rng;
+mod spots;
+#[cfg(test)]
+mod tests;
+
+pub use spots::{Node, RuinMaterial, Segment, Spot, SpotKind};
+
+/// Fixed-point units in one grid cell.
+pub const CELL: i32 = 1024;
+/// Width of one terrain column, in fixed-point units.
+pub const COL_W: i32 = CELL;
+/// Highest level; the plot is generated at this level's width.
+pub const MAX_LEVEL: u8 = 9;
+
+/// The tune table. Widths are in columns, heights in cells unless named.
+pub mod tune {
+    use super::CELL;
+    /// Launch pad width.
+    pub const PAD_W: usize = 28;
+    /// Ground beyond the widest plot, so the plot's back edge is not a wall.
+    pub const MARGIN_W: usize = 6;
+    /// Buildable width at level 1, and what each level adds.
+    pub const PLOT_MIN_W: usize = 40;
+    pub const PLOT_STEP_W: usize = 7;
+    /// Widest plot (level 9).
+    pub const PLOT_MAX_W: usize = PLOT_MIN_W + 8 * PLOT_STEP_W;
+    /// Build height above the plot's front ground at level 1, and per level.
+    pub const BUILD_H_MIN: i32 = 12 * CELL;
+    pub const BUILD_H_STEP: i32 = 2 * CELL;
+    /// Ground height the pad is centered on.
+    pub const BASE_H: i32 = 24 * CELL;
+    /// Steepest buildable slope: rise per column inside the plot, away from a cliff.
+    pub const MAX_STEP: i32 = CELL / 2;
+    /// A spot's ground may rise at most this much across its width.
+    pub const SPOT_FLAT: i32 = CELL;
+    /// A step at least this tall in one column is a cliff.
+    pub const CLIFF_MIN: i32 = 2 * CELL;
+    /// Plot cliff (a step up to high ground): chance in 3, rise range in cells.
+    pub const CLIFF_CHANCE_OF_3: u64 = 2;
+    pub const CLIFF_RISE: (i32, i32) = (3, 6);
+    /// Watchtower hill: chance in 3, half-width in columns, peak height in cells.
+    pub const HILL_CHANCE_OF_3: u64 = 2;
+    pub const HILL_HALF_W: (i32, i32) = (9, 12);
+    pub const HILL_H: (i32, i32) = (3, 5);
+    /// Spot counts per match and widths in columns: (kind, min, max, width).
+    pub const SPOTS: &[(super::SpotKind, usize, usize, usize)] = {
+        use super::SpotKind::*;
+        &[
+            (Watchtower, 0, 1, 5),
+            (StoneDeposit, 1, 1, 5),
+            (GoldVein, 1, 1, 4),
+            (Forest, 1, 1, 8),
+            (Ruins, 1, 2, 6),
+            (OreDeposit, 0, 1, 5),
+            (HolyWell, 0, 1, 3),
+            (ArmoryRuin, 0, 1, 5),
+        ]
+    };
+    /// The first this many spots placed after the watchtower go inside the level-1 plot.
+    pub const SPOTS_AT_LEVEL_1: usize = 2;
+}
+
+/// Columns `start..end`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ColRange {
+    pub start: usize,
+    pub end: usize,
+}
+
+impl ColRange {
+    pub fn len(&self) -> usize {
+        self.end - self.start
+    }
+    pub fn is_empty(&self) -> bool {
+        self.end <= self.start
+    }
+    pub fn contains(&self, col: usize) -> bool {
+        col >= self.start && col < self.end
+    }
+    pub fn overlaps(&self, other: &ColRange) -> bool {
+        self.start < other.end && other.start < self.end
+    }
+}
+
+/// What lies between the pad and the plot.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GapKind {
+    /// Narrow and deep with steep banks.
+    Moat,
+    /// Wider, gentle banks.
+    River,
+    /// Wide and deep, long slopes down to a stream.
+    Valley,
+}
+
+/// Water: columns whose ground lies below `level` are water. A shot that
+/// lands in water is spent.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Water {
+    pub cols: ColRange,
+    pub level: i32,
+}
+
+/// Named terrain features, for the AI, the debug picture and later rules.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Feature {
+    /// The ground steps by `rise` (signed) between column `col - 1` and `col`.
+    Cliff { col: usize, rise: i32 },
+    /// Raised ground behind a plot cliff.
+    HighGround { cols: ColRange },
+    /// A hill with its highest column.
+    Hill { cols: ColRange, peak: usize },
+}
+
+/// One match's terrain. Every player's plot is a copy of it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Plot {
+    pub seed: u64,
+    /// Ground height of each column.
+    pub heights: Vec<i32>,
+    pub pad: ColRange,
+    /// The column the trebuchet stands on.
+    pub launch_col: usize,
+    pub gap: ColRange,
+    pub gap_kind: GapKind,
+    pub water: Water,
+    /// The widest (level 9) plot.
+    pub plot: ColRange,
+    pub features: Vec<Feature>,
+    pub spots: Vec<Spot>,
+}
+
+impl Plot {
+    pub fn generate(seed: u64) -> Plot {
+        let mut plot = gen::ground(seed);
+        spots::place(&mut plot, seed);
+        plot
+    }
+
+    /// The buildable columns at `level` (clamped to 1..=9). The plot is
+    /// anchored at its front edge by the gap and grows away from it.
+    pub fn buildable(&self, level: u8) -> ColRange {
+        let level = level.clamp(1, MAX_LEVEL) as usize;
+        let w = tune::PLOT_MIN_W + (level - 1) * tune::PLOT_STEP_W;
+        ColRange {
+            start: self.plot.start,
+            end: self.plot.start + w,
+        }
+    }
+
+    /// How high above the plot's front ground a player may build at `level`.
+    pub fn build_height(level: u8) -> i32 {
+        let level = level.clamp(1, MAX_LEVEL) as i32;
+        tune::BUILD_H_MIN + (level - 1) * tune::BUILD_H_STEP
+    }
+
+    /// The lowest level whose buildable span holds all of `cols`.
+    pub fn level_for(&self, cols: ColRange) -> u8 {
+        (1..=MAX_LEVEL)
+            .find(|&l| cols.end <= self.buildable(l).end)
+            .unwrap_or(MAX_LEVEL)
+    }
+
+    /// Ground height under fixed-point `x`; the edge columns extend outward.
+    pub fn ground_at(&self, x: i32) -> i32 {
+        let col = (x.max(0) / COL_W) as usize;
+        self.heights[col.min(self.heights.len() - 1)]
+    }
+
+    /// True when fixed-point point (`x`, `y`) is in the water.
+    pub fn in_water(&self, x: i32, y: i32) -> bool {
+        let col = (x.max(0) / COL_W) as usize;
+        self.water.cols.contains(col) && y <= self.water.level
+    }
+}

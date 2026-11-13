@@ -11,3 +11,4 @@
 pub mod api;
 pub mod glossary;
 pub mod page;
+pub mod terrain;
