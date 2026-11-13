@@ -16,6 +16,8 @@ The state measured rather than recalled, so later changes can be compared with i
 | Physics breaks caught | `python3 scripts/break_tests.py physics` | 22 of 22 | 2026-11-12 |
 | Siege tick time (2 castles of 148 segments, 2 trebuchets, every shot, release) | `cargo test --release --test play_probe -- --ignored --nocapture` | 293 µs mean tick, 500 µs worst over 991 ticks; strain static test of one castle 34 ms; both castles built by input 22 ms; siege start 0.2 ms | 2026-11-12, WSL2 |
 | Match glue breaks caught | `python3 scripts/break_tests.py play:` | 11 of 11 | 2026-11-12 |
+| Trebuchet landing by release tick (R1.1101), normal shot, pad 30 cells below a plot from 120 cells out | one-off probe with `land_x` in play/tests.rs (flat pad to col 120, ramp to +30) | level 1 (power 0), release:cells out: 34:13 35:35 36:57 37:79 38:100 39:118 40:130 41:146 42:162 43:176 44:188 45:199 46:209 47:217 48:222 49:226 50:227 51:227 52:224 53:219 54:212 55:203 56:190 57:174 58:153 59:125 (60-66 land on the ramp near 120) 67:92 68:78 69:65. Level 9 (power 40): 34:30 36:116 38:193 40:267 42:332 44:387 46:430 48:460 50:474 51:475 52:473 54:456 56:423 58:372 60:303 61:259 62:200 (63-68 ramp) 69:95. Forward-and-up window 34-69 (36 ticks) | 2026-11-12 |
+| Wiring breaks caught | `python3 scripts/break_tests.py "wire:"` | 11 of 11 | 2026-11-12 |
 
 ## Not measured
 

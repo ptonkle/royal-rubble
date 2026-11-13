@@ -32,6 +32,10 @@ copy = "reader-visible words: GLOSSARY.md, TONE.md, data/strings.json, strings.r
 upgrades = "upgrade cards and what they do: game/upgrades.rs, data/upgrades.json, the upgrade rules in game/flow.rs"
 ammo = "ammo kinds, blasts and strength bonuses: physics/ammo.rs"
 match = "the match glue: play/ (build, siege, units) and its probe"
+game = "the rules: game/ (flow, economy, ledger, royals, pairing, bots, sites)"
+physics = "the physics: physics/ and its probe"
+terrain = "the terrain: terrain/ and its pictures"
+sound = "the sound data: crates/core/tests/sound.rs reads data/sound*.json"
 
 # A hit tag on the left also hits the tags on the right, transitively.
 [implies]
@@ -72,6 +76,12 @@ tags = ["boundary"]
 "lib:game::flow::tests::quartermaster_makes_bought_shots_cost_one" = ["upgrades"]
 "lib:play" = ["match"]
 "test:play_probe" = ["match"]
+"lib:game" = ["game"]
+"lib:physics" = ["physics"]
+"lib:terrain" = ["terrain"]
+"test:physics_probe" = ["physics"]
+"test:terrain_pictures" = ["terrain"]
+"test:sound" = ["sound"]
 
 [[rule]]
 name = "the core and the shim"

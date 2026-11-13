@@ -14,11 +14,6 @@ pub const STAND_TOLERANCE: Fx = Fx::ratio(1, 8);
 /// Ticks the strain colors' static test runs (after the physics settle).
 pub const STATIC_TEST_TICKS: u32 = 120;
 
-/// The level-1 throw, in percent of the physics trebuchet at power 0.
-/// The physics throw alone reaches about 20 cells, short of a far plot
-/// (R1.703). A level's `shot_power_pct` scales this.
-pub const LAUNCH_BASE_PCT: i64 = 200;
-
 /// Wind per rule step (`game::tune::WIND_MAX` steps each way), raw Q16.16
 /// units per tick squared. Gravity is 182.
 pub const WIND_PER_STEP: i64 = 4;

@@ -38,7 +38,7 @@ pub fn trebuchet_launch(base: Vec2, release_tick: u32, power: u8, facing_left: b
     let pivot = base + Vec2::new(Fx::ZERO, TUNE.treb_pivot_height);
     let tip = Vec2::new(c, s) * TUNE.treb_arm;
     let scale = Fx::ratio(TUNE.treb_power_base + power as i64, TUNE.treb_power_base);
-    let tip_speed = brads_to_radians(speed) * TUNE.treb_arm * scale;
+    let tip_speed = brads_to_radians(speed) * TUNE.treb_arm * scale * TUNE.treb_sling_pct / 100;
     // clockwise turning: the tip moves along (sin, -cos)
     let vel = Vec2::new(s, -c) * tip_speed;
     let (tip, vel) = if facing_left {

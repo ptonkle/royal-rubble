@@ -45,7 +45,8 @@ Build rules checked: both ends in the buildable span and between the ground and 
 `play.siege: Option<Siege>` with `fields: Vec<Field>`, one per castle under attack:
 
 - `owner`, `attacker`, `ghost`; `castle.world` (the physics world: segments, projectiles, debris, bodies), `castle.seg_ids[i]` (ledger id of physics segment i), `castle.bodies[i]` (`BodyOwner::Royal(index)` or `Building(id)`).
-- `shooter`: `ammo: Vec<(Ammo, left)>` (slot order for keys 1–5), `air`, `selected`, `swing_from`, `live` (projectiles of the last shot), `air_used`.
+- `shooter`: `ammo: Vec<(Ammo, left)>` (slot order for keys 1–5; `Ammo::kind()` is the `physics::ShotKind`), `air` with `air_uses` (uses left this round per slot), `selected`, `swing_from`, `live` (projectiles of the last shot), `air_used` (one air effect per shot), `mods` (the shooter's `ShotMods`).
+- `fuses` (exploding shots in the air), `lives` (shot hits each body still survives), `killed` (royal bodies in the order they died).
 - `base`: where the trebuchet stands (left edge of the terrain's launch column, on the ground); it throws to the right.
 - The field a player drives is the one where `attacker == p && !shooter.bot`. Their own castle is the field whose `owner == p`.
 
