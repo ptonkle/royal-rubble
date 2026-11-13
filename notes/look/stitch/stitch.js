@@ -24,7 +24,7 @@ const Stitch = (() => {
     tackEvery: 2.6,       // tacks along a bar, in thread widths
     rowWobble: 0.16,      // laid thread wander, in thread widths
     shadeSpread: 0.55,    // 0: every thread mid; 1: full light-to-dark range
-    fiber: 0.5,           // twist ticks per laid segment (0 turns them off)
+    fiber: 1.0,           // twist ticks per laid segment (0 turns them off)
     stemWidth: 3.2,       // stem-stitch cord width
     stemSlant: 0.55,      // stitch angle to the line, radians
     stemLength: 2.3,      // stitch length, in cord widths
@@ -33,13 +33,14 @@ const Stitch = (() => {
     runGap: 6,            // running stitch gap
     runWidth: 2.2,
     knot: 2.4,            // French knot radius
-    letterWeight: 0.085,  // lettering cord width, share of cap height
+    letterWeight: 0.095,  // lettering cord width, share of cap height
+    letterSerif: 0.13,    // serif tick length, share of cap height
     letterJitter: 0.07,   // per-letter size and baseline wander
     letterTilt: 0.07,     // per-letter rotation wander, radians
-    weave: 1.7,           // linen thread pitch
-    slub: 0.07,           // linen thread brightness wander
-    creases: 22,          // creases per 1000 px of height
-    creaseDepth: 0.55,    // crease shadow strength 0..1
+    weave: 1.25,          // linen thread pitch
+    slub: 0.035,          // linen thread brightness wander
+    creases: 34,          // creases per 1000 px of height
+    creaseDepth: 1.0,    // crease shadow strength 0..1
     stains: 14,           // faint foxing blotches per megapixel
     borderBar: 15,        // border bar width
     borderSlant: 0.42,    // border bar lean, radians from upright
@@ -183,12 +184,12 @@ const Stitch = (() => {
           return gr;
         };
         ctx.lineCap = "round";
-        ctx.globalAlpha = 0.5 * depth;
+        ctx.globalAlpha = Math.min(1, 0.85 * depth);
         ctx.filter = `blur(${(1.6 * P.zoom).toFixed(1)}px)`;
         ctx.strokeStyle = fade(sh.join(",")); ctx.lineWidth = 4 * P.zoom; ctx.stroke(path(0));
         ctx.strokeStyle = fade(hl.join(",")); ctx.lineWidth = 3 * P.zoom; ctx.stroke(path(-3.5 * P.zoom));
         ctx.filter = "none";
-        ctx.globalAlpha = 0.45 * depth;
+        ctx.globalAlpha = Math.min(1, 0.7 * depth);
         ctx.strokeStyle = fade(dp.join(",")); ctx.lineWidth = 0.9 * P.zoom; ctx.stroke(path(0.6 * P.zoom));
         ctx.globalAlpha = 1;
       }
@@ -220,13 +221,13 @@ const Stitch = (() => {
       const toXY = (uu, vv) => [cx + uu * ca - vv * sa, cy + uu * sa + vv * ca];
       const pitch = tw * (1 + P.threadGap), barGap = tw * (o.barEvery || P.barEvery);
       const phase = (o.phase != null ? o.phase : R()) * barGap;
-      const buckets = sh.map(() => new Path2D()), hi = new Path2D(), lo = new Path2D(), ticks = new Path2D();
+      const buckets = sh.map(() => new Path2D()), hi = new Path2D(), lo = new Path2D(), ticks = new Path2D(), twist = new Path2D();
       const seg = tw * 1.6; // laid threads are drawn in short pieces so the shade can drift
       for (let v = -rad; v <= rad; v += pitch) {
         let shade = pick(sh.length), wob = (R() - 0.5) * P.rowWobble * tw;
         let [px, py] = toXY(-rad, v + wob);
         for (let uu = -rad + seg; uu <= rad + seg; uu += seg) {
-          if (R() < 0.12) shade = Math.max(0, Math.min(sh.length - 1, shade + (R() < 0.5 ? -1 : 1)));
+          if (R() < 0.28) shade = Math.max(0, Math.min(sh.length - 1, shade + (R() < 0.5 ? -1 : 1)));
           wob += (R() - 0.5) * 0.08 * tw; wob *= 0.9;
           const [qx, qy] = toXY(uu, v + wob);
           buckets[shade].moveTo(px, py); buckets[shade].lineTo(qx, qy);
@@ -238,9 +239,11 @@ const Stitch = (() => {
         const [l0x, l0y] = toXY(-rad, v + tw * 0.4), [l1x, l1y] = toXY(rad, v + tw * 0.4);
         lo.moveTo(l0x, l0y); lo.lineTo(l1x, l1y);
         // wool twist: faint slanted ticks along the thread
-        if (P.fiber) for (let uu = -rad + R() * tw * 3; uu < rad; uu += tw * (2 + R() * 3) / P.fiber) {
-          const [t0x, t0y] = toXY(uu - tw * 0.25, v - tw * 0.32), [t1x, t1y] = toXY(uu + tw * 0.25, v + tw * 0.32);
+        if (P.fiber) for (let uu = -rad + R() * tw; uu < rad; uu += tw * (0.9 + R() * 0.7) / P.fiber) {
+          const [t0x, t0y] = toXY(uu - tw * 0.28, v - tw * 0.4), [t1x, t1y] = toXY(uu + tw * 0.22, v + tw * 0.4);
           ticks.moveTo(t0x, t0y); ticks.lineTo(t1x, t1y);
+          const [l0x, l0y] = toXY(uu - tw * 0.02, v - tw * 0.36), [l1x, l1y] = toXY(uu + tw * 0.4, v + tw * 0.3);
+          twist.moveTo(l0x, l0y); twist.lineTo(l1x, l1y);
         }
       }
       ctx.lineCap = "butt";
@@ -248,7 +251,8 @@ const Stitch = (() => {
       buckets.forEach((b, i) => { ctx.strokeStyle = sh[i]; ctx.stroke(b); });
       ctx.globalAlpha = 0.18; ctx.strokeStyle = rgbStr(W.light); ctx.lineWidth = tw * 0.3; ctx.stroke(hi);
       ctx.globalAlpha = 0.22; ctx.strokeStyle = rgbStr(W.dark); ctx.lineWidth = tw * 0.25; ctx.stroke(lo);
-      ctx.globalAlpha = 0.22; ctx.lineWidth = tw * 0.18; ctx.stroke(ticks);
+      ctx.globalAlpha = 0.38; ctx.lineWidth = tw * 0.2; ctx.stroke(ticks);
+      ctx.globalAlpha = 0.22; ctx.strokeStyle = rgbStr(W.light); ctx.lineWidth = tw * 0.22; ctx.stroke(twist);
       ctx.globalAlpha = 1;
       // couching threads across the laid work, wavering, then tacks
       const BW = wool(o.bars || name);
@@ -363,7 +367,15 @@ const Stitch = (() => {
             const lx = px * s, ly = (py - 1) * s;
             return [cx + lx * Math.cos(rot) - ly * Math.sin(rot), by + lx * Math.sin(rot) + ly * Math.cos(rot)];
           });
-          stem(pts.length > 2 && st.curved ? curve(pts, 5) : pts, col, { w: cap * P.letterWeight / unit(), spread: 0.4 });
+          const lw = cap * P.letterWeight / unit();
+          stem(pts, col, { w: lw, spread: 0.4 });
+          // wedge serifs on the ends of straight strokes
+          if (st.length <= 6) for (const [e, n] of [[pts[0], pts[1]], [pts[pts.length - 1], pts[pts.length - 2]]]) {
+            const dx = e[0] - n[0], dy = e[1] - n[1], l = Math.hypot(dx, dy) || 1;
+            if (Math.abs(dy / l) < 0.55) continue; // only on upright strokes
+            const half = cap * P.letterSerif / 2;
+            stem([[e[0] - dy / l * half, e[1] + dx / l * half], [e[0] + dy / l * half, e[1] - dx / l * half]], col, { w: lw * 0.8, spread: 0.3 });
+          }
         }
         cx += (gw + tr) * s;
       }
@@ -413,8 +425,8 @@ const Stitch = (() => {
           const kind = (o.motifs || ["beast", "bird", "sprig", "bird", "beast", "sprig"])[i % 6];
           const facing = (Math.floor(i / 1) % 2) ? -1 : 1;
           const [fc, lc] = beastCols[(i * 5 + 1) % beastCols.length];
-          const sz = Math.min(h * 0.78, mw * 0.8);
-          motif(kind, mx, y + h - inset - h * 0.06, sz, fc, lc, facing);
+          const sz = Math.min(h * 0.95, mw * 0.95);
+          motif(kind, mx, y + h - inset - h * 0.04, sz, fc, lc, facing);
         }
       }
       // the rules: thin red-brown stem lines along both edges, slightly uneven
@@ -458,8 +470,8 @@ const Stitch = (() => {
   const BEAST = [[-40, -28], [-30, -36], [0, -37], [20, -36], [27, -44], [34, -53], [43, -52], [50, -46], [52, -40], [44, -38], [40, -31], [36, -16], [39, 0], [32, 0], [29, -16], [21, -20], [19, -3], [23, 0], [14, 0], [11, -20], [-14, -21], [-17, -3], [-13, 0], [-22, 0], [-24, -18], [-29, -14], [-29, 0], [-36, 0], [-38, -18], [-41, -24]];
   const BEAST_TAIL = [[-40, -27], [-50, -34], [-50, -48], [-42, -54], [-37, -47]];
   const BIRD = [[-38, -12], [-14, -19], [4, -21], [15, -29], [20, -41], [28, -48], [36, -46], [43, -42], [36, -39], [30, -33], [28, -21], [20, -10], [6, -4], [-10, -6], [-40, -4]];
-  const BIRD_WING = [[0, -21], [-16, -46], [-6, -50], [-1, -43], [6, -57], [14, -52], [17, -28]];
-  const BIRD_STRIPES = [[[-6, -42], [4, -24]], [[4, -50], [9, -26]]];
+  const BIRD_WING = [[-4, -20], [-22, -52], [-12, -54], [-4, -44], [2, -62], [12, -60], [14, -26]];
+  const BIRD_STRIPES = [[[-12, -46], [0, -24]], [[4, -56], [8, -26]], [[-24, -10], [0, -14]]];
 
   // --- letter strokes: [advance, strokes]; x 0..advance, y 0 top .. 1 base
   const arc = (cx, cy, rx, ry, a0, a1, n = 9) => { const o = []; for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; o.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); } return o; };
