@@ -3,6 +3,7 @@
 //! everything the page draws. No clock and no randomness: the page hands in
 //! a seed and the time. Ported from Fleeced's `app.rs` (after Crabble's).
 
+pub mod arena;
 pub mod field;
 mod lobby_view;
 pub mod sandbox;
@@ -100,6 +101,10 @@ pub struct App {
     now_ms: i64,
     /// The sandbox, while it shows.
     sandbox: Option<sandbox::Sandbox>,
+    /// The match against bots, from Start to the results.
+    arena: Option<arena::Arena>,
+    /// The upgrade cards' names and texts (data/upgrades.json).
+    cards: arena::CardText,
 }
 
 fn percent(value: &str) -> Result<u32, String> {
@@ -159,6 +164,8 @@ impl App {
             typed_reply: String::new(),
             now_ms: 0,
             sandbox: None,
+            arena: None,
+            cards: arena::CardText::default(),
         })
     }
 
@@ -218,6 +225,7 @@ impl App {
     }
 
     fn leave(&mut self) {
+        self.arena = None;
         if self.room.take().is_some_and(|r| r.kind != Kind::Solo) {
             self.leaving.push(Request::Leave);
         }
@@ -249,7 +257,9 @@ impl App {
                 self.screen = Screen::Title;
             }
             "field.size" | "field.down" | "field.move" | "field.up" | "sandbox.tool" | "sandbox.ammo"
-            | "sandbox.air" | "sandbox.test" | "sandbox.mode" => {
+            | "sandbox.air" | "sandbox.test" | "sandbox.mode"
+                if self.arena.is_none() || name.starts_with("sandbox.") =>
+            {
                 let Some(s) = &mut self.sandbox else {
                     return Err(format!("Unknown action \"{name}\"."));
                 };
@@ -263,6 +273,27 @@ impl App {
                     "sandbox.air" => s.set_air(value)?,
                     "sandbox.test" => s.run_test(),
                     _ => s.toggle_mode(),
+                }
+            }
+            "data.upgrades" => self.cards = arena::CardText::parse(value)?,
+            "match.again" => {
+                let seed = self.rng.next_u64();
+                let next = match &self.arena {
+                    Some(a) => a.again(seed, &self.strings)?,
+                    None => return Err(format!("Unknown action \"{name}\".")),
+                };
+                self.arena = Some(next);
+            }
+            n if n.starts_with("match.") || (self.arena.is_some() && n.starts_with("field.")) => {
+                let Some(a) = &mut self.arena else {
+                    return Err(format!("Unknown action \"{name}\"."));
+                };
+                match n {
+                    "field.size" => a.set_size(value)?,
+                    "field.down" => a.down(value)?,
+                    "field.move" => a.moved(value)?,
+                    "field.up" => a.up(value)?,
+                    _ => a.act(n, value)?,
                 }
             }
             "menu.settings" => self.open(Screen::Settings),
@@ -345,6 +376,10 @@ impl App {
         if let Some(s) = &mut self.sandbox {
             s.pump(now_ms, keys);
         }
+        self.start_arena();
+        if let Some(a) = &mut self.arena {
+            a.pump(now_ms, keys);
+        }
         let mut pump = self
             .room
             .as_mut()
@@ -361,6 +396,22 @@ impl App {
             self.screen = Screen::Lobby;
         }
         pump
+    }
+
+    /// A solo room that has started gets its match (online rooms keep the
+    /// placeholder until the match runs through the rollback session).
+    fn start_arena(&mut self) {
+        if self.arena.is_some() {
+            return;
+        }
+        let Some(room) = &self.room else { return };
+        if room.kind != Kind::Solo || room.stage == Stage::Lobby {
+            return;
+        }
+        let Some(start) = &room.start else { return };
+        if let Ok(a) = arena::Arena::new(start, &self.client, self.fast, &self.strings) {
+            self.arena = Some(a);
+        }
     }
 
     fn button(&self, id: &str, key: &str) -> Item {
@@ -479,6 +530,10 @@ impl App {
             (Screen::Online, _) => self.online_panels(),
             (Screen::Paste, r) => self.paste_panels(r),
             (Screen::Lobby, Some(r)) => self.lobby_panels(r),
+            (Screen::Play, Some(_)) if self.arena.is_some() => self
+                .arena
+                .as_ref()
+                .map_or_else(Vec::new, |a| a.panels(&self.strings, &self.cards)),
             (Screen::Play, Some(r)) => self.play_panels(r),
             (Screen::Sandbox, _) => self
                 .sandbox
@@ -487,6 +542,7 @@ impl App {
             (Screen::Title | Screen::Lobby | Screen::Play, _) => self.title_panels(),
         };
         let sandbox = self.sandbox.as_ref().filter(|_| self.screen == Screen::Sandbox);
+        let arena = self.arena.as_ref().filter(|_| self.screen == Screen::Play);
         let playing = (self.screen == Screen::Play && room.is_some_and(|r| r.stage == Stage::Playing))
             || sandbox.is_some();
         let status = match room {
@@ -495,7 +551,11 @@ impl App {
             None => "",
         };
         Ui {
-            screen: self.screen.name().into(),
+            screen: if arena.is_some() {
+                "match".into()
+            } else {
+                self.screen.name().into()
+            },
             title: self.strings.get("title"),
             version: VERSION.into(),
             version_opens: !matches!(self.screen, Screen::Notes | Screen::Play | Screen::Sandbox),
@@ -513,7 +573,9 @@ impl App {
             music_share: decimal(self.save.music * 10),
             live: room.is_some() || sandbox.is_some(),
             capture: playing,
-            keys: if sandbox.is_some() {
+            keys: if arena.is_some() {
+                arena::keys()
+            } else if sandbox.is_some() {
                 sandbox::keys()
             } else {
                 BTreeMap::new()
@@ -526,7 +588,7 @@ impl App {
             } else {
                 self.strings.get(status)
             },
-            field: sandbox.map(|s| s.frame()),
+            field: arena.map(|a| a.frame()).or_else(|| sandbox.map(|s| s.frame())),
         }
     }
 }

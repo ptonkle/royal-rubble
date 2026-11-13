@@ -186,6 +186,7 @@ h2 { font-size: var(--heading-size); font-weight: var(--heading-weight); letter-
 /* ---- the playfield ---- */
 
 #field { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+body[data-screen="match"] #menus,
 body[data-screen="sandbox"] #menus {
   position: fixed;
   inset: 0;
@@ -195,7 +196,9 @@ body[data-screen="sandbox"] #menus {
   pointer-events: none;
 }
 body[data-screen="sandbox"] .panels { display: block; }
+body[data-screen="match"] .panels { display: block; }
 body[data-screen="sandbox"] .panel { pointer-events: auto; width: auto; box-shadow: none; }
+body[data-screen="match"] .panel { pointer-events: auto; width: auto; box-shadow: none; }
 .panel.field-top {
   position: fixed;
   top: 1rem;
@@ -208,6 +211,64 @@ body[data-screen="sandbox"] .panel { pointer-events: auto; width: auto; box-shad
 }
 .panel.field-top .button { width: auto; margin: 0; padding: 0.5rem 1rem; }
 .panel.field-top .lines { margin: 0 0 0 0.5rem; color: var(--page-ink); }
+.panel.field-top { flex-wrap: wrap; max-width: calc(100% - 14rem); }
+.panel.field-top .lines p { margin: 0; }
+/* the match: every player's health down the left side */
+.panel.field-side {
+  position: fixed;
+  top: 6rem;
+  left: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bar-bg);
+  color: var(--page-ink);
+}
+.panel.field-side .lines p { margin: 0.15rem 0; }
+/* upgrade cards, in the middle of the field */
+.panel.cards {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  max-width: 64rem;
+  background: var(--bar-bg);
+}
+.panel.cards h2 { flex-basis: 100%; text-align: center; margin: 0; color: var(--page-ink); }
+.panel.cards > .button { flex-basis: 100%; }
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 17rem;
+  min-height: 11rem;
+  padding: 1rem;
+  text-align: left;
+  font: 1rem/1.3 var(--font-body);
+  color: var(--button-quiet-ink);
+  background: transparent;
+  border: 2px solid var(--button-quiet-edge);
+  border-radius: var(--button-radius);
+  cursor: pointer;
+}
+.card-name { font-weight: 700; font-size: 1.15rem; }
+.card-tier { font-size: 0.8rem; color: var(--page-ink-dim); }
+.card[data-tier="silver"] { border-color: var(--card-silver); }
+.card[data-tier="gold"] { border-color: var(--card-gold); }
+.card[data-tier="prismatic"] { border-color: var(--card-prismatic); }
+.card[data-picked="on"] { border-color: var(--bar-chosen); color: var(--bar-chosen); }
+.card:disabled:not([data-picked="on"]) { opacity: 0.4; cursor: not-allowed; }
+/* the results, over the field */
+body[data-screen="match"] .panel.results {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24rem;
+}
 .panel.field-bar {
   position: fixed;
   bottom: 1rem;
@@ -238,4 +299,5 @@ body[data-screen="sandbox"] .panel { pointer-events: auto; width: auto; box-shad
 .bar-key { font-size: 0.75rem; font-weight: 400; color: var(--page-ink-dim); }
 /* the playfield draws its own frame */
 body[data-screen="play"]::before, body[data-screen="play"]::after,
+body[data-screen="match"]::before, body[data-screen="match"]::after,
 body[data-screen="sandbox"]::before, body[data-screen="sandbox"]::after { display: none; }

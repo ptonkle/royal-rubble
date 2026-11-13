@@ -167,6 +167,20 @@ pub enum Item {
         role: String,
         controls: Vec<Item>,
     },
+    /// an upgrade card: a press sends `value`; `look` is the tier's key
+    /// for the stylesheet
+    Card {
+        id: String,
+        value: String,
+        name: String,
+        tier: String,
+        look: String,
+        text: String,
+        #[serde(skip_serializing_if = "is_false")]
+        picked: bool,
+        #[serde(skip_serializing_if = "is_false")]
+        disabled: bool,
+    },
     /// a row of choices, one chosen (the material bar, the shot bar); a
     /// press sends the option's `value`
     Bar {

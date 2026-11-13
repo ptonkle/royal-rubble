@@ -13,7 +13,7 @@ use super::field::{
     Ring, SpotMark,
 };
 use super::sandbox::{num, pair, reach_end};
-use crate::game::flow::{Phase, Seat, Settings};
+use crate::game::flow::{Difficulty, Phase, Seat, Settings};
 use crate::game::ledger::{self, BuildingKind, Piece};
 use crate::game::royals::RoyalKind;
 use crate::game::upgrades::{AirKind, AmmoKind, Tier, UPGRADES};
@@ -110,7 +110,10 @@ fn rank_name(k: RoyalKind) -> &'static str {
 }
 
 fn building_name(k: BuildingKind) -> &'static str {
-    BUILDINGS.iter().find(|(b, _)| *b == k).map_or("armory", |(_, n)| n)
+    BUILDINGS
+        .iter()
+        .find(|(b, _)| *b == k)
+        .map_or("armory", |(_, n)| n)
 }
 
 fn spot_name(k: SpotKind) -> &'static str {
@@ -182,7 +185,9 @@ pub struct CardText {
 impl CardText {
     pub fn parse(json: &str) -> Result<CardText, String> {
         let v: serde_json::Value = serde_json::from_str(json).map_err(|e| e.to_string())?;
-        let rows = v["upgrades"].as_object().ok_or("The upgrades file has no \"upgrades\".")?;
+        let rows = v["upgrades"]
+            .as_object()
+            .ok_or("The upgrades file has no \"upgrades\".")?;
         let map = rows
             .iter()
             .map(|(k, r)| {
@@ -243,7 +248,11 @@ impl Arena {
             .seats
             .iter()
             .map(|st| match st.bot {
-                Some(d) => Seat::Bot(d),
+                Some(d) => Seat::Bot(match d {
+                    crate::lobby::Difficulty::Easy => Difficulty::Easy,
+                    crate::lobby::Difficulty::Normal => Difficulty::Normal,
+                    crate::lobby::Difficulty::Hard => Difficulty::Hard,
+                }),
                 None => Seat::Human,
             })
             .collect();
@@ -270,7 +279,9 @@ impl Arena {
             seed: start.seed,
         })
         .map_err(|e| format!("The match cannot start: {e:?}."))?;
-        play.start().map_err(|e| format!("The match cannot start: {e:?}."))?;
+        play.start()
+            .map_err(|e| format!("The match cannot start: {e:?}."))?;
+        play.set_shot_planner(crate::ai::planner::plan_siege);
         let seen_phase = play.rules.phase;
         let seen_round = play.rules.round;
         let mut a = Arena {
@@ -300,6 +311,7 @@ impl Arena {
             seen_phase,
             seen_round,
         };
+        a.bots_build();
         a.rebuild();
         Ok(a)
     }
@@ -308,7 +320,11 @@ impl Arena {
     pub fn again(&self, seed: u64, s: &Strings) -> Result<Arena, String> {
         let mut start = self.start.clone();
         start.seed = seed;
-        let client = self.start.seats.get(self.me as usize).map_or("", |st| st.person.as_str());
+        let client = self
+            .start
+            .seats
+            .get(self.me as usize)
+            .map_or("", |st| st.person.as_str());
         Arena::new(&start, client, self.fast, s)
     }
 
@@ -435,7 +451,13 @@ impl Arena {
         let width = zr - zl + margin * 2;
         if settled {
             let left = zl - margin;
-            let mut cam = Camera::spanning(left, width.min(castle_right - left).max(width / 2), Fx::ZERO, w, h);
+            let mut cam = Camera::spanning(
+                left,
+                width.min(castle_right - left).max(width / 2),
+                Fx::ZERO,
+                w,
+                h,
+            );
             cam.bottom = self.ground(owner, zl) - cam.height() / 5;
             return cam;
         }
@@ -455,7 +477,12 @@ impl Arena {
     }
 
     fn own_field(&self) -> Option<&Field> {
-        self.play.siege.as_ref()?.fields.iter().find(|f| f.owner == self.me)
+        self.play
+            .siege
+            .as_ref()?
+            .fields
+            .iter()
+            .find(|f| f.owner == self.me)
     }
 
     /// The castle the build view shows: yours, or the one being scouted.
@@ -568,7 +595,9 @@ impl Arena {
         }
         // a held swing throws by itself at the bottom of the arm
         if let (Some(f), Some(s)) = (self.my_field(), self.play.siege.as_ref()) {
-            if f.shooter.swing_from.is_some_and(|t| s.tick - t >= Arena::swing_end())
+            if f.shooter
+                .swing_from
+                .is_some_and(|t| s.tick - t >= Arena::swing_end())
                 && !self.pending.contains(&Input::Release)
             {
                 self.pending.push(Input::Release);
@@ -642,7 +671,12 @@ impl Arena {
     fn follow_shot(&mut self) {
         let Some(f) = self.my_field() else { return };
         let w = &f.castle.world;
-        let live = f.shooter.live.iter().filter_map(|&i| w.projectiles.get(i)).find(|b| b.alive);
+        let live = f
+            .shooter
+            .live
+            .iter()
+            .filter_map(|&i| w.projectiles.get(i))
+            .find(|b| b.alive);
         match live {
             Some(b) => {
                 if b.age.is_multiple_of(TRAIL_EVERY) {
@@ -683,6 +717,7 @@ impl Arena {
                     }
                 }
                 if phase == Phase::Build {
+                    self.bots_build();
                     self.cue("horn_build", 0);
                     let unplaced = self.unplaced_royal().is_some();
                     if unplaced {
@@ -694,11 +729,73 @@ impl Arena {
         }
     }
 
+    /// Bot castles for this build phase. The rules' SimpleBot buys pieces
+    /// with no place (R1.1203): those are sold back, and a bot with no
+    /// castle yet gets the AI's plan, placed through `play::Input`.
+    fn bots_build(&mut self) {
+        if self.phase() != Phase::Build {
+            return;
+        }
+        let bots: Vec<PlayerId> = self
+            .play
+            .rules
+            .players
+            .iter()
+            .filter(|p| p.alive() && matches!(p.seat, Seat::Bot(_)))
+            .map(|p| p.id)
+            .collect();
+        for b in bots {
+            let pl = &self.play.rules.players[b as usize];
+            let castle = &self.play.castles[b as usize];
+            let loose: Vec<u32> = pl
+                .ledger
+                .entries
+                .iter()
+                .filter(|e| matches!(e.piece, Piece::Segment(_) | Piece::Rope))
+                .filter(|e| !castle.geo.contains_key(&e.id))
+                .filter(|e| !pl.ruin_pieces.iter().any(|(id, _)| *id == e.id))
+                .map(|e| e.id)
+                .collect();
+            for id in loose {
+                let _ = self.play.apply(b, Input::Sell(id));
+            }
+            let pl = &self.play.rules.players[b as usize];
+            let castle = &self.play.castles[b as usize];
+            let has_beams = castle.geo.values().any(|g| matches!(g, castle::Geo::Beam { .. }));
+            if has_beams {
+                continue;
+            }
+            let unplaced: Vec<u8> = (0..pl.royals.len())
+                .filter(|&i| pl.royals[i].spot.is_none())
+                .map(|i| i as u8)
+                .collect();
+            let difficulty = match pl.seat {
+                Seat::Bot(d) => d,
+                Seat::Human => Difficulty::Normal,
+            };
+            let ask = crate::ai::build::BuildAsk {
+                plot: &pl.terrain,
+                level: pl.purse.level,
+                gold: pl.purse.gold,
+                stock: pl.ledger.stock,
+                royals: unplaced.len(),
+                buildings: &[],
+                difficulty,
+                seed: self.play.rules.settings.seed ^ (u64::from(b) << 32) ^ u64::from(self.play.rules.round),
+            };
+            let plan = crate::ai::build::plan_castle(&ask);
+            for input in crate::ai::build::to_inputs(&plan, &unplaced) {
+                let _ = self.play.apply(b, input);
+            }
+        }
+    }
+
     /// The first royal of yours not yet placed.
     fn unplaced_royal(&self) -> Option<usize> {
         let pl = self.play.rules.player(self.me)?;
         let c = &self.play.castles[self.me as usize];
-        (0..pl.royals.len()).find(|&i| pl.royals[i].spot.is_none() && c.royal_at.get(i).copied().flatten().is_none())
+        (0..pl.royals.len())
+            .find(|&i| pl.royals[i].spot.is_none() && c.royal_at.get(i).copied().flatten().is_none())
     }
 
     // ---- build actions ----
@@ -712,7 +809,8 @@ impl Arena {
     }
 
     fn is_node(&self, p: Vec2) -> bool {
-        self.built_world().is_some_and(|w| w.nodes.iter().any(|n| n.pos == p))
+        self.built_world()
+            .is_some_and(|w| w.nodes.iter().any(|n| n.pos == p))
     }
 
     fn in_zone(&self, p: Vec2) -> bool {
@@ -727,7 +825,9 @@ impl Arena {
 
     fn max_len(&self) -> Fx {
         match self.tool {
-            Tool::Beam(piece) => castle::physics_material(piece).map_or(Fx::ZERO, |m| TUNE.material(m).max_len),
+            Tool::Beam(piece) => {
+                castle::physics_material(piece).map_or(Fx::ZERO, |m| TUNE.material(m).max_len)
+            }
             _ => Fx::ZERO,
         }
     }
@@ -923,7 +1023,10 @@ impl Arena {
         let others: Vec<PlayerId> = alive.into_iter().filter(|&p| p != self.me).collect();
         self.scout = match self.scout {
             None => others.first().copied(),
-            Some(cur) => others.iter().position(|&p| p == cur).and_then(|i| others.get(i + 1).copied()),
+            Some(cur) => others
+                .iter()
+                .position(|&p| p == cur)
+                .and_then(|i| others.get(i + 1).copied()),
         };
         self.drag = None;
     }
@@ -1036,10 +1139,16 @@ impl Arena {
             Some(t) => arm_at(now.saturating_sub(t)).0,
             None => TUNE.treb_start_angle,
         };
-        let loaded = (s.swing_from.is_some() || s.live.iter().all(|&i| !world.projectiles.get(i).is_some_and(|b| b.alive)))
-            .then(|| s.ammo.get(s.selected as usize).filter(|a| a.1 > 0))
-            .flatten()
-            .map(|(a, _)| (a.row().radius, a.row().fire));
+        let loaded = (s.swing_from.is_some()
+            || s.live
+                .iter()
+                .all(|&i| !world.projectiles.get(i).is_some_and(|b| b.alive)))
+        .then(|| s.ammo.get(s.selected as usize).filter(|a| a.1 > 0))
+        .flatten()
+        .map(|(a, _)| {
+            let t = crate::physics::ammo::shot_tune(a.kind());
+            (t.radius, t.ignites)
+        });
         let mut loops = Vec::new();
         if mine && shots.iter().len() > 0 {
             loops.push("shot_whoosh");
@@ -1298,12 +1407,19 @@ impl Arena {
                 s.fill("hud.round", &[("n", rules.round.to_string())]),
                 s.fill(
                     "hud.phase",
-                    &[("phase", s.get(phase_key)), ("n", self.seconds_left().to_string())],
+                    &[
+                        ("phase", s.get(phase_key)),
+                        ("n", self.seconds_left().to_string()),
+                    ],
                 ),
             ],
         }];
         let alive = me.alive();
-        let ready_text = if me.ready { s.get("hud.waiting") } else { s.get("hud.ready") };
+        let ready_text = if me.ready {
+            s.get("hud.waiting")
+        } else {
+            s.get("hud.ready")
+        };
         let mut bar = Vec::new();
         let mut extra = Vec::new();
         if self.replay.is_some() {
@@ -1410,7 +1526,10 @@ impl Arena {
                     let pl = &rules.players[p as usize];
                     let name = self.names[p as usize].clone();
                     if pl.alive() {
-                        s.fill("hud.health", &[("name", name), ("n", pl.health.max(0).to_string())])
+                        s.fill(
+                            "hud.health",
+                            &[("name", name), ("n", pl.health.max(0).to_string())],
+                        )
                     } else {
                         s.fill("hud.out", &[("name", name)])
                     }
@@ -1448,7 +1567,12 @@ impl Arena {
         let unplaced = (0..me.royals.len())
             .filter(|&i| {
                 me.royals[i].spot.is_none()
-                    && self.play.castles[self.me as usize].royal_at.get(i).copied().flatten().is_none()
+                    && self.play.castles[self.me as usize]
+                        .royal_at
+                        .get(i)
+                        .copied()
+                        .flatten()
+                        .is_none()
             })
             .count();
         if unplaced > 0 {
@@ -1469,7 +1593,10 @@ impl Arena {
                 value: name.to_string(),
                 text: s.fill(
                     "tool.priced",
-                    &[("name", s.get(&format!("tool.{name}"))), ("n", ledger::price(piece, &me.mods).to_string())],
+                    &[
+                        ("name", s.get(&format!("tool.{name}"))),
+                        ("n", ledger::price(piece, &me.mods).to_string()),
+                    ],
                 ),
                 key: String::new(),
                 selected: self.tool == Tool::Building(*kind),
@@ -1496,7 +1623,10 @@ impl Arena {
                     value: k.to_string(),
                     text: s.fill(
                         "hud.ammo",
-                        &[("name", s.get(&format!("ammo.{}", ammo_name(*a)))), ("n", n.to_string())],
+                        &[
+                            ("name", s.get(&format!("ammo.{}", ammo_name(*a)))),
+                            ("n", n.to_string()),
+                        ],
                     ),
                     key: (k + 1).to_string(),
                     selected: k == sh.selected as usize,
@@ -1505,7 +1635,10 @@ impl Arena {
                 .collect(),
         };
         let w = &f.castle.world;
-        let flying = sh.live.iter().any(|&i| w.projectiles.get(i).is_some_and(|b| b.alive));
+        let flying = sh
+            .live
+            .iter()
+            .any(|&i| w.projectiles.get(i).is_some_and(|b| b.alive));
         let mut out = vec![ammo];
         if !sh.air.is_empty() {
             out.push(Item::Bar {
@@ -1571,7 +1704,10 @@ impl Arena {
             .map(|(k, &p)| {
                 s.fill(
                     "results.place",
-                    &[("n", (k + 1).to_string()), ("name", self.names[p as usize].clone())],
+                    &[
+                        ("n", (k + 1).to_string()),
+                        ("name", self.names[p as usize].clone()),
+                    ],
                 )
             })
             .collect();
