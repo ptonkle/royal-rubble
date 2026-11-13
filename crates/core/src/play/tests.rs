@@ -703,6 +703,7 @@ fn trebuchet_best_throw_lands_just_past_the_farthest_plot_back() {
 #[derive(Clone, Debug)]
 struct SliceJob {
     left: Vec<u64>,
+    planned: u32,
 }
 
 impl super::siege::PlanJob for SliceJob {
@@ -715,26 +716,33 @@ impl super::siege::PlanJob for SliceJob {
     fn take_ready(&mut self) -> Vec<super::siege::PlannedShot> {
         Vec::new()
     }
+    fn planned(&self) -> u32 {
+        self.planned
+    }
     fn box_clone(&self) -> Box<dyn super::siege::PlanJob> {
         Box::new(self.clone())
     }
 }
 
 #[test]
-fn botplan_slice_takes_turns_and_never_passes_the_budget() {
+fn botplan_slice_serves_the_bot_with_fewest_shots_within_the_budget() {
     let mut a = SliceJob {
         left: vec![60, 60, 60],
+        planned: 1,
     };
-    let mut b = SliceJob { left: vec![100, 10] };
-    // a 60 (90 left), b's 100 does not fit, a 60 (30 left), nothing fits
+    let mut b = SliceJob {
+        left: vec![100, 10],
+        planned: 0,
+    };
+    // b first (fewer shots): 100 (50 left), 10 (40 left); a's 60 does not fit
+    let spent = super::plan_slice(&mut [&mut a, &mut b], 150);
+    assert_eq!(spent, 110);
+    assert_eq!(a.left, vec![60, 60, 60]);
+    assert!(b.left.is_empty());
+    // b is done: a 60, 60 (30 left), and its last 60 waits
     let spent = super::plan_slice(&mut [&mut a, &mut b], 150);
     assert_eq!(spent, 120);
     assert_eq!(a.left, vec![60]);
-    assert_eq!(b.left, vec![100, 10]);
-    // next tick: a 60, b 100 (40 left), b 10
-    let spent = super::plan_slice(&mut [&mut a, &mut b], 200);
-    assert_eq!(spent, 170);
-    assert!(a.left.is_empty() && b.left.is_empty());
 }
 
 #[test]

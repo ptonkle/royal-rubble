@@ -228,6 +228,10 @@ impl PlanJob for SiegePlanner {
         std::mem::take(&mut self.ready)
     }
 
+    fn planned(&self) -> u32 {
+        self.n as u32
+    }
+
     fn box_clone(&self) -> Box<dyn PlanJob> {
         Box::new(self.clone())
     }

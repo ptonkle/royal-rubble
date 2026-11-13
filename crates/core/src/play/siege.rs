@@ -83,6 +83,8 @@ pub trait PlanJob: std::fmt::Debug + Send {
     /// Shots finished since the last call, in firing order. `swing_at` is
     /// the earliest tick from the siege start to swing.
     fn take_ready(&mut self) -> Vec<PlannedShot>;
+    /// Shots planned so far, taken or not.
+    fn planned(&self) -> u32;
     fn box_clone(&self) -> Box<dyn PlanJob>;
 }
 
@@ -105,6 +107,9 @@ impl PlanJob for ReadyPlan {
     }
     fn take_ready(&mut self) -> Vec<PlannedShot> {
         std::mem::take(&mut self.0)
+    }
+    fn planned(&self) -> u32 {
+        0
     }
     fn box_clone(&self) -> Box<dyn PlanJob> {
         Box::new(self.clone())

@@ -164,8 +164,10 @@ fn probe_botplan_worst_tick() {
         let mut last = vec![0u32; bots];
         while jobs.iter().any(|j| j.next_cost() > 0) {
             let t = Instant::now();
-            let mut refs: Vec<&mut (dyn PlanJob + 'static)> =
-                jobs.iter_mut().map(|j| j as &mut (dyn PlanJob + 'static)).collect();
+            let mut refs: Vec<&mut (dyn PlanJob + 'static)> = jobs
+                .iter_mut()
+                .map(|j| j as &mut (dyn PlanJob + 'static))
+                .collect();
             let spent = tool_core::play::plan_slice(&mut refs, BOT_PLAN_BUDGET);
             let us = t.elapsed().as_micros();
             for (i, j) in jobs.iter_mut().enumerate() {

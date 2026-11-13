@@ -437,23 +437,27 @@ impl Play {
     }
 }
 
-/// One tick of bot shot planning across every field (R1.2000): a unit of
-/// work to each field in turn while the next unit fits in what is left of
-/// `budget`. The budget is in work units, never clock time, so the slices
-/// are the same on every machine.
+/// One tick of bot shot planning across every field (R1.2000): each unit
+/// of work goes to the bot with the fewest shots planned (the first such
+/// field on a tie) whose next unit fits in what is left of `budget`, so
+/// first shots come one bot after another rather than all at the end.
+/// The budget is in work units, never clock time, so the slices are the
+/// same on every machine. Returns the units spent.
 pub fn plan_slice(jobs: &mut [&mut (dyn siege::PlanJob + 'static)], budget: u64) -> u64 {
     let mut left = budget;
     loop {
-        let mut worked = false;
-        for job in jobs.iter_mut() {
-            let need = job.next_cost();
-            if need > 0 && need <= left {
-                left -= job.advance().min(left);
-                worked = true;
-            }
-        }
-        if !worked {
+        let next = jobs
+            .iter()
+            .enumerate()
+            .filter(|(_, j)| {
+                let need = j.next_cost();
+                need > 0 && need <= left
+            })
+            .min_by_key(|(i, j)| (j.planned(), *i))
+            .map(|(i, _)| i);
+        let Some(i) = next else {
             return budget - left;
-        }
+        };
+        left -= jobs[i].advance().min(left);
     }
 }
