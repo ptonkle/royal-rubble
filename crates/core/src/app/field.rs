@@ -71,6 +71,56 @@ impl Camera {
         ((l * self.ppu).floor_int() as i32).max(min)
     }
 
+    /// A view of a castle box (`left..right` wide, `ground..top` high) so
+    /// the castle fills at least `share` (num, den) of the screen's height
+    /// where its width allows: centered, `margin` each side, the ground a
+    /// sixth up from the bottom (R1.1454).
+    #[allow(clippy::too_many_arguments)]
+    pub fn framing(
+        left: Fx,
+        right: Fx,
+        ground: Fx,
+        top: Fx,
+        margin: Fx,
+        share: (i64, i64),
+        w: i32,
+        h: i32,
+    ) -> Camera {
+        let tall = (top - ground).max(Fx::ONE);
+        // widest view that keeps the castle at the share of the height
+        let max_w = tall * Fx::from_int(w as i64 * share.1) / Fx::from_int(h as i64 * share.0);
+        let width = (right - left + margin * 2)
+            .min(max_w)
+            .max(right - left + margin / 2);
+        let mid = (left + right) / 2;
+        let mut cam = Camera::spanning(mid - width / 2, width, Fx::ZERO, w, h);
+        cam.bottom = ground - cam.height() / 6;
+        cam
+    }
+
+    /// One step of easing toward `to`: a `1/div` share of the way, so views
+    /// glide instead of jumping. A different screen size snaps.
+    pub fn ease_toward(self, to: Camera, div: i64) -> Camera {
+        if self.w != to.w || self.h != to.h {
+            return to;
+        }
+        let step = |a: Fx, b: Fx| {
+            let d = (b - a) / div;
+            if d == Fx::ZERO {
+                b
+            } else {
+                a + d
+            }
+        };
+        Camera {
+            left: step(self.left, to.left),
+            bottom: step(self.bottom, to.bottom),
+            ppu: step(self.ppu, to.ppu),
+            w: to.w,
+            h: to.h,
+        }
+    }
+
     pub fn world(&self, x: i32, y: i32) -> Vec2 {
         Vec2::new(
             self.left + Fx::from_int(x as i64) / self.ppu,
@@ -336,6 +386,41 @@ pub fn strain_bucket(v: Fx, broken: bool) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn camera_framing_keeps_a_castle_over_a_third_of_the_screen_height() {
+        // a castle 26 wide and 6 tall on a 1920x1080 screen: 6 / 0.35 = 17.1
+        // units of height at most, so at most 30.5 units wide (not 32)
+        let cam = Camera::framing(
+            Fx::from_int(100),
+            Fx::from_int(126),
+            Fx::from_int(10),
+            Fx::from_int(16),
+            Fx::from_int(3),
+            (35, 100),
+            1920,
+            1080,
+        );
+        let tall = cam.len(Fx::from_int(6), 0);
+        assert!(tall * 100 >= 1080 * 35, "castle {tall} px of 1080");
+        // the whole castle across
+        assert!(cam.px(Vec2::new(Fx::from_int(100), Fx::from_int(10)))[0] >= 0);
+        assert!(cam.px(Vec2::new(Fx::from_int(126), Fx::from_int(10)))[0] <= 1920);
+    }
+
+    #[test]
+    fn camera_eases_part_way_then_arrives() {
+        let a = Camera::spanning(Fx::ZERO, Fx::from_int(40), Fx::ZERO, 1920, 1080);
+        let b = Camera::spanning(Fx::from_int(60), Fx::from_int(20), Fx::from_int(4), 1920, 1080);
+        let one = a.ease_toward(b, 8);
+        // a step moves an eighth of the way: 60 / 8 = 7.5 units
+        assert_eq!(one.left, Fx::ratio(15, 2));
+        let mut c = one;
+        for _ in 0..400 {
+            c = c.ease_toward(b, 8);
+        }
+        assert_eq!(c, b);
+    }
 
     #[test]
     fn camera_maps_a_world_point_to_pixels_and_back() {

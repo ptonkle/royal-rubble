@@ -950,5 +950,19 @@
     "find": "        if have.iter().any(|h| same(s, &h.seg)) {\n            continue;\n        }",
     "replace": "        if have.iter().any(|h| same(s, &h.seg) && h.refund > 99) {\n            continue;\n        }",
     "test": "ai_bot_castle_grows_every_round_and_stands"
+  },
+  {
+    "name": "siege camera keeps the castle big",
+    "file": "crates/core/src/app/field.rs",
+    "find": "            .min(max_w)\n",
+    "replace": "            .min(max_w * 3)\n",
+    "test": "camera_framing_keeps_a_castle_over_a_third_of_the_screen_height"
+  },
+  {
+    "name": "siege camera eases",
+    "file": "crates/core/src/app/field.rs",
+    "find": "            let d = (b - a) / div;",
+    "replace": "            let d = b - a;",
+    "test": "camera_eases_part_way_then_arrives"
   }
 ]
