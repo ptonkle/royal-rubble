@@ -142,6 +142,7 @@ use crate::terrain::{Plot, SpotKind};
 
 fn ask(plot: &Plot, level: u8, gold: u32, royals: usize, seed: u64) -> BuildAsk<'_> {
     BuildAsk {
+        have: &[],
         plot,
         level,
         gold,
@@ -149,6 +150,7 @@ fn ask(plot: &Plot, level: u8, gold: u32, royals: usize, seed: u64) -> BuildAsk<
         royals,
         buildings: &[],
         difficulty: Difficulty::Normal,
+        round: 1,
         seed,
     }
 }
@@ -322,6 +324,7 @@ fn ai_castle_plan_goes_through_the_match_inputs() {
         play.rules.players[0].purse.gold = 60;
         let me = &play.rules.players[0];
         let plan = plan_castle(&BuildAsk {
+            have: &[],
             plot: &me.terrain,
             level: me.purse.level,
             gold: me.purse.gold,
@@ -329,6 +332,7 @@ fn ai_castle_plan_goes_through_the_match_inputs() {
             royals: 1,
             buildings: &[],
             difficulty: Difficulty::Hard,
+            round: 1,
             seed,
         });
         for input in to_inputs(&plan, &[0]) {
@@ -357,4 +361,81 @@ fn ai_planner_kills_a_royal_through_the_match() {
     let r = play.last_result.clone().unwrap();
     let c = r.castles.iter().find(|c| c.owner == 0).unwrap();
     assert_eq!(c.royals_killed.len(), 1);
+}
+
+/// Royals of `p` with a solid segment over their heads, and beams placed.
+fn cover(play: &Play, p: u8) -> (usize, usize) {
+    use crate::play::castle::{BodyOwner, Geo};
+    let pl = &play.rules.players[p as usize];
+    let cw = play.castles[p as usize].world(pl, true);
+    let w = &cw.world;
+    let covered = cw
+        .bodies
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| matches!(o, BodyOwner::Royal(_)))
+        .filter(|(i, _)| {
+            let b = w.bodies[*i].pos;
+            w.segments.iter().any(|s| {
+                let (a, c) = (w.nodes[s.a].pos, w.nodes[s.b].pos);
+                a.x.min(c.x) < b.x && b.x < a.x.max(c.x) && a.y.min(c.y) > b.y
+            })
+        })
+        .count();
+    let beams = play.castles[p as usize]
+        .geo
+        .values()
+        .filter(|g| matches!(g, Geo::Beam { .. }))
+        .count();
+    (covered, beams)
+}
+
+#[test]
+fn ai_bot_castle_grows_every_round_and_stands() {
+    use super::build::bot_turn;
+    use crate::game::flow::Phase;
+    let mut more_covered = 0;
+    for seed in [1u64, 2, 3] {
+        let mut play = match_with(vec![Seat::Human, Seat::Bot(Difficulty::Normal)], seed);
+        let mut seen: Vec<(u32, usize, usize)> = Vec::new();
+        let mut last = (0, Phase::Lobby);
+        let mut n = 0;
+        while play.rules.round <= 8 && play.rules.phase != Phase::Results {
+            let now = (play.rules.round, play.rules.phase);
+            if now != last && now.1 == Phase::Build {
+                for input in bot_turn(&play, 1) {
+                    let _ = play.apply(1, input);
+                }
+                let pl = &play.rules.players[1];
+                let cw = play.castles[1].world(pl, false);
+                let r = cw.world.static_test(crate::physics::TUNE.settle_ticks + 120);
+                assert!(
+                    r.broken.is_empty(),
+                    "seed {seed} round {}: {} broke",
+                    now.0,
+                    r.broken.len()
+                );
+                let (covered, beams) = cover(&play, 1);
+                seen.push((now.0, beams, covered));
+            }
+            last = now;
+            let _ = play.apply(0, Input::Ready);
+            let _ = play.apply(1, Input::Ready);
+            play.tick();
+            n += 1;
+            assert!(n < 200_000);
+        }
+        assert!(seen.len() >= 8, "seed {seed}: {seen:?}");
+        // a castle from round 1, never smaller, and much bigger by round 8
+        assert!(seen[0].1 >= 4, "seed {seed}: {seen:?}");
+        assert!(seen.windows(2).all(|w| w[1].1 >= w[0].1), "seed {seed}: {seen:?}");
+        assert!(seen[7].1 >= 2 * seen[0].1, "seed {seed}: {seen:?}");
+        // a royal under cover every round; more on flat enough ground (R1.1453)
+        assert!(
+            seen.iter().filter(|s| s.2 >= 1).count() >= 7,
+            "seed {seed}: {seen:?}"
+        );
+        more_covered += usize::from(seen[7].2 > seen[0].2);
+    }
+    assert!(more_covered >= 1);
 }

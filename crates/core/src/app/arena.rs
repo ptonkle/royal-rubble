@@ -744,46 +744,7 @@ impl Arena {
             .map(|p| p.id)
             .collect();
         for b in bots {
-            let pl = &self.play.rules.players[b as usize];
-            let castle = &self.play.castles[b as usize];
-            let loose: Vec<u32> = pl
-                .ledger
-                .entries
-                .iter()
-                .filter(|e| matches!(e.piece, Piece::Segment(_) | Piece::Rope))
-                .filter(|e| !castle.geo.contains_key(&e.id))
-                .filter(|e| !pl.ruin_pieces.iter().any(|(id, _)| *id == e.id))
-                .map(|e| e.id)
-                .collect();
-            for id in loose {
-                let _ = self.play.apply(b, Input::Sell(id));
-            }
-            let pl = &self.play.rules.players[b as usize];
-            let castle = &self.play.castles[b as usize];
-            let has_beams = castle.geo.values().any(|g| matches!(g, castle::Geo::Beam { .. }));
-            if has_beams {
-                continue;
-            }
-            let unplaced: Vec<u8> = (0..pl.royals.len())
-                .filter(|&i| pl.royals[i].spot.is_none())
-                .map(|i| i as u8)
-                .collect();
-            let difficulty = match pl.seat {
-                Seat::Bot(d) => d,
-                Seat::Human => Difficulty::Normal,
-            };
-            let ask = crate::ai::build::BuildAsk {
-                plot: &pl.terrain,
-                level: pl.purse.level,
-                gold: pl.purse.gold,
-                stock: pl.ledger.stock,
-                royals: unplaced.len(),
-                buildings: &[],
-                difficulty,
-                seed: self.play.rules.settings.seed ^ (u64::from(b) << 32) ^ u64::from(self.play.rules.round),
-            };
-            let plan = crate::ai::build::plan_castle(&ask);
-            for input in crate::ai::build::to_inputs(&plan, &unplaced) {
+            for input in crate::ai::build::bot_turn(&self.play, b) {
                 let _ = self.play.apply(b, input);
             }
         }

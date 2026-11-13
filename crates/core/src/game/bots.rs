@@ -1,12 +1,10 @@
-//! Bot decisions for the economy phases: what to buy, build and pick. Where
-//! segments go is the castle AI's job; this only spends the gold. The
-//! match calls `SimpleBot` for bot seats; any `BotPolicy` can be run with
-//! `Match::run_policy`.
+//! Bot decisions for the economy phases: upgrade picks and XP. Segments and
+//! producers are the castle AI's (`ai::build::bot_turn`, R1.1451), which
+//! places them where they go. The match calls `SimpleBot` for bot seats;
+//! any `BotPolicy` can be run with `Match::run_policy`.
 
-use super::economy;
 use super::flow::{Difficulty, Player};
-use super::ledger::{self, BuildingKind, Material, Piece};
-use super::sites;
+use super::ledger::Piece;
 use super::tune;
 use super::upgrades::{Effect, Offer, UPGRADES};
 
@@ -31,9 +29,6 @@ pub trait BotPolicy {
 pub struct SimpleBot {
     pub difficulty: Difficulty,
 }
-
-/// Most segments a bot buys in one build.
-const MAX_SEGMENTS: u32 = 12;
 
 impl SimpleBot {
     /// Gold the bot keeps banked for interest.
@@ -106,51 +101,12 @@ impl BotPolicy for SimpleBot {
 
     fn build(&self, me: &Player, round: u32) -> Vec<BotAction> {
         let mut out = Vec::new();
-        let mut gold = me.purse.gold;
+        let gold = me.purse.gold;
         let reserve = self.reserve();
         let level = me.purse.level;
         if round >= 3 && level < tune::MAX_LEVEL && gold >= reserve + tune::XP_BUY_COST + 4 {
             out.push(BotAction::BuyXp);
-            gold -= tune::XP_BUY_COST;
         }
-        for kind in [
-            BuildingKind::Carpenter,
-            BuildingKind::Quarry,
-            BuildingKind::Armory,
-            BuildingKind::Mine,
-        ] {
-            let piece = Piece::Building(kind);
-            let cost = ledger::building_row(kind).cost;
-            if level >= ledger::unlock_level(piece) && !me.ledger.has_building(kind) && gold >= reserve + cost
-            {
-                let taken: Vec<usize> = me.ledger.entries.iter().filter_map(|e| e.col).collect();
-                let col = sites::best_column(&me.terrain, level, kind, &taken);
-                out.push(BotAction::PlaceAt(piece, col));
-                gold -= cost;
-            }
-        }
-        let material = [Material::Metal, Material::Stone, Material::Wood]
-            .into_iter()
-            .find(|m| level >= ledger::unlock_level(Piece::Segment(*m)))
-            .unwrap_or(Material::Wood);
-        let piece = Piece::Segment(material);
-        let price = ledger::price(piece, &me.mods);
-        let mut stock = match material {
-            Material::Wood => me.ledger.stock.wood,
-            Material::Stone => me.ledger.stock.stone,
-            Material::Metal => me.ledger.stock.metal,
-        };
-        let mut n = 0;
-        while n < MAX_SEGMENTS && (stock > 0 || gold >= reserve + price) {
-            if stock > 0 {
-                stock -= 1;
-            } else {
-                gold -= price;
-            }
-            out.push(BotAction::Place(piece));
-            n += 1;
-        }
-        let _ = economy::level_row(level);
         out.push(BotAction::Ready);
         out
     }
@@ -162,7 +118,7 @@ mod tests {
     use crate::game::flow::{Match, Seat, Settings};
 
     #[test]
-    fn a_normal_bot_keeps_twenty_gold_banked() {
+    fn a_normal_bot_keeps_twenty_gold_banked_and_is_ready() {
         let mut m = Match::new(Settings {
             seats: vec![Seat::Human; 2],
             wind: false,
@@ -178,6 +134,5 @@ mod tests {
         let p = &m.players[0];
         assert!(p.purse.gold >= 20, "gold {}", p.purse.gold);
         assert!(p.ready);
-        assert!(!p.ledger.entries.is_empty());
     }
 }

@@ -13,13 +13,17 @@
 
 use super::tune;
 use super::units;
-use crate::game::flow::Difficulty;
+use crate::game::flow::{Difficulty, Seat};
 use crate::game::ledger::{self, BuildingKind, Material, Piece, Stock};
 use crate::game::sites;
 use crate::game::upgrades::Modifiers;
+use crate::game::PlayerId;
 use crate::physics::world::snap;
 use crate::physics::{self, Fx, Vec2, World};
+use crate::play::castle::Geo;
+use crate::play::units::GridPt;
 use crate::play::Input;
+use crate::play::Play;
 use crate::rng::Rng;
 use crate::terrain::Plot;
 
@@ -32,12 +36,15 @@ pub struct SegPlan {
 }
 
 /// A royal on floor segment `segment` (index into the plan's segments) at
-/// `u` along it; `at` is the floor point under it.
+/// `u` along it, or on the ground inside the castle (`None`); `at` is the
+/// point under its feet.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RoyalPlan {
-    pub segment: usize,
+    pub segment: Option<usize>,
     pub u: Fx,
     pub at: Vec2,
+    /// Under at least one floor.
+    pub covered: bool,
 }
 
 /// A producer at terrain column `col`, standing on `segment`.
@@ -58,9 +65,20 @@ pub struct CastlePlan {
     pub stock: Stock,
 }
 
+/// A segment the castle already has: its ledger id, where it is, and the
+/// gold selling it gives back. A plan keeps it for free or sells it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Have {
+    pub id: u32,
+    pub seg: SegPlan,
+    pub refund: u32,
+}
+
 /// What a bot builds with.
 #[derive(Clone, Copy, Debug)]
 pub struct BuildAsk<'a> {
+    /// Segments already standing (grow-on-top, R1.1451).
+    pub have: &'a [Have],
     pub plot: &'a Plot,
     pub level: u8,
     pub gold: u32,
@@ -70,6 +88,8 @@ pub struct BuildAsk<'a> {
     /// Producers to put on spots, in order; skipped when not affordable or locked.
     pub buildings: &'a [BuildingKind],
     pub difficulty: Difficulty,
+    /// The round, for how much gold the bot banks.
+    pub round: u32,
     pub seed: u64,
 }
 
@@ -146,13 +166,28 @@ fn to_physics(m: Material) -> physics::Material {
     }
 }
 
-/// Gold and stockpile to buy `segs`, or `None` past `gold`.
-fn cost(segs: &[SegPlan], gold: u32, stock: Stock) -> Option<(u32, Stock)> {
+fn same(a: &SegPlan, b: &SegPlan) -> bool {
+    a.material == b.material && ((a.a == b.a && a.b == b.b) || (a.a == b.b && a.b == b.a))
+}
+
+/// Gold and stockpile to buy `segs`, or `None` past `gold`. Segments the
+/// castle already has (`have`) cost nothing; those the plan drops are sold
+/// and their refund counts toward `gold`.
+fn cost(segs: &[SegPlan], gold: u32, stock: Stock, have: &[Have]) -> Option<(u32, Stock)> {
     let mods = Modifiers::default();
     let mut left = stock;
     let mut used = Stock::default();
     let mut spent = 0u32;
+    let refund: u32 = have
+        .iter()
+        .filter(|h| !segs.iter().any(|s| same(s, &h.seg)))
+        .map(|h| h.refund)
+        .sum();
+    let gold = gold.saturating_add(refund);
     for s in segs {
+        if have.iter().any(|h| same(s, &h.seg)) {
+            continue;
+        }
         let have = left.get_mut(s.material);
         if *have > 0 {
             *have -= 1;
@@ -267,7 +302,9 @@ pub fn plan_castle(ask: &BuildAsk) -> CastlePlan {
     let mut rng = Rng::new(ask.seed);
     let level = ask.level.clamp(1, 9);
     let span = ask.plot.buildable(level);
-    let mut gold = ask.gold.saturating_sub(tune::reserve_gold(ask.difficulty));
+    let mut gold = ask
+        .gold
+        .saturating_sub(tune::reserve_gold(ask.difficulty, ask.round));
     // producers first: they pay every round
     let mut want = Vec::new();
     for &k in ask.buildings {
@@ -307,12 +344,20 @@ pub fn plan_castle(ask: &BuildAsk) -> CastlePlan {
                 };
                 for &m in &mats {
                     let (segs, floors) = lay_out(ask.plot, col0, &bl, m);
-                    if let Some((_, used)) = cost(&segs, gold, ask.stock) {
+                    // never smaller than the castle already standing
+                    if segs.len() < ask.have.len() {
+                        continue;
+                    }
+                    if let Some((_, used)) = cost(&segs, gold, ask.stock, ask.have) {
                         // worth most first (stronger material wins), then more pieces
-                        let worth = cost(&segs, u32::MAX, Stock::default()).map_or(0, |c| c.0);
+                        let worth = cost(&segs, u32::MAX, Stock::default(), &[]).map_or(0, |c| c.0);
                         // royals kept apart first, then worth, then pieces
-                        let spaced = spaced(&place_royals(&segs, &floors, ask.royals)) as u64;
-                        let size = (spaced << 40) + ((worth as u64) << 20) + segs.len() as u64;
+                        // royals under cover first, then royals kept apart
+                        let (spaced, covered) = spaced(&place_royals(ask.plot, &segs, &floors, ask.royals));
+                        let size = ((covered as u64) << 44)
+                            + ((spaced as u64) << 40)
+                            + ((worth as u64) << 20)
+                            + segs.len() as u64;
                         let slot = &mut best[mats.iter().position(|x| *x == m).unwrap_or(0)];
                         if slot.as_ref().is_none_or(|b| size > b.0) {
                             *slot = Some((size, segs, floors, used));
@@ -322,7 +367,7 @@ pub fn plan_castle(ask: &BuildAsk) -> CastlePlan {
             }
         }
         // the seed's template wins unless another keeps more royals apart
-        if best.iter().flatten().any(|b| (b.0 >> 40) as usize >= ask.royals) {
+        if best.iter().flatten().any(|b| (b.0 >> 44) as usize >= ask.royals) {
             break;
         }
     }
@@ -332,9 +377,9 @@ pub fn plan_castle(ask: &BuildAsk) -> CastlePlan {
         b.0 >> 40 == top >> 40 && b.0 * tune::STRONGER_SHARE.1 as u64 >= top * tune::STRONGER_SHARE.0 as u64
     });
     let (_, mut segments, floors, stock) = pick.unwrap_or_default();
-    let royals = place_royals(&segments, &floors, ask.royals);
+    let royals = place_royals(ask.plot, &segments, &floors, ask.royals);
     let buildings = place_buildings(ask.plot, level, &want, &mut segments, &floors);
-    let (spent, stock) = cost(&segments, u32::MAX, ask.stock).unwrap_or((0, stock));
+    let (spent, stock) = cost(&segments, u32::MAX, ask.stock, ask.have).unwrap_or((0, stock));
     let building_gold: u32 = buildings.iter().map(|b| ledger::building_row(b.kind).cost).sum();
     CastlePlan {
         segments,
@@ -347,23 +392,38 @@ pub fn plan_castle(ask: &BuildAsk) -> CastlePlan {
 
 /// Royals over the floors, upper floors first, each at least the royal
 /// spacing from the others where the castle allows it, else as far as it can.
-fn place_royals(segs: &[SegPlan], floors: &[(usize, i64)], n: usize) -> Vec<RoyalPlan> {
+fn place_royals(plot: &Plot, segs: &[SegPlan], floors: &[(usize, i64)], n: usize) -> Vec<RoyalPlan> {
+    let terrain = units::physics_terrain(plot);
     let top = floors.iter().map(|f| f.1).max().unwrap_or(0);
     let spacing = units::royal_spacing();
+    // every floor, and the ground in the middle of each bay under the lowest
+    // floor (floor 0: covered, and no fall)
+    let mut spots: Vec<(Option<usize>, i64, Vec2)> = floors
+        .iter()
+        .map(|&(s, k)| (Some(s), k, Vec2::lerp(segs[s].a, segs[s].b, Fx::HALF)))
+        .collect();
+    for &(s, k) in floors {
+        if k != 1 {
+            continue;
+        }
+        let mid = Vec2::lerp(segs[s].a, segs[s].b, Fx::HALF);
+        spots.push((None, 0, Vec2::new(mid.x, snap(terrain.height_at(mid.x)))));
+    }
     let mut out: Vec<RoyalPlan> = Vec::new();
     for _ in 0..n {
-        let pick = floors
+        let pick = spots
             .iter()
-            .filter(|(s, _)| !out.iter().any(|r| r.segment == *s))
-            .map(|&(s, k)| {
-                let at = Vec2::lerp(segs[s].a, segs[s].b, Fx::HALF);
+            .enumerate()
+            .filter(|(_, (_, _, at))| !out.iter().any(|r| r.at == *at))
+            .map(|(s, &(seg, k, at))| {
+                let _ = seg;
                 let gap = out
                     .iter()
                     .map(|r| (r.at - at).len())
                     .min()
                     .unwrap_or(Fx::from_int(1_000));
-                // inside: below the roof when there is more than one floor
-                let inside = top > 1 && k < top;
+                // inside: below the roof (the ground counts under one floor)
+                let inside = (top > 1 || k == 0) && k < top;
                 (gap >= spacing, inside, k, gap, s, at)
             })
             .max_by_key(|&(ok, inside, k, gap, s, _)| {
@@ -377,26 +437,30 @@ fn place_royals(segs: &[SegPlan], floors: &[(usize, i64)], n: usize) -> Vec<Roya
                     usize::MAX - s,
                 )
             });
-        let Some((_, _, _, _, s, at)) = pick else {
+        let Some((_, inside, _, _, s, at)) = pick else {
             break;
         };
         out.push(RoyalPlan {
-            segment: s,
+            segment: spots[s].0,
             u: Fx::HALF,
             at,
+            covered: inside,
         });
     }
     out
 }
 
-/// How many royals stand at least the spacing from every royal placed before.
-fn spaced(royals: &[RoyalPlan]) -> usize {
+/// How many royals stand at least the spacing from every royal placed
+/// before, and how many of those are under cover.
+fn spaced(royals: &[RoyalPlan]) -> (usize, usize) {
     let spacing = units::royal_spacing();
-    royals
+    let ok: Vec<&RoyalPlan> = royals
         .iter()
         .enumerate()
         .filter(|(i, r)| royals[..*i].iter().all(|o| (o.at - r.at).len() >= spacing))
-        .count()
+        .map(|(_, r)| r)
+        .collect();
+    (ok.len(), ok.iter().filter(|r| r.covered).count())
 }
 
 /// Producers on their spots: on the lowest castle floor over the column, or
@@ -450,8 +514,25 @@ pub fn to_world(plan: &CastlePlan, plot: &Plot) -> (World, Vec<usize>) {
         .collect();
     let mut royals = Vec::new();
     for r in &plan.royals {
-        if let Some(s) = ids[r.segment] {
-            royals.push(w.add_body(s, r.u, tune::royal_radius()));
+        match r.segment {
+            Some(seg) => {
+                if let Some(s) = ids[seg] {
+                    royals.push(w.add_body(s, r.u, tune::royal_radius()));
+                }
+            }
+            None => {
+                let radius = tune::royal_radius();
+                let pos = Vec2::new(r.at.x, w.terrain.height_at(r.at.x) + radius);
+                w.bodies.push(physics::Body {
+                    pos,
+                    prev: pos,
+                    radius,
+                    attached: None,
+                    peak_y: pos.y,
+                    alive: true,
+                });
+                royals.push(w.bodies.len() - 1);
+            }
         }
     }
     for b in &plan.buildings {
@@ -490,6 +571,140 @@ pub fn to_inputs(plan: &CastlePlan, royal_index: &[u8]) -> Vec<Input> {
             index: royal_index.get(i).copied().unwrap_or(i as u8),
             at: units::grid_pt(r.at),
         });
+    }
+    out
+}
+
+/// Everything bot `p` does with its castle at the start of a build phase,
+/// as inputs to feed through `Play::apply` in order: sell what the new plan
+/// drops (an older material, a moved wall), place what it adds, put
+/// producers on their spots, then stand the royals, the most valuable in
+/// the best-covered places (R1.1451). The plan keeps every segment it can
+/// for free, so the castle grows each round with the gold left after the
+/// bank (`tune::reserve_gold`) and the stockpile.
+pub fn bot_turn(play: &Play, p: PlayerId) -> Vec<Input> {
+    let Some(pl) = play.rules.player(p) else {
+        return Vec::new();
+    };
+    let castle = &play.castles[p as usize];
+    let round = play.rules.round;
+    let difficulty = match pl.seat {
+        Seat::Bot(d) => d,
+        Seat::Human => Difficulty::Normal,
+    };
+    let have: Vec<Have> = pl
+        .ledger
+        .entries
+        .iter()
+        .filter_map(|e| {
+            let Piece::Segment(material) = e.piece else {
+                return None;
+            };
+            let Some(Geo::Beam { a, b }) = castle.geo.get(&e.id) else {
+                return None;
+            };
+            let refund = if e.round == round {
+                e.paid_gold
+            } else {
+                e.value * crate::game::tune::SELL_LATER_NUM / crate::game::tune::SELL_LATER_DEN
+            };
+            Some(Have {
+                id: e.id,
+                seg: SegPlan {
+                    a: a.to_fx(),
+                    b: b.to_fx(),
+                    material,
+                },
+                refund,
+            })
+        })
+        .collect();
+    let level = pl.purse.level;
+    let wanted: Vec<BuildingKind> = tune::BOT_PRODUCERS
+        .iter()
+        .copied()
+        .filter(|k| !pl.ledger.has_building(*k) && level >= ledger::unlock_level(Piece::Building(*k)))
+        .filter(|_| have.len() >= tune::PRODUCERS_AFTER_SEGMENTS)
+        .collect();
+    let ask = BuildAsk {
+        have: &have,
+        plot: &pl.terrain,
+        level,
+        gold: pl.purse.gold,
+        stock: pl.ledger.stock,
+        royals: pl.royals.len(),
+        buildings: &wanted,
+        difficulty,
+        round,
+        // the round stays out, so the template holds from round to round
+        seed: play.rules.settings.seed ^ (u64::from(p) << 32),
+    };
+    let plan = plan_castle(&ask);
+    let mut out: Vec<Input> = have
+        .iter()
+        .filter(|h| !plan.segments.iter().any(|s| same(s, &h.seg)))
+        .map(|h| Input::Sell(h.id))
+        .collect();
+    // royals by worth, most valuable first, onto the plan's best spots first
+    let mut order: Vec<u8> = (0..pl.royals.len() as u8).collect();
+    order.sort_by_key(|&i| std::cmp::Reverse(pl.royals[i as usize].kind.base_damage()));
+    let spot = |g: GridPt| crate::play::castle::rule_spot(&pl.terrain, level, g);
+    let mut taken: Vec<crate::game::royals::Spot> = Vec::new();
+    let mut moves: Vec<(u8, GridPt)> = Vec::new();
+    let mut k = 0;
+    for r in &plan.royals {
+        let g = units::grid_pt(r.at);
+        if k < order.len() && crate::game::royals::spaced(spot(g), &taken) {
+            taken.push(spot(g));
+            moves.push((order[k], g));
+            k += 1;
+        }
+    }
+    // the rest stand on open ground toward the back of the plot, apart
+    // from the others, so they never block a royal headed for cover
+    let terrain = units::physics_terrain(&pl.terrain);
+    let span = pl.terrain.buildable(level);
+    let mut away: Vec<(u8, GridPt)> = Vec::new();
+    for &index in &order[k..] {
+        let found = (span.start..span.end).rev().find_map(|c| {
+            let x = units::col_x(c) + units::col_width() / 2;
+            let g = units::grid_pt(Vec2::new(x, snap(terrain.height_at(x))));
+            crate::game::royals::spaced(spot(g), &taken).then_some(g)
+        });
+        if let Some(g) = found {
+            taken.push(spot(g));
+            away.push((index, g));
+        }
+    }
+    let inputs = to_inputs(
+        &CastlePlan {
+            royals: Vec::new(),
+            ..plan
+        },
+        &[],
+    );
+    out.extend(inputs.into_iter().filter(|i| match i {
+        Input::PlaceSegment { piece, a, b } => {
+            let seg = SegPlan {
+                a: a.to_fx(),
+                b: b.to_fx(),
+                material: match piece {
+                    Piece::Segment(m) => *m,
+                    _ => Material::Wood,
+                },
+            };
+            !have.iter().any(|h| same(&seg, &h.seg))
+        }
+        _ => true,
+    }));
+    // a royal refused for standing too near another's old place takes its
+    // spot once the other has moved
+    for _ in 0..pl.royals.len().max(1) {
+        out.extend(
+            away.iter()
+                .chain(moves.iter())
+                .map(|&(index, at)| Input::PlaceRoyal { index, at }),
+        );
     }
     out
 }

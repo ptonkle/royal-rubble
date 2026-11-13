@@ -49,27 +49,78 @@ pub struct Spot {
 }
 
 /// Ruin shapes in cells: (x from the spot's left edge, height); height 0 is
-/// the ground under that x, any other height is above the spot's highest ground.
+/// the ground at that column's left edge (where the physics ground is that
+/// column's height, so the node is anchored), any other height is above the
+/// spot's highest ground. Every shape is braced into triangles between two
+/// or more ground nodes, so it stands under its own weight (R1.1450).
 type RuinShape = &'static [((i32, i32), (i32, i32))];
 const RUINS: &[RuinShape] = &[
-    // broken wall
-    &[((1, 0), (1, 4)), ((4, 0), (4, 3)), ((1, 4), (4, 3))],
-    // arch
+    // broken wall: two braced bays, the right one a floor lower
     &[
-        ((1, 0), (1, 3)),
-        ((5, 0), (5, 3)),
-        ((1, 3), (3, 5)),
-        ((3, 5), (5, 3)),
+        ((1, 0), (1, 1)),
+        ((1, 1), (1, 2)),
+        ((2, 0), (2, 1)),
+        ((2, 1), (2, 2)),
+        ((3, 0), (3, 1)),
+        ((1, 1), (2, 1)),
+        ((1, 2), (2, 2)),
+        ((2, 1), (3, 1)),
+        ((1, 0), (2, 1)),
+        ((2, 1), (1, 2)),
+        ((3, 0), (2, 1)),
     ],
-    // tower stub
+    // arch: two braced piers, a lintel and a pointed top
     &[
-        ((2, 0), (2, 5)),
-        ((4, 0), (4, 5)),
-        ((2, 5), (4, 5)),
-        ((2, 0), (4, 2)),
+        ((1, 0), (1, 1)),
+        ((1, 1), (1, 2)),
+        ((2, 0), (2, 1)),
+        ((2, 1), (2, 2)),
+        ((1, 1), (2, 1)),
+        ((1, 2), (2, 2)),
+        ((1, 0), (2, 1)),
+        ((2, 1), (1, 2)),
+        ((4, 0), (4, 1)),
+        ((4, 1), (4, 2)),
+        ((5, 0), (5, 1)),
+        ((5, 1), (5, 2)),
+        ((4, 1), (5, 1)),
+        ((4, 2), (5, 2)),
+        ((5, 0), (4, 1)),
+        ((4, 1), (5, 2)),
+        ((2, 2), (4, 2)),
+        ((2, 2), (3, 3)),
+        ((3, 3), (4, 2)),
     ],
-    // rubble stubs
-    &[((1, 0), (1, 2)), ((3, 0), (3, 3)), ((5, 0), (5, 1))],
+    // tower stub: two braced bays, one post broken off a floor short
+    &[
+        ((2, 0), (2, 1)),
+        ((2, 1), (2, 2)),
+        ((2, 2), (2, 3)),
+        ((3, 0), (3, 1)),
+        ((3, 1), (3, 2)),
+        ((3, 2), (3, 3)),
+        ((4, 0), (4, 1)),
+        ((4, 1), (4, 2)),
+        ((2, 1), (3, 1)),
+        ((2, 2), (3, 2)),
+        ((2, 3), (3, 3)),
+        ((3, 1), (4, 1)),
+        ((3, 2), (4, 2)),
+        ((2, 0), (3, 1)),
+        ((3, 1), (2, 2)),
+        ((2, 2), (3, 3)),
+        ((4, 0), (3, 1)),
+        ((3, 1), (4, 2)),
+    ],
+    // rubble: low braced stubs
+    &[
+        ((1, 0), (1, 1)),
+        ((1, 1), (2, 0)),
+        ((3, 0), (3, 1)),
+        ((4, 0), (4, 1)),
+        ((3, 1), (4, 1)),
+        ((3, 0), (4, 1)),
+    ],
 ];
 
 /// True when `cols` is flat, dry, inside the plot and clear of other spots
@@ -101,7 +152,7 @@ fn ruin_segments(plot: &Plot, cols: ColRange, shape: usize) -> Vec<Segment> {
     let node = |(x, y): (i32, i32)| {
         let col = cols.start + x as usize;
         Node {
-            x: col as i32 * COL_W + COL_W / 2,
+            x: col as i32 * COL_W,
             y: if y == 0 { plot.heights[col] } else { top + y * CELL },
         }
     };

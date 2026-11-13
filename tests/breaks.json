@@ -936,5 +936,19 @@
     "find": ".position(|st| st.person == client)",
     "replace": ".position(|st| st.person != client)",
     "test": "arena_starts_a_real_match_in_build_with_you_in_the_first_seat"
+  },
+  {
+    "name": "ruins anchored at column edges",
+    "file": "crates/core/src/terrain/spots.rs",
+    "find": "            x: col as i32 * COL_W,",
+    "replace": "            x: col as i32 * COL_W + COL_W / 2,",
+    "test": "ruins_stand_under_the_static_test_on_every_seed"
+  },
+  {
+    "name": "bot castle keeps what stands",
+    "file": "crates/core/src/ai/build.rs",
+    "find": "        if have.iter().any(|h| same(s, &h.seg)) {\n            continue;\n        }",
+    "replace": "        if have.iter().any(|h| same(s, &h.seg) && h.refund > 99) {\n            continue;\n        }",
+    "test": "ai_bot_castle_grows_every_round_and_stands"
   }
 ]
