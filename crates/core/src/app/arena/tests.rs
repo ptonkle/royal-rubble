@@ -220,7 +220,8 @@ fn arena_a_high_shot_widens_the_view_and_keeps_the_ground_in_it() {
 
 #[test]
 fn arena_the_view_keeps_the_trebuchet_in_just_after_release() {
-    // R1.1800: the whip and follow-through are seen before the view follows
+    // R1.1800: the whip and follow-through are seen; since R1.3204 the view
+    // follows from release, starting from the trebuchet
     let mut a = arena(1);
     a.set_size("1920,1080").unwrap();
     to_siege(&mut a);
@@ -239,12 +240,6 @@ fn arena_the_view_keeps_the_trebuchet_in_just_after_release() {
             on_screen(&a, base) && on_screen(&a, top),
             "tick {k}: {:?}",
             a.camera()
-        );
-        // still the aiming view, not the wider flight view
-        let target = a.camera_target();
-        assert!(
-            target.width() <= Fx::from_int(CAM_AIM_MAX_W),
-            "tick {k}: {target:?}"
         );
     }
 }
@@ -382,5 +377,138 @@ fn arena_the_corner_window_frames_your_castle_box_not_the_whole_zone() {
     assert!(
         (r - l) * 2 >= INSET_W || (g - t) * 2 >= INSET_H,
         "box {l},{t}..{r},{g}"
+    );
+}
+
+#[test]
+fn arena_a_swing_begun_as_the_siege_timer_ends_still_flies_before_the_round_ends() {
+    // R1.3203: the round ended under a moving shot
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    to_siege(&mut a);
+    a.space(crate::play::ON_TICK);
+    a.tick();
+    a.play.rules.ticks_left = 2;
+    let round = a.play.rules.round;
+    // the held swing throws by itself at the bottom of the arm
+    let mut flew = false;
+    for _ in 0..crate::physics::SWING_END + 600 {
+        a.tick();
+        if a.play.rules.round != round {
+            break;
+        }
+        let f = a.my_field().unwrap();
+        let w = &f.castle.world;
+        flew |= f
+            .shooter
+            .live
+            .iter()
+            .filter_map(|&i| w.projectiles.get(i))
+            .any(|b| b.alive);
+    }
+    assert!(flew, "the shot left the trebuchet");
+    assert_ne!(a.play.rules.round, round, "the round ended once the shot stopped");
+}
+
+/// Your shot in the air, if any.
+fn my_ball(a: &Arena) -> Option<crate::physics::balls::Ball> {
+    let f = a.my_field()?;
+    let w = &f.castle.world;
+    f.shooter
+        .live
+        .iter()
+        .filter_map(|&i| w.projectiles.get(i))
+        .find(|b| b.alive)
+        .cloned()
+}
+
+#[test]
+fn arena_the_flight_view_follows_from_release_without_zooming_back_and_forth() {
+    // R1.3204: the view jumped after a hold, zoomed in and out under the
+    // shot and met the castle only after impact
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    to_siege(&mut a);
+    let (cl, _, ground, top) = a.castle_box(a.my_field().unwrap());
+    a.space(crate::play::ON_TICK);
+    for _ in 0..crate::physics::SWING_END * 2 / 3 {
+        a.tick();
+    }
+    a.space(crate::play::ON_TICK);
+    let mut zoom: Vec<Fx> = Vec::new();
+    let mut last = None;
+    let mut peaked = false;
+    for k in 0..600 {
+        a.tick();
+        let flying = a.flight.is_some_and(|fl| !fl.landed);
+        let (Some(b), true) = (my_ball(&a), flying) else {
+            if zoom.len() > 1 {
+                break;
+            }
+            continue;
+        };
+        let cam = a.camera();
+        zoom.push(cam.ppu);
+        // in view from a few ticks after release; out of the bottom third
+        // while it climbs
+        if zoom.len() > 8 {
+            let [x, y] = cam.px(b.pos);
+            peaked |= b.vel.y <= Fx::ZERO;
+            let low = if peaked { 1080 } else { 1080 * 2 / 3 };
+            assert!(
+                (0..1920).contains(&x) && (0..low).contains(&y),
+                "tick {k}: ball at {x},{y}"
+            );
+        }
+        last = Some(cam);
+    }
+    assert!(zoom.len() > 20, "the shot flew {} ticks", zoom.len());
+    // the zoom moves one way only
+    let ins = zoom.windows(2).filter(|p| p[1] > p[0]).count();
+    let outs = zoom.windows(2).filter(|p| p[1] < p[0]).count();
+    assert!(ins == 0 || outs == 0, "zoomed in {ins} and out {outs} ticks");
+    // the castle's front is in view on the last tick before impact
+    let cam = last.unwrap();
+    let [x, y] = cam.px(Vec2::new(cl, (ground + top) / 2));
+    assert!(
+        (0..1920).contains(&x) && (0..1080).contains(&y),
+        "castle front at {x},{y}"
+    );
+}
+
+#[test]
+fn arena_the_next_swing_waits_for_the_view_to_come_back_to_the_trebuchet() {
+    // R1.3205
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    to_siege(&mut a);
+    a.space(crate::play::ON_TICK);
+    for _ in 0..crate::physics::SWING_END * 2 / 3 {
+        a.tick();
+    }
+    a.space(crate::play::ON_TICK);
+    a.tick();
+    while a.landed_at.is_none() {
+        a.tick();
+    }
+    a.space(crate::play::ON_TICK);
+    a.tick();
+    assert!(
+        a.my_field().unwrap().shooter.swing_from.is_none(),
+        "a swing began on the castle view"
+    );
+    let mut n = 0;
+    while !a.camera_home() && n < 2000 {
+        a.tick();
+        n += 1;
+    }
+    assert!(n < 2000, "the view never came back");
+    let base = a.my_field().unwrap().base;
+    assert!(on_screen(&a, base));
+    a.space(crate::play::ON_TICK);
+    a.tick();
+    assert!(
+        a.my_field().unwrap().shooter.swing_from.is_some(),
+        "the swing begins once home"
     );
 }
