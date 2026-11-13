@@ -783,6 +783,72 @@ mod tests {
         assert_eq!(m.standings(), vec![0, 1, 2]);
     }
 
+    /// Runs phases out until the siege is over.
+    fn to_siege_over(m: &mut Match) {
+        while m.phase != Phase::SiegeOver {
+            run_out(m);
+        }
+    }
+
+    #[test]
+    fn eight_seats_play_on_while_two_players_have_health() {
+        // Each round player p loses p Kings (10 each to round 8, 15 from
+        // round 9) and player 0 a Squire (1): player 7 falls in round 2,
+        // player 1 last, in round 10 (8 x 10 + 15 = 95, then 110).
+        let mut m = humans(8);
+        loop {
+            to_siege_over(&mut m);
+            let round = m.round;
+            let mut castles = vec![CastleOutcome {
+                owner: 0,
+                attacker: 1,
+                ghost: false,
+                royals_killed: vec![RoyalKind::Squire],
+                buildings_survived: vec![],
+            }];
+            for p in m.alive().into_iter().filter(|&p| p != 0) {
+                castles.push(CastleOutcome {
+                    owner: p,
+                    attacker: 0,
+                    ghost: false,
+                    royals_killed: vec![RoyalKind::King; p as usize],
+                    buildings_survived: vec![],
+                });
+            }
+            m.apply_siege(&SiegeResult { castles }).unwrap();
+            let standing = m.players.iter().filter(|p| p.health > 0).count();
+            if standing >= 2 {
+                assert_ne!(m.phase, Phase::Results, "ended in round {round}");
+                assert_eq!(m.round, round + 1);
+            } else {
+                assert_eq!((round, m.phase, m.winner), (10, Phase::Results, Some(0)));
+                break;
+            }
+        }
+        assert_eq!(m.players[0].health, 90);
+        assert_eq!(m.standings(), vec![0, 1, 2, 3, 4, 5, 6, 7]);
+    }
+
+    #[test]
+    fn eight_seats_end_when_one_player_is_left() {
+        let mut m = humans(8);
+        to_siege_over(&mut m);
+        let castles = (0..8)
+            .filter(|&p| p != 3)
+            .map(|p| CastleOutcome {
+                owner: p,
+                attacker: 3,
+                ghost: false,
+                royals_killed: vec![RoyalKind::King; 10],
+                buildings_survived: vec![],
+            })
+            .collect();
+        m.apply_siege(&SiegeResult { castles }).unwrap();
+        assert_eq!((m.phase, m.winner), (Phase::Results, Some(3)));
+        assert_eq!(m.alive(), vec![3]);
+        assert_eq!(m.standings()[0], 3);
+    }
+
     #[test]
     fn unplaced_royals_are_placed_when_build_ends() {
         let mut m = humans(2);

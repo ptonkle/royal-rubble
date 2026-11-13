@@ -1211,6 +1211,20 @@
     "test": "botplan_build_planning_starts_again_when_the_castle_changed"
   },
   {
+    "name": "eightseat match ends only with one player left",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "        if alive.len() <= 1 {\n",
+    "replace": "        if alive.len() <= 2 {\n",
+    "test": "eight_seats_play_on_while_two_players_have_health"
+  },
+  {
+    "name": "eightseat match ends when one player is left",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "        if alive.len() <= 1 {\n",
+    "replace": "        if alive.is_empty() {\n",
+    "test": "eight_seats_end_when_one_player_is_left"
+  },
+  {
     "name": "r3200 replay kept into the next siege",
     "file": "crates/core/src/app/arena.rs",
     "find": "                self.replay = None;\n                self.flight = None;",
