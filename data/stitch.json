@@ -2176,10 +2176,7 @@
  ],
  "game": {
   "_about": "The playfield's sizes, as multiples of what the core gives (a beam's width, a royal's radius) or in screen pixels.",
-  "figure_tall_r": 8,
-  "figure_min_px": 96,
   "hut_min_px": 50,
-  "figure_foot_r": 1.25,
   "figure_pad": 0.3,
   "figure_dead_turn": 1.5708,
   "hut_units_r": 0.035,

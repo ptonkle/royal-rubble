@@ -7,6 +7,20 @@ use crate::physics::Fx;
 pub const ROYAL_RADIUS: Fx = Fx::ratio(1, 4);
 pub const BUILDING_RADIUS: Fx = Fx::ratio(1, 2);
 
+/// Head room under cover (R1.2400): one floor height (a cell, the bots'
+/// `ai::tune::FLOOR_UNITS`) less half the thickest beam (stone) below the
+/// royal's feet and half above its head.
+pub const HEAD_ROOM: Fx = Fx::ratio(3, 4);
+/// A royal's figure as drawn, in cells: its feet on the bottom of the body
+/// circle, centered on it, at most this tall and this wide (the baked
+/// figures reach about 0.6 of their height with an arm out), so it stands
+/// under any floor above it (R1.2400).
+pub const FIGURE_TALL: Fx = Fx::ratio(11, 16);
+pub const FIGURE_WIDE: Fx = Fx::ratio(1, 2);
+/// The least a figure is drawn, in pixels, when the view is zoomed far out
+/// (the corner inset); never more than the head room at that zoom.
+pub const FIGURE_MIN_PX: i32 = 12;
+
 /// A point stands on a floor when it is within this of the floor's top,
 /// and on the ground within this of the ground (half a grid step).
 pub const STAND_TOLERANCE: Fx = Fx::ratio(1, 8);

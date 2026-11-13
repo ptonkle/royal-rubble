@@ -66,6 +66,14 @@ impl Camera {
         [x as i32, self.h - y as i32]
     }
 
+    /// A royal figure's drawn height: world scale, or at least
+    /// `FIGURE_MIN_PX` when zoomed far out, never above the head room.
+    pub fn figure_tall(&self) -> i32 {
+        use crate::play::tune::{FIGURE_MIN_PX, FIGURE_TALL, HEAD_ROOM};
+        self.len(FIGURE_TALL, 0)
+            .max(FIGURE_MIN_PX.min(self.len(HEAD_ROOM, 0)))
+    }
+
     /// A length in pixels, at least `min`.
     pub fn len(&self, l: Fx, min: i32) -> i32 {
         ((l * self.ppu).floor_int() as i32).max(min)
@@ -223,6 +231,9 @@ pub struct Figure {
     pub x: i32,
     pub y: i32,
     pub r: i32,
+    /// the figure's drawn height in pixels, feet on the body's bottom
+    /// (`play::tune::FIGURE_TALL`, R1.2400)
+    pub tall: i32,
     /// "squire", "knight", ... for the renderer's look
     pub rank: &'static str,
     #[serde(skip_serializing_if = "is_false")]

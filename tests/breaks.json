@@ -1188,5 +1188,12 @@
     "find": "    pub fn kept_in(self, right: Fx) -> Camera {\n",
     "replace": "    pub fn kept_in(self, right: Fx) -> Camera {\n        if right > Fx::ZERO {\n            return self;\n        }\n",
     "test": "camera_kept_in_never_shows_past_the_world_edges"
+  },
+  {
+    "name": "royal figure fits under cover",
+    "file": "crates/core/src/play/tune.rs",
+    "find": "pub const FIGURE_TALL: Fx = Fx::ratio(11, 16);",
+    "replace": "pub const FIGURE_TALL: Fx = Fx::ratio(15, 16);",
+    "test": "ai_bot_royal_figures_fit_under_their_cover"
   }
 ]
