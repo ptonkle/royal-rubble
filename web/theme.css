@@ -5,7 +5,7 @@
    faded wool on pale creased linen, sparse border bands, thin stitched
    rules. The palette is sampled from photographs of the tapestry and lives
    in data/look.json, which tools/look/tapestry_svgs.mjs also reads to draw
-   the linen, border band and wool patches in look/. Body text is dark blue
+   the linen, border band and wool patches in look.css. Body text is dark blue
    on linen (8:1); dim text 6:1; button text 5.5:1. */
 
 :root {
@@ -24,10 +24,10 @@
   --light-blue: #8aa0ac;
 
   /* the page behind everything: linen, a border band top and bottom */
-  --page-bg: var(--linen) url("look/linen.svg") repeat;
+  --page-bg: var(--linen) var(--look-linen) repeat;
   --page-ink: var(--navy);
   --page-ink-dim: #5a4636;
-  --strip-image: url("look/border.svg");
+  --strip-image: var(--look-border);
   --strip-height: 84px;
 
   /* a panel: the same linen, set off by two thin red-brown stitched rules */
@@ -44,12 +44,12 @@
 
   /* buttons: small couched-wool patches with a stem-stitch outline in a
      contrasting thread */
-  --button-bg: var(--brick) url("look/wool-brick.svg") repeat;
+  --button-bg: var(--brick) var(--look-wool-brick) repeat;
   --button-ink: #f2ebe0;
   --button-edge: var(--olive);
   --button-edge-width: 2px;
   --button-stitch: rgba(242, 235, 224, 0.35);
-  --button-quiet-bg: var(--buff) url("look/wool-buff.svg") repeat;
+  --button-quiet-bg: var(--buff) var(--look-wool-buff) repeat;
   --button-quiet-ink: var(--navy);
   --button-quiet-edge: var(--slate);
   --button-quiet-stitch: rgba(42, 54, 70, 0.3);
@@ -68,7 +68,7 @@
 
   /* lobby seats */
   --seat-bg: rgba(203, 183, 159, 0.4);
-  --seat-me: var(--buff) url("look/wool-buff.svg") repeat;
+  --seat-me: var(--buff) var(--look-wool-buff) repeat;
   --seat-edge: var(--tan);
   --seat-ready: #4a5a2e;
 
