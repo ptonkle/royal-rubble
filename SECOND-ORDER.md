@@ -161,6 +161,7 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R1.1209 | finding | A held swing | `Field::release` never fires on its own; the arena queues a Release once the arm reaches the bottom (as the sandbox does) | `Arena::tick` | | done |
 | R1.1210 | finding | The browser check polls | `fast_match` presses Skip, the first card and Ready every 50 ms until the results show: a loop of short waits, not a fixed wait for an outcome, since the match has no single selector to wait on | `tests/browser/interactions.py` | | open |
 | R1.1211 | finding | Buttons in the HUD move every frame | The phase timer's text reflows the top row, so Playwright's click waits for a still element and times out; the scripts click by event (`dispatch_event`) | `press` in `scripts/play_match.py` and `interactions.py` | | done |
+| R1.1212 | finding | The old ruins under Test | On seed of the screenshot run, `Play::strain` reports the free stone ruin at the top bucket (red) on every piece: it would break under its own weight in the static test. Not from the arena's mapping (ledger id to physics segment, as `play.strain` gives it) | For the physics/terrain agents: ruins should stand at rest, or be braced by the generator | notes/shots/match-build.png | open |
 
 ## Strings written by the agent
 
