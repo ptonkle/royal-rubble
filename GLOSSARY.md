@@ -99,3 +99,51 @@ Air that pushes every shot the same way. It changes each round and can be turned
 ### Watchtower hill
 
 A spot on the map. While a building on it survives, you see the forecast.
+
+### Air effect
+
+A trick you trigger while a shot is in the air, such as dropping straight down or splitting. Each one has a key, Q, W, E or R, and a few uses a round. One per shot.
+
+### Chain shot
+
+Special ammo that cuts ropes and wood.
+
+### Decoy
+
+A royal that looks real but costs you no health when killed.
+
+### Exploding shot
+
+Special ammo that blows up when it touches something, wearing down every segment nearby.
+
+### Fire shot
+
+Special ammo that sets wood alight. Fire spreads to touching wood.
+
+### Heavy shot
+
+Special ammo: bigger and heavier than a normal shot.
+
+### Kill gold
+
+Gold you earn for each royal you kill.
+
+### Meteor shot
+
+Special ammo: huge, heavy and burning.
+
+### Normal shot
+
+A plain stone from the trebuchet. You get a few each round from your level.
+
+### Producer
+
+A building that makes wood, stone or metal each round it survives: the Carpenter, Quarry and Mine.
+
+### Segment
+
+One beam of your castle, in wood, stone or metal.
+
+### Spread shot
+
+Special ammo that flies apart into several small stones.

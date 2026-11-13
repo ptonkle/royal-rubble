@@ -48,7 +48,15 @@ impl SimpleBot {
     fn score(effect: Effect, round: u32) -> u32 {
         let early = round <= 6;
         match effect {
-            Effect::Gold(_) | Effect::InterestCap(_) | Effect::Stock(..) | Effect::Discount(..) => {
+            Effect::Gold(_)
+            | Effect::InterestCap(_)
+            | Effect::InterestStep(_)
+            | Effect::GoldPerRound(_)
+            | Effect::XpPerRound(_)
+            | Effect::StockPerRound(..)
+            | Effect::ProducerOutput(_)
+            | Effect::Stock(..)
+            | Effect::Discount(..) => {
                 if early {
                     3
                 } else {
@@ -63,7 +71,7 @@ impl SimpleBot {
                 }
             }
             Effect::ShotsPerRound(_) | Effect::Ammo(..) => 2,
-            Effect::Air(_) => 1,
+            _ => 1,
         }
     }
 
@@ -72,7 +80,10 @@ impl SimpleBot {
             .cards
             .iter()
             .enumerate()
-            .map(|(slot, i)| (slot, Self::score(UPGRADES[*i].effect, round)))
+            .map(|(slot, i)| {
+                let s = UPGRADES[*i].effects.iter().map(|e| Self::score(*e, round)).max();
+                (slot, s.unwrap_or(0))
+            })
             .max_by_key(|(slot, s)| (*s, usize::MAX - slot))
             .unwrap_or((0, 0))
     }
