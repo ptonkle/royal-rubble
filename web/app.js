@@ -13,6 +13,7 @@ import * as store from "./save/store.js";
 import { pump, startNet } from "./online.js";
 import { takeGains } from "./settings.js";
 import { initField, showField } from "./field.js";
+import { play } from "./sound.js";
 
 const el = (id) => document.getElementById(id);
 const make = (tag, cls, text) => {
@@ -29,6 +30,8 @@ let panelsText = "";
 let uiText = "";
 // the save text as last written: an unchanged one is not written again
 let saved = "";
+// the core's count of volume slider moves, as last heard
+let samplesSeen = null;
 
 // ---- talking to the core ----
 
@@ -548,6 +551,9 @@ function draw(result) {
   el("message").textContent = ui.status;
   drawMenus();
   showField(ui);
+  // a volume slider moved: a sample at the new level
+  if (samplesSeen !== null && ui.samples !== samplesSeen) play(ui.sample_cue);
+  samplesSeen = ui.samples;
   // in a match the keys are the game's: a menu button left with the focus
   // would take Space or Enter as a press
   if (ui.capture && document.activeElement !== document.body) document.activeElement.blur();
