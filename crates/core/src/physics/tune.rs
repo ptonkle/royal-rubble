@@ -105,13 +105,22 @@ pub struct Tune {
     pub treb_arm: Fx,
     /// Arm angle at swing start (brads, 0 = pointing forward).
     pub treb_start_angle: i64,
-    /// Top arm speed in brads per tick, reached after `treb_ramp` ticks.
-    pub treb_top_speed: i64,
-    pub treb_ramp: i64,
+    /// Arm speed through the swing: (tick, brads per tick) knots, joined by
+    /// straight lines and held after the last. The arm whips up from rest,
+    /// then turns slowly through the lobs, quicker over the top (throws there
+    /// overshoot every plot), and slowly again through the flat throws, so
+    /// each release window is wide enough to aim; past the last flat throw
+    /// that clears a hill it drops quickly.
+    pub treb_swing: [(i64, i64); 8],
+    /// The sling is fully swung at this arm speed (brads per tick): from
+    /// there on every release leaves at the same speed, so the release tick
+    /// sets only the angle.
+    pub treb_sling_full: i64,
     /// Launch speed multiplier is (treb_power_base + power) / treb_power_base.
     pub treb_power_base: i64,
-    /// The sling: launch speed in percent of the arm tip's speed. It lets
-    /// the arm turn slowly (a wide release window) and still throw far.
+    /// The sling: launch speed in percent of the arm tip's speed (at most
+    /// `treb_sling_full`). It lets the arm turn slowly (a wide release
+    /// window) and still throw far.
     pub treb_sling_pct: i64,
     /// World edge margin past which balls are removed.
     pub edge_margin: Fx,
@@ -190,10 +199,19 @@ pub const TUNE: Tune = Tune {
     treb_pivot_height: Fx::from_int(3),
     treb_arm: Fx::from_int(4),
     treb_start_angle: TURN * 5 / 8,
-    treb_top_speed: 450,
-    treb_ramp: 30,
+    treb_swing: [
+        (0, 0),
+        (14, 800),
+        (24, 80),
+        (54, 80),
+        (66, 400),
+        (78, 80),
+        (150, 80),
+        (165, 700),
+    ],
+    treb_sling_full: 80,
     treb_power_base: 100,
-    treb_sling_pct: 490,
+    treb_sling_pct: 2756,
     edge_margin: Fx::from_int(64),
 };
 

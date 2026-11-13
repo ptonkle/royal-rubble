@@ -431,11 +431,14 @@ fn land_x(terrain: crate::physics::Terrain, base: Vec2, release: u32, power: u8)
     None
 }
 
+/// Release ticks the tests try: past the end of the swing.
+const SCAN: u32 = 240;
+
 /// The farthest and nearest columns a forward throw lands at, over every
 /// release tick, from `plot`'s trebuchet at `power`.
 fn reach(plot: &Plot, power: u8) -> (i64, i64) {
     let base = units::trebuchet_base(plot);
-    let lands: Vec<i64> = (0..120)
+    let lands: Vec<i64> = (0..SCAN)
         .filter_map(|r| land_x(units::physics_terrain(plot), base, r, power))
         .collect();
     (*lands.iter().min().unwrap(), *lands.iter().max().unwrap())
@@ -478,7 +481,7 @@ fn trebuchet_level_one_clears_a_far_raised_plot() {
     };
     let base = Vec2::ints(5, 0);
     let power = super::siege::launch_power(rules::LEVELS[0].shot_power_pct);
-    let far = (0..120)
+    let far = (0..SCAN)
         .filter_map(|r| land_x(t.clone(), base, r, power))
         .max()
         .unwrap();
@@ -636,4 +639,38 @@ fn wire_royals_killed_are_listed_in_kill_order() {
     f.step();
     let out = f.outcome(&royals);
     assert_eq!(out.royals_killed, vec![RoyalKind::King, RoyalKind::Squire]);
+}
+
+/// The longest run of back-to-back release ticks whose throw at `level`'s
+/// power lands on `level`'s plot, for the terrain seed (1-4) where it is shortest.
+fn shortest_plot_window(level: u8) -> (u64, usize) {
+    let power = super::siege::launch_power(rules::LEVELS[level as usize - 1].shot_power_pct);
+    (1..=4)
+        .map(|seed| {
+            let plot = Plot::generate(seed);
+            let base = units::trebuchet_base(&plot);
+            let span = plot.buildable(level);
+            let (mut best, mut run) = (0, 0);
+            for r in 0..SCAN {
+                let on = land_x(units::physics_terrain(&plot), base, r, power)
+                    .is_some_and(|x| x >= span.start as i64 && x < span.end as i64);
+                run = if on { run + 1 } else { 0 };
+                best = best.max(run);
+            }
+            (seed, best)
+        })
+        .min_by_key(|(_, best)| *best)
+        .unwrap()
+}
+
+#[test]
+fn trebuchet_level_one_plot_window_is_at_least_12_ticks() {
+    let (seed, ticks) = shortest_plot_window(1);
+    assert!(ticks >= 12, "seed {seed}: {ticks} ticks");
+}
+
+#[test]
+fn trebuchet_level_nine_plot_window_is_at_least_12_ticks() {
+    let (seed, ticks) = shortest_plot_window(9);
+    assert!(ticks >= 12, "seed {seed}: {ticks} ticks");
 }

@@ -28,6 +28,6 @@ pub const VOLLEY_SLOWER_PCT: i64 = 6;
 
 /// The stand-in shot plan for bot trebuchets until the aiming AI lands:
 /// release this many ticks into the swing, one shot every `BOT_SHOT_EVERY`.
-pub const BOT_RELEASE_TICK: u32 = 38;
+pub const BOT_RELEASE_TICK: u32 = 45;
 pub const BOT_SHOT_EVERY: u32 = 150;
 pub const BOT_FIRST_SWING: u32 = 30;

@@ -5,6 +5,11 @@ use crate::game::flow::Difficulty;
 use crate::physics::*;
 
 const BASE: Vec2 = Vec2::ints(4, 0);
+/// A plot-like distance from the trebuchet: the real terrain puts the plot
+/// front 112-148 columns out, where plain shots come in at a slant.
+const FAR: i64 = 4 + 140;
+/// Ticks a far shot is followed: long enough for a flat throw to land.
+const FAR_FLIGHT: u32 = 400;
 
 fn shooter() -> Shooter {
     Shooter {
@@ -21,7 +26,7 @@ fn shooter() -> Shooter {
 /// A flat plot with one royal standing on a one-unit wooden floor laid on
 /// the ground, centered at `x`; settled, so nothing moves.
 fn lone_royal(x: i64, wind: Fx) -> (World, Vec<Target>) {
-    let mut w = World::new(Terrain::flat(80, Fx::ZERO));
+    let mut w = World::new(Terrain::flat(FAR as usize + 60, Fx::ZERO));
     w.wind = wind;
     let floor = w
         .add_beam(
@@ -47,7 +52,7 @@ fn shots_to_kill(
 ) -> Option<u32> {
     for n in 1..=max {
         let plan = plan_shot(w, &shooter(), targets, effects, d, n as u64);
-        fire_and_step(w, &shooter(), plan, 300);
+        fire_and_step(w, &shooter(), plan, FAR_FLIGHT);
         if targets.iter().all(|t| !w.bodies[t.body].alive) {
             return Some(n);
         }
@@ -68,30 +73,36 @@ fn ai_hard_bot_hits_a_lone_royal_within_three_shots() {
 #[test]
 fn ai_hard_bot_compensates_for_wind() {
     let wind = Fx::ratio(1, 4000);
-    let (calm, targets) = lone_royal(17, Fx::ZERO);
+    let (calm, targets) = lone_royal(FAR, Fx::ZERO);
     let calm_plan = plan_shot(&calm, &shooter(), &targets, &[], Difficulty::Hard, 1);
     // the calm plan, fired into the wind, misses
-    let (mut windy, _) = lone_royal(17, wind);
-    fire_and_step(&mut windy, &shooter(), calm_plan, 300);
+    let (mut windy, _) = lone_royal(FAR, wind);
+    fire_and_step(&mut windy, &shooter(), calm_plan, FAR_FLIGHT);
     assert!(windy.bodies[targets[0].body].alive, "wind made no difference");
     // the bot aiming in the wind hits
-    let (mut windy, _) = lone_royal(17, wind);
+    let (mut windy, _) = lone_royal(FAR, wind);
     assert!(shots_to_kill(&mut windy, &targets, &[], Difficulty::Hard, 3).is_some());
 }
 
 #[test]
 fn ai_drop_effect_reaches_a_royal_down_a_well() {
-    // a royal at the bottom of a one-unit well three units deep: plain shots
-    // come in at a slant and hit the walls; a drop falls straight in
+    // a royal at the bottom of a one-unit well three units deep, a plot's
+    // distance out: plain shots come in at a slant and hit the walls; a drop
+    // falls straight in
     let kills = |effects: &[AirEffect]| {
-        let mut w = World::new(Terrain::flat(80, Fx::ZERO));
+        let mut w = World::new(Terrain::flat(FAR as usize + 60, Fx::ZERO));
         let floor = w
-            .add_beam(Vec2::ints(16, 0), Vec2::ints(17, 0), Material::Wood)
+            .add_beam(Vec2::ints(FAR, 0), Vec2::ints(FAR + 1, 0), Material::Metal)
             .unwrap();
-        for x in [16, 17] {
+        // each wall two layers thick, so a shot rolling along the ground
+        // cannot pass between ticks (R1.1306)
+        for x in [FAR, FAR + 1] {
+            let outer = if x == FAR { -Fx::HALF } else { Fx::HALF };
             for y in 0..3 {
-                w.add_beam(Vec2::ints(x, y), Vec2::ints(x, y + 1), Material::Stone)
-                    .unwrap();
+                for dx in [Fx::ZERO, outer] {
+                    let at = |y: i64| Vec2::new(Fx::from_int(x) + dx, Fx::from_int(y));
+                    w.add_beam(at(y), at(y + 1), Material::Metal).unwrap();
+                }
             }
         }
         let body = w.add_body(floor, Fx::HALF, Fx::ratio(1, 4));
@@ -100,7 +111,7 @@ fn ai_drop_effect_reaches_a_royal_down_a_well() {
         }
         let targets = [Target { body, value: 1 }];
         let plan = plan_shot(&w, &shooter(), &targets, effects, Difficulty::Hard, 1);
-        fire_and_step(&mut w, &shooter(), plan, 300);
+        fire_and_step(&mut w, &shooter(), plan, FAR_FLIGHT);
         !w.bodies[body].alive
     };
     assert!(!kills(&[]), "a plain shot reached the bottom");
@@ -233,14 +244,36 @@ fn ai_castle_royals_keep_their_spacing_on_upper_floors() {
             assert!((a.at - b.at).len() >= spacing, "{:?} {:?}", a.at, b.at);
         }
     }
-    // the first royal goes on an upper floor, under the roof
-    let first = plan.royals[0].at.y;
-    let ys: Vec<Fx> = plan.segments.iter().flat_map(|s| [s.a.y, s.b.y]).collect();
-    let (low, roof) = (*ys.iter().min().unwrap(), *ys.iter().max().unwrap());
+    // with more than one floor, the first royal goes on an upper floor
+    // under a roof: some segment spans its column higher up. (Seed 5's
+    // castle on the hillier terrain is one deck on posts, so look for a
+    // seed with floors at two heights; R1.1307.)
+    let floors = |p: &CastlePlan| {
+        let mut ys: Vec<Fx> = p
+            .segments
+            .iter()
+            .filter(|s| s.a.y == s.b.y)
+            .map(|s| s.a.y)
+            .collect();
+        ys.sort();
+        ys.dedup();
+        ys.len()
+    };
+    let plan = (1..=12u64)
+        .map(|seed| plan_castle(&ask(&Plot::generate(seed), 6, 120, 3, seed)))
+        .find(|p| floors(p) >= 2 && p.royals.len() == 3)
+        .expect("some seed's castle has two floors");
+    let first = plan.royals[0].at;
+    let low = plan.segments.iter().flat_map(|s| [s.a.y, s.b.y]).min().unwrap();
+    let roofed = plan
+        .segments
+        .iter()
+        .any(|s| s.a.y.min(s.b.y) > first.y && s.a.x.min(s.b.x) <= first.x && first.x <= s.a.x.max(s.b.x));
     assert!(
-        first > low + Fx::from_int(2) - Fx::HALF && first < roof,
-        "{first:?} in {low:?}..{roof:?}"
+        first.y > low + Fx::from_int(2) - Fx::HALF,
+        "{first:?} over {low:?}"
     );
+    assert!(roofed, "{first:?} has no roof");
 }
 
 #[test]
