@@ -137,3 +137,56 @@ fn an_invite_link_joins_and_a_bad_code_says_so() {
     assert_eq!(a.ui().screen, "online");
     assert_eq!(a.ui().status, "online.bad_code");
 }
+
+fn wire_frame(now: &mut i64, host: &mut App, join: &mut App) {
+    *now += 17;
+    for m in host.pump(*now, 0).out {
+        join.net_event("message", "me", &m.text, true, *now);
+    }
+    for m in join.pump(*now, 0).out {
+        host.net_event("message", "you", &m.text, false, *now);
+    }
+}
+
+/// Two browsers' apps joined by a wire: the host's Start runs the real
+/// match on both, a Ready from each reaches both, and both agree (R1.1502).
+#[test]
+fn online_two_apps_play_the_same_match_from_the_lobby() {
+    let mut host = app();
+    host.act("menu.host", "").unwrap();
+    let code = host.room.as_ref().unwrap().code.clone();
+    let mut join = app();
+    join.act("flag.client", "you").unwrap();
+    join.act("flag.room", &code).unwrap();
+    host.net_event("connected", "you", "", false, 0);
+    join.net_event("connected", "me", "", true, 0);
+    let mut now = 0;
+    for _ in 0..6 {
+        wire_frame(&mut now, &mut host, &mut join);
+    }
+    join.act("lobby.ready", "on").unwrap();
+    for _ in 0..6 {
+        wire_frame(&mut now, &mut host, &mut join);
+    }
+    host.act("lobby.start", "").unwrap();
+    for _ in 0..10 {
+        wire_frame(&mut now, &mut host, &mut join);
+    }
+    assert_eq!(host.ui().screen, "match");
+    assert_eq!(join.ui().screen, "match");
+    host.act("match.ready", "").unwrap();
+    join.act("match.ready", "").unwrap();
+    for _ in 0..200 {
+        wire_frame(&mut now, &mut host, &mut join);
+    }
+    let phase = |a: &App| a.arena.as_ref().unwrap().play.rules.phase;
+    assert_ne!(
+        phase(&host),
+        crate::game::flow::Phase::Build,
+        "both Readys ended the build"
+    );
+    assert_eq!(phase(&host), phase(&join));
+    let (h, j) = (host.ui().sync, join.ui().sync);
+    assert!(!h.ends_with(": 0"), "a checksum was compared: {h}");
+    assert_eq!(h, j);
+}

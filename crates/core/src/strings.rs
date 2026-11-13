@@ -141,6 +141,7 @@ pub const KEYS: &[&str] = &[
     "results.heading",
     "results.place",
     "results.again",
+    "results.lobby",
     "results.menu",
 ];
 

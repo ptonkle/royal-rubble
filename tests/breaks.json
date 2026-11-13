@@ -978,5 +978,40 @@
     "find": "Target { body, value: damage }",
     "replace": "Target { body, value: 1 }",
     "test": "ai_siege_targets_carry_each_royals_damage"
+  },
+  {
+    "name": "online bots build inside the tick",
+    "file": "crates/core/src/play/online.rs",
+    "find": "    if phase == Phase::Build && (before != Phase::Build || round != play.rules.round) {\n        bots_build(play);\n    }\n",
+    "replace": "",
+    "test": "online_a_bot_with_no_castle_builds_one_in_the_tick_a_build_begins"
+  },
+  {
+    "name": "online inputs pack their points",
+    "file": "crates/core/src/play/online.rs",
+    "find": "            b: unpoint(b >> 29),",
+    "replace": "            b: unpoint(b >> 3),",
+    "test": "online_inputs_pack_and_unpack_and_a_far_point_does_not_pack"
+  },
+  {
+    "name": "online a person who left is played by a bot",
+    "file": "crates/core/src/play/online.rs",
+    "find": "                        pl.seat = Seat::Bot(Difficulty::Normal);",
+    "replace": "",
+    "test": "online_a_person_who_leaves_is_played_by_a_bot_from_then_on"
+  },
+  {
+    "name": "online the replay logs siege inputs",
+    "file": "crates/core/src/play/online.rs",
+    "find": "            if r.is_ok() && is_siege_input(*i) {",
+    "replace": "            if r.is_ok() && is_siege_input(*i) && false {",
+    "test": "online_the_replay_holds_a_persons_siege_inputs_at_their_ticks"
+  },
+  {
+    "name": "online the arena hands the room its inputs",
+    "file": "crates/core/src/app.rs",
+    "find": "                    r.queue(i);",
+    "replace": "                    let _ = i;",
+    "test": "online_two_apps_play_the_same_match_from_the_lobby"
   }
 ]
