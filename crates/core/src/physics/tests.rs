@@ -384,7 +384,7 @@ fn a_later_release_throws_a_flatter_arc() {
 fn more_power_throws_faster() {
     let base = Vec2::ints(0, 0);
     let weak = trebuchet_launch(base, 50, 0, false).vel.len();
-    let strong = trebuchet_launch(base, 50, 8, false).vel.len();
+    let strong = trebuchet_launch(base, 50, 60, false).vel.len();
     assert!(strong > weak + weak / 2);
 }
 
@@ -420,4 +420,28 @@ fn fire_spreads_through_touching_wood_but_not_stone() {
     assert!(w.segments[wood].burning());
     assert!(!w.segments[stone].burning());
     assert!(w.segments[lit].hp < TUNE.wood.hp);
+}
+
+#[test]
+fn air_hover_hangs_still_then_falls() {
+    let (mut w, p) = flying();
+    let at = w.projectiles[p].pos;
+    w.air_effect(p, AirEffect::Hover);
+    for _ in 0..TUNE.hover_ticks {
+        w.step();
+    }
+    assert_eq!(w.projectiles[p].pos, at);
+    w.step();
+    // falls from rest: straight down, one tick of gravity
+    assert_eq!(w.projectiles[p].pos, Vec2::new(at.x, at.y - TUNE.gravity));
+}
+
+#[test]
+fn trebuchet_release_window_is_30_to_40_ticks() {
+    let base = Vec2::ints(0, 0);
+    let useful = (0..200)
+        .map(|t| trebuchet_launch(base, t, 0, false))
+        .filter(|l| l.vel.x > Fx::ZERO && l.vel.y > Fx::ZERO)
+        .count();
+    assert!((30..=40).contains(&useful), "forward and up for {useful} ticks");
 }

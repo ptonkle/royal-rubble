@@ -29,10 +29,15 @@ page = "the app and its door: app.rs, api.rs, view.rs, icon.rs, the shim, web/"
 saves = "the save and the settings it keeps: save.rs, the storage fence"
 notes = "the version and What's New: patch_notes.rs, data/patch-notes.json"
 copy = "reader-visible words: GLOSSARY.md, TONE.md, data/strings.json, strings.rs, glossary.rs"
+ai = "bot aiming and castle plans: crates/core/src/ai/"
 upgrades = "upgrade cards and what they do: game/upgrades.rs, data/upgrades.json, the upgrade rules in game/flow.rs"
 ammo = "ammo kinds, blasts and strength bonuses: physics/ammo.rs"
 match = "the match glue: play/ (build, siege, units) and its probe"
 field = "the playfield and sandbox: app/field.rs, app/sandbox*, web/field*.js, web/field.css, data/field.json"
+game = "the rules: game/ (flow, economy, ledger, royals, pairing, bots, sites)"
+physics = "the physics: physics/ and its probe"
+terrain = "the terrain: terrain/ and its pictures"
+sound = "the sound data: crates/core/tests/sound.rs reads data/sound*.json"
 
 # A hit tag on the left also hits the tags on the right, transitively.
 [implies]
@@ -66,6 +71,8 @@ tags = ["boundary"]
 "lib:strings" = ["copy"]
 "lib:rng" = ["foundation"]
 "lib:ticks" = ["foundation"]
+"lib:ai" = ["ai"]
+"test:ai_probe" = ["ai"]
 "lib:game::upgrades" = ["upgrades"]
 "lib:physics::ammo" = ["ammo"]
 "lib:game::flow::tests::round_upgrades_pay_at_build_start" = ["upgrades"]
@@ -75,6 +82,12 @@ tags = ["boundary"]
 "lib:game::flow::tests::quartermaster_makes_bought_shots_cost_one" = ["upgrades"]
 "lib:play" = ["match"]
 "test:play_probe" = ["match"]
+"lib:game" = ["game"]
+"lib:physics" = ["physics"]
+"lib:terrain" = ["terrain"]
+"test:physics_probe" = ["physics"]
+"test:terrain_pictures" = ["terrain"]
+"test:sound" = ["sound"]
 
 [[rule]]
 name = "the core and the shim"
@@ -157,6 +170,12 @@ files = ["crates/core/src/glossary.rs", "crates/core/src/strings.rs", "crates/co
 steps = ["core"]
 tags = ["copy"]
 [[rule]]
+name = "tests of the bot intelligence"
+files = ["crates/core/src/ai/**", "crates/core/tests/ai_probe.rs"]
+steps = ["core"]
+tags = ["ai"]
+
+[[rule]]
 name = "the sound tools"
 # they write data/sound*.json, which crates/core/tests/sound.rs reads
 files = ["tools/sound/**"]
@@ -186,3 +205,9 @@ name = "tests of the playfield"
 files = ["crates/core/src/app/field.rs", "crates/core/src/app/sandbox.rs", "crates/core/src/app/sandbox/**", "web/field.js", "web/field-draw.js", "web/field.css", "data/field.json"]
 steps = ["core"]
 tags = ["field"]
+
+[[rule]]
+name = "the menu art generator"
+# it writes web/look/*.svg, which the page rule covers
+files = ["tools/look/**"]
+steps = []

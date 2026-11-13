@@ -1,8 +1,9 @@
 //! Seeded terrain: one plot layout, in profile, that every player gets a copy
 //! of. From the left: the launch pad (flat-ish, where the trebuchet stands),
-//! the gap (a moat, river or valley with water in it), then the castle plot,
-//! which is generated at its widest (level 9) and opened up by level from its
-//! front edge at the gap.
+//! open country with hills and dips the shot must clear, the gap (a moat,
+//! river or valley with water in it), then the castle plot, which is
+//! generated at its widest (level 9) and opened up by level from its front
+//! edge at the gap.
 //!
 //! Units: the ground is a list of columns, each [`COL_W`] wide; heights are in
 //! the same fixed-point units, [`CELL`] to one grid cell. No floats.
@@ -38,20 +39,44 @@ pub mod tune {
     pub const BUILD_H_MIN: i32 = 12 * CELL;
     pub const BUILD_H_STEP: i32 = 2 * CELL;
     /// Ground height the pad is centered on.
-    pub const BASE_H: i32 = 24 * CELL;
+    pub const BASE_H: i32 = 40 * CELL;
+    /// Launch column to the plot's front edge, in columns (about 130, give or take 14%).
+    pub const DIST: (i32, i32) = (112, 148);
+    /// The plot's front ground sits this many cells above or below the pad (either way, by seed).
+    pub const FRONT_RISE: (i32, i32) = (6, 15);
+    /// Ground between the pad and the gap: a bump's height in cells (negative is a dip),
+    /// its half-width in columns, and the steepest rise per column.
+    pub const BETWEEN_HILL_H: (i32, i32) = (8, 20);
+    pub const BETWEEN_HILL_HALF_W: (i32, i32) = (14, 24);
+    pub const BETWEEN_DIP_H: (i32, i32) = (4, 10);
+    pub const BETWEEN_STEP: i32 = CELL * 5 / 4;
+    /// The between-ground never rises above the line from the launch column to the plot
+    /// front by more than this percent of a 45-degree arc's height over it.
+    pub const ARC_CAP_PCT: i64 = 55;
     /// Steepest buildable slope: rise per column inside the plot, away from a cliff.
     pub const MAX_STEP: i32 = CELL / 2;
+    /// Steepest any plot column may be (a terrace ramp, a mound's flank), away from a cliff.
+    pub const PLOT_STEEP: i32 = CELL;
+    /// At least this percent of each level's columns stay within [`MAX_STEP`].
+    pub const BUILDABLE_PCT: usize = 60;
+    /// The plot's overall tilt from front to back, in cells.
+    pub const PLOT_TILT: (i32, i32) = (-6, 8);
     /// A spot's ground may rise at most this much across its width.
     pub const SPOT_FLAT: i32 = CELL;
     /// A step at least this tall in one column is a cliff.
     pub const CLIFF_MIN: i32 = 2 * CELL;
     /// Plot cliff (a step up to high ground): chance in 3, rise range in cells.
     pub const CLIFF_CHANCE_OF_3: u64 = 2;
-    pub const CLIFF_RISE: (i32, i32) = (3, 6);
+    pub const CLIFF_RISE: (i32, i32) = (4, 9);
+    /// Terrace: a steep ramp up (or down) to a second shelf: chance in 3, rise in cells.
+    pub const TERRACE_CHANCE_OF_3: u64 = 1;
+    pub const TERRACE_RISE: (i32, i32) = (3, 5);
     /// Watchtower hill: chance in 3, half-width in columns, peak height in cells.
     pub const HILL_CHANCE_OF_3: u64 = 2;
-    pub const HILL_HALF_W: (i32, i32) = (9, 12);
-    pub const HILL_H: (i32, i32) = (3, 5);
+    pub const HILL_HALF_W: (i32, i32) = (12, 16);
+    pub const HILL_H: (i32, i32) = (5, 8);
+    /// The hill's center is at least this many columns into the plot.
+    pub const HILL_MIN_COL: i32 = 30;
     /// Half-width of the hill's flat top, in columns.
     pub const HILL_TOP_HALF_W: i32 = 2;
     /// Spot counts per match and widths in columns: (kind, min, max, width).
@@ -132,6 +157,8 @@ pub struct Plot {
     /// Ground height of each column.
     pub heights: Vec<i32>,
     pub pad: ColRange,
+    /// Open country between the pad and the gap.
+    pub between: ColRange,
     /// The column the trebuchet stands on.
     pub launch_col: usize,
     pub gap: ColRange,
@@ -180,9 +207,32 @@ impl Plot {
         self.heights[col.min(self.heights.len() - 1)]
     }
 
+    /// The highest the open country may stand at `col`: the line from the
+    /// launch column's ground to the plot front's ground, plus
+    /// [`tune::ARC_CAP_PCT`] percent of a 45-degree arc's height over that line.
+    pub fn arc_cap(&self, col: usize) -> i32 {
+        arc_cap(
+            self.launch_col,
+            self.heights[self.launch_col],
+            self.plot.start,
+            self.heights[self.plot.start],
+            col,
+        )
+    }
+
     /// True when fixed-point point (`x`, `y`) is in the water.
     pub fn in_water(&self, x: i32, y: i32) -> bool {
         let col = (x.max(0) / COL_W) as usize;
         self.water.cols.contains(col) && y <= self.water.level
     }
+}
+
+/// [`Plot::arc_cap`] from its parts: launch column and ground, plot front column and ground.
+pub(crate) fn arc_cap(l: usize, lh: i32, f: usize, fh: i32, col: usize) -> i32 {
+    let d = (f - l) as i64;
+    let x = (col as i64 - l as i64).clamp(0, d);
+    let chord = lh as i64 + (fh as i64 - lh as i64) * x / d;
+    // a 45-degree arc rises x * (d - x) / d columns above the chord
+    let arc = x * (d - x) * COL_W as i64 / d;
+    (chord + arc * tune::ARC_CAP_PCT / 100) as i32
 }

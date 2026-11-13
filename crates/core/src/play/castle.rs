@@ -244,6 +244,7 @@ impl Castle {
             }
         }
         cw.world.build();
+        strengthen(&mut cw.world, &player.mods);
         cw
     }
 
@@ -260,6 +261,22 @@ impl Castle {
             }
         }
         Vec2::new(x, w.terrain.height_at(x))
+    }
+}
+
+/// Material strength upgrades (Seasoned Oak, Dressed Stone, Tempered Iron,
+/// Citadel, rope strength) as hit points and load the physics carries.
+pub fn strengthen(w: &mut World, mods: &crate::game::upgrades::Modifiers) {
+    for i in 0..w.segments.len() {
+        let pct = match w.segments[i].material {
+            physics::Material::Wood => mods.strength(ledger::Material::Wood),
+            physics::Material::Stone => mods.strength(ledger::Material::Stone),
+            physics::Material::Metal => mods.strength(ledger::Material::Metal),
+            physics::Material::Rope => mods.rope_pct,
+        };
+        if pct > 0 {
+            w.strengthen(i, pct);
+        }
     }
 }
 

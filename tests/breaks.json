@@ -434,6 +434,69 @@
     "test": "spot_building_outside_the_buildable_span_is_refused"
   },
   {
+    "name": "botai: aim flies through the wind",
+    "file": "crates/core/src/ai/aim.rs",
+    "find": "    b.vel.x += wind;\n",
+    "replace": "",
+    "test": "ai_hard_bot_compensates_for_wind"
+  },
+  {
+    "name": "botai: aim keeps the closest flights",
+    "file": "crates/core/src/ai/aim.rs",
+    "find": "ranked.sort_by_key(|(d, p)| (*d,",
+    "replace": "ranked.sort_by_key(|(d, p)| (-*d,",
+    "test": "ai_hard_bot_hits_a_lone_royal_within_three_shots"
+  },
+  {
+    "name": "botai: aim tries air effects",
+    "file": "crates/core/src/ai/aim.rs",
+    "find": "            let mut balls = vec![path[at as usize]];\n            apply_effect(&mut balls, e);\n",
+    "replace": "            let balls = vec![path[at as usize]];\n",
+    "test": "ai_drop_effect_reaches_a_royal_down_a_well"
+  },
+  {
+    "name": "botai: easy misses on purpose",
+    "file": "crates/core/src/ai/aim.rs",
+    "find": "if a.miss_ticks > 0 && rng.chance",
+    "replace": "if a.miss_ticks > 99 && rng.chance",
+    "test": "ai_easy_misses_on_purpose_and_hard_never_does"
+  },
+  {
+    "name": "botai: castle height is capped",
+    "file": "crates/core/src/ai/tune.rs",
+    "find": "pub const MAX_FLOORS: [i64; 9] = [3, 3, 4, 4, 5, 5, 6, 6, 7];",
+    "replace": "pub const MAX_FLOORS: [i64; 9] = [30; 9];",
+    "test": "ai_castle_plans_stand_up_across_seeds_and_levels"
+  },
+  {
+    "name": "botai: castle stays in budget",
+    "file": "crates/core/src/ai/build.rs",
+    "find": "(spent <= gold).then_some((spent, used))",
+    "replace": "Some((spent, used))",
+    "test": "ai_castle_plans_fit_the_span_height_budget_and_unlocks"
+  },
+  {
+    "name": "botai: castle stone from level four",
+    "file": "crates/core/src/ai/tune.rs",
+    "find": "pub const STONE_LEVEL: u8 = 4;",
+    "replace": "pub const STONE_LEVEL: u8 = 5;",
+    "test": "ai_castle_builds_stone_from_level_four_when_it_can_afford_it"
+  },
+  {
+    "name": "botai: castle royals keep spacing",
+    "file": "crates/core/src/ai/build.rs",
+    "find": "(gap >= spacing, inside, k, gap, s, at)",
+    "replace": "(gap >= Fx::ZERO, inside, k, gap, s, at)",
+    "test": "ai_castle_royals_keep_their_spacing_on_upper_floors"
+  },
+  {
+    "name": "botai: castle producer on its spot",
+    "file": "crates/core/src/ai/build.rs",
+    "find": "let col = sites::best_column(plot, level, kind, &taken);",
+    "replace": "let col = plot.buildable(level).start + taken.len();",
+    "test": "ai_castle_puts_a_producer_on_its_own_spot"
+  },
+  {
     "name": "upgrade cards not built are never dealt",
     "file": "crates/core/src/game/upgrades.rs",
     "find": "UPGRADES[*i].dealable && ",
@@ -705,5 +768,131 @@
     "find": "if self.swing.is_none() && !self.trail.is_empty() {",
     "replace": "if false {",
     "test": "sandbox_siege_camera_aims_at_the_trebuchet_then_settles_on_the_castle"
+  },
+  {
+    "name": "wire: hover hangs still",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "AirEffect::Hover => ball.hover_for(TUNE.hover_ticks),",
+    "replace": "AirEffect::Hover => ball.drop_down(),",
+    "test": "air_hover_hangs_still_then_falls"
+  },
+  {
+    "name": "wire: trebuchet release window",
+    "file": "crates/core/src/physics/tune.rs",
+    "find": "treb_top_speed: 450,",
+    "replace": "treb_top_speed: 614,",
+    "test": "trebuchet_release_window_is_30_to_40_ticks"
+  },
+  {
+    "name": "wire: trebuchet level one reach",
+    "file": "crates/core/src/physics/tune.rs",
+    "find": "treb_sling_pct: 490,",
+    "replace": "treb_sling_pct: 100,",
+    "test": "trebuchet_level_one_reaches_the_whole_level_one_plot"
+  },
+  {
+    "name": "wire: trebuchet level nine reach",
+    "file": "crates/core/src/physics/tune.rs",
+    "find": "treb_sling_pct: 490,",
+    "replace": "treb_sling_pct: 100,",
+    "test": "trebuchet_full_power_reaches_the_far_end_of_the_level_nine_plot"
+  },
+  {
+    "name": "wire: trebuchet far raised plot",
+    "file": "crates/core/src/physics/tune.rs",
+    "find": "treb_sling_pct: 490,",
+    "replace": "treb_sling_pct: 400,",
+    "test": "trebuchet_level_one_clears_a_far_raised_plot"
+  },
+  {
+    "name": "wire: strength upgrades",
+    "file": "crates/core/src/play/castle.rs",
+    "find": "        strengthen(&mut cw.world, &player.mods);\n",
+    "replace": "",
+    "test": "wire_strength_upgrade_raises_segment_hit_points"
+  },
+  {
+    "name": "wire: shot mods",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "ignite: mods.all_ignite,",
+    "replace": "ignite: false,",
+    "test": "wire_shot_mods_reach_the_fired_shot"
+  },
+  {
+    "name": "wire: air uses",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "self.shooter.air_used || self.shooter.air_uses.get(slot as usize).is_none_or(|n| *n == 0)",
+    "replace": "self.shooter.air_used",
+    "test": "wire_air_uses_run_out_for_the_round"
+  },
+  {
+    "name": "wire: extra lives",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "w.bodies[body].alive = true;",
+    "replace": "",
+    "test": "wire_chainmail_saves_a_squire_from_one_hit"
+  },
+  {
+    "name": "wire: second volley",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "first_copies: mods.first_shot_copies.max(1),",
+    "replace": "first_copies: 1,",
+    "test": "wire_second_volley_fires_the_first_shot_twice"
+  },
+  {
+    "name": "wire: kill order",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "                self.killed.push(i);\n",
+    "replace": "                self.killed.push(i);\n                self.killed.sort();\n",
+    "test": "wire_royals_killed_are_listed_in_kill_order"
+  },
+  {
+    "name": "botai: planner uses the aimed release",
+    "file": "crates/core/src/ai/planner.rs",
+    "find": "release_after: plan.release_tick,",
+    "replace": "release_after: play_tune::BOT_RELEASE_TICK,",
+    "test": "ai_planner_kills_a_royal_through_the_match"
+  },
+  {
+    "name": "botai: plan inputs keep both ends",
+    "file": "crates/core/src/ai/build.rs",
+    "find": "a: units::grid_pt(s.a),",
+    "replace": "a: units::grid_pt(s.b),",
+    "test": "ai_castle_plan_goes_through_the_match_inputs"
+  },
+  {
+    "name": "terrain far: plot front distance comes from the tune table",
+    "file": "crates/core/src/terrain/gen.rs",
+    "find": "let dist = rng.range(DIST.0, DIST.1) as usize;",
+    "replace": "let dist = 100usize;",
+    "test": "terrain_plot_front_is_far_from_the_trebuchet"
+  },
+  {
+    "name": "terrain far: the pad stands above or below the plot by seed",
+    "file": "crates/core/src/terrain/gen.rs",
+    "find": "    } else {\n        pad_h - rise\n    };",
+    "replace": "    } else {\n        pad_h + rise\n    };",
+    "test": "terrain_relief_is_strong_and_varies_by_seed"
+  },
+  {
+    "name": "terrain far: the arc cap rises above the chord",
+    "file": "crates/core/src/terrain/mod.rs",
+    "find": "let arc = x * (d - x) * COL_W as i64 / d;",
+    "replace": "let arc = 0;",
+    "test": "terrain_open_country_stays_under_the_arc_cap"
+  },
+  {
+    "name": "terrain far: open country is capped under the arc",
+    "file": "crates/core/src/terrain/gen.rs",
+    "find": "let cap = |i: usize| arc_cap(launch_col, launch_h, plot_start, front, PAD_W + i);",
+    "replace": "let cap = |i: usize| arc_cap(launch_col, launch_h, plot_start, front, PAD_W + i) + 40 * CELL;",
+    "test": "terrain_hundred_seeds_all_playable"
+  },
+  {
+    "name": "terrain far: plot slopes stay buildable",
+    "file": "crates/core/src/terrain/gen.rs",
+    "find": "clamp_slope_from(&mut h, front, PLOT_STEEP);",
+    "replace": "clamp_slope_from(&mut h, front, 3 * CELL);",
+    "test": "terrain_hundred_seeds_all_playable"
   }
 ]
