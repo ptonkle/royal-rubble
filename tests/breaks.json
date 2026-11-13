@@ -201,5 +201,159 @@
     "find": "\"impact_wood\":[\"impact_wood_1\"",
     "replace": "\"impact_wood\":[\"impact_wood_9\"",
     "test": "every_named_sound_is_compiled"
+  },
+  {
+    "name": "physics a cantilever needs bending strength",
+    "file": "crates/core/src/physics/world.rs",
+    "find": "(pull + push + s.bend / m.bending) / health",
+    "replace": "(pull + push) / health",
+    "test": "a_long_cantilever_breaks_where_a_braced_one_holds"
+  },
+  {
+    "name": "physics the checksum sees the state",
+    "file": "crates/core/src/physics/world.rs",
+    "find": "mix(self.tick as i64);",
+    "replace": "mix(self.tick as i64);\n        let h = h & 0;",
+    "test": "the_same_build_and_shots_give_the_same_checksum"
+  },
+  {
+    "name": "physics a rope pulls when stretched",
+    "file": "crates/core/src/physics/world.rs",
+    "find": "if c <= Fx::ZERO && TUNE.material(s.material).rope {",
+    "replace": "if TUNE.material(s.material).rope {",
+    "test": "a_rope_carries_tension_and_holds_up_a_beam"
+  },
+  {
+    "name": "physics shots pass through ropes",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "            if m.rope {\n                continue;\n            }\n            let (pa, pb)",
+    "replace": "            let (pa, pb)",
+    "test": "a_shot_passes_through_a_rope"
+  },
+  {
+    "name": "physics a shot breaks a support",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "if breaks && World::mark_broken(&mut self.segments, si) {",
+    "replace": "if false && World::mark_broken(&mut self.segments, si) {",
+    "test": "a_shot_that_knocks_out_a_support_drops_the_floor_above"
+  },
+  {
+    "name": "physics a long fall kills a body",
+    "file": "crates/core/src/physics/bodies.rs",
+    "find": "if drop > TUNE.fall_kill {",
+    "replace": "if drop > TUNE.fall_kill * 100 {",
+    "test": "a_body_that_falls_too_far_dies_and_a_short_fall_does_not"
+  },
+  {
+    "name": "physics a shot kills a body it touches",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "            if !debris {\n                body.alive = false;",
+    "replace": "            if false {\n                body.alive = false;",
+    "test": "a_shot_that_touches_a_body_kills_it"
+  },
+  {
+    "name": "physics light debris does not crush",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "if impulse >= TUNE.crush_impulse {",
+    "replace": "if impulse >= Fx::ZERO {",
+    "test": "heavy_fast_debris_crushes_a_body_and_light_debris_does_not"
+  },
+  {
+    "name": "physics air drop",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "        self.vel.x = Fx::ZERO;\n",
+    "replace": "",
+    "test": "air_drop_stops_sideways_motion"
+  },
+  {
+    "name": "physics air reverse",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "self.vel.x = -self.vel.x;",
+    "replace": "self.vel.y = -self.vel.y;",
+    "test": "air_reverse_flips_sideways_motion"
+  },
+  {
+    "name": "physics air phase",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "AirEffect::Phase => ball.phase_for(TUNE.phase_ticks),",
+    "replace": "AirEffect::Phase => ball.phase_for(0),",
+    "test": "air_phase_passes_through_a_beam"
+  },
+  {
+    "name": "physics air split",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "piece.vel = self.vel.rotate(cos(turn), sin(turn));",
+    "replace": "piece.vel = self.vel.rotate(cos(0), sin(turn - turn));",
+    "test": "air_split_makes_three_shots_fanned_around_the_path"
+  },
+  {
+    "name": "physics air dive",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "self.vel = Vec2::new(Fx::ZERO, -(speed * 2));",
+    "replace": "self.vel = Vec2::new(Fx::ZERO, -speed);",
+    "test": "air_dive_heads_straight_down_at_double_speed"
+  },
+  {
+    "name": "physics air boost",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "self.vel += self.vel.normalized() * speed;",
+    "replace": "self.vel += self.vel.normalized() * (speed / 2);",
+    "test": "air_boost_adds_speed_along_the_path"
+  },
+  {
+    "name": "physics trebuchet throws along the arm tip path",
+    "file": "crates/core/src/physics/trebuchet.rs",
+    "find": "let vel = Vec2::new(s, -c) * tip_speed;",
+    "replace": "let vel = Vec2::new(c, s) * tip_speed;",
+    "test": "a_later_release_throws_a_flatter_arc"
+  },
+  {
+    "name": "physics trebuchet power",
+    "file": "crates/core/src/physics/trebuchet.rs",
+    "find": "Fx::ratio(TUNE.treb_power_base + power as i64, TUNE.treb_power_base)",
+    "replace": "Fx::ratio(TUNE.treb_power_base + (power as i64) / 8, TUNE.treb_power_base)",
+    "test": "more_power_throws_faster"
+  },
+  {
+    "name": "physics wind",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "ball.vel.x += self.wind;",
+    "replace": "ball.vel.x += Fx::ZERO;",
+    "test": "wind_pushes_a_shot_downwind"
+  },
+  {
+    "name": "physics fire spreads",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "catch.push(o);",
+    "replace": "let _ = o;",
+    "test": "fire_spreads_through_touching_wood_but_not_stone"
+  },
+  {
+    "name": "physics static test strain",
+    "file": "crates/core/src/physics/world.rs",
+    "find": "s.max_strain = s.strain;",
+    "replace": "s.max_strain = Fx::ONE;",
+    "test": "the_static_test_reports_strain_rising_toward_the_root"
+  },
+  {
+    "name": "physics ground anchors",
+    "file": "crates/core/src/physics/world.rs",
+    "find": "n.anchored = n.pos.y <= self.terrain.height_at(n.pos.x) + tol;",
+    "replace": "n.anchored = n.pos.y < -tol;",
+    "test": "nodes_on_the_ground_are_anchored"
+  },
+  {
+    "name": "physics max length",
+    "file": "crates/core/src/physics/world.rs",
+    "find": "if rest > m.max_len {",
+    "replace": "if rest > m.max_len * 2 {",
+    "test": "a_segment_longer_than_its_material_allows_is_refused"
+  },
+  {
+    "name": "physics gravity",
+    "file": "crates/core/src/physics/world.rs",
+    "find": "n.pos.y -= g;",
+    "replace": "n.pos.y -= g * 2;",
+    "test": "a_free_beam_falls_by_gravity_each_tick"
   }
 ]
