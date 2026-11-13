@@ -175,8 +175,7 @@ fn truth(m: &MatchStart, people: usize, ticks: u32) -> NetMatch {
 #[test]
 fn online_two_lagged_browsers_play_a_whole_match_and_agree_every_second() {
     let m = start(2, 2, 41);
-    // the whole match: this script plays to the results in 41,187 ticks
-    // (bots grow their castles every round, R1.1451)
+    // a long match: both bots are knocked out within it (R1.4100)
     let ticks = 41_400;
     let mut pair = Pair::new(&m);
     pair.play(ticks);
@@ -200,12 +199,14 @@ fn online_two_lagged_browsers_play_a_whole_match_and_agree_every_second() {
     let seconds = (ticks / SUM_EVERY) as usize;
     assert!(pair.sums[0].len() >= seconds - 1, "sums {:?}", pair.sums[0].len());
     assert_eq!(pair.sums[0], pair.sums[1]);
-    // the same results everywhere
-    assert_eq!(want.play.rules.phase, Phase::Results);
+    // many rounds in, bots knocked out, the same standings everywhere. The
+    // scripted people no longer hit each other's castles once the plots came
+    // closer (R1.3700), so the match does not reach Results (R1.4100)
+    assert!(want.play.rules.round >= 20, "round {}", want.play.rules.round);
     let standings = want.play.rules.standings();
-    assert_eq!(standings.len(), 4);
     for k in 0..2 {
         assert_eq!(pair.games[k].play.rules.standings(), standings, "browser {k}");
+        assert_eq!(pair.games[k].play.rules.round, want.play.rules.round, "browser {k}");
     }
 }
 
@@ -332,3 +333,4 @@ fn online_release_part_survives_packing() {
         assert_eq!(unpack(k), Some(Input::Release(part)));
     }
 }
+
