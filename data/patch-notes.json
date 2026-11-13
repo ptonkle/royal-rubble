@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.2.3",
+    "date": "2026-11-13",
+    "notes": [
+      "New look for the royals, with faces you can read.",
+      "A border of beasts and birds runs along the top.",
+      "Trees on the hills.",
+      "The siege view no longer shows past the edge of the world."
+    ]
+  },
+  {
     "version": "0.2.2",
     "date": "2026-11-13",
     "notes": [

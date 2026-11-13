@@ -21,7 +21,7 @@ use crate::{glossary, icon, patch_notes};
 
 /// The build's version: the version button's text, and the top row of
 /// `data/patch-notes.json`. `scripts/bump.sh` changes the two together.
-pub const VERSION: &str = "0.2.2";
+pub const VERSION: &str = "0.2.3";
 
 /// The sound sliders' step, percent.
 const VOLUME_STEP: u32 = 5;
@@ -380,7 +380,7 @@ impl App {
     pub fn pump_pressed(&mut self, now_ms: i64, keys: u32, press_us: Option<i64>) -> Pump {
         self.now_ms = now_ms;
         if let Some(s) = &mut self.sandbox {
-            s.pump(now_ms, keys);
+            s.pump(now_ms, keys, press_us);
         }
         self.start_arena();
         if let Some(a) = &mut self.arena {
