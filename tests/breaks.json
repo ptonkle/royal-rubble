@@ -1286,5 +1286,33 @@
     "find": "        if alive.len() <= 1 {\n",
     "replace": "        if alive.is_empty() {\n",
     "test": "eight_seats_end_when_one_player_is_left"
+  },
+  {
+    "name": "demo backdrop throws",
+    "file": "crates/core/src/app/demo.rs",
+    "find": "                        self.sandbox.throw_at(plan.release);\n",
+    "replace": "",
+    "test": "demo_throws_at_the_castle_and_breaks_it"
+  },
+  {
+    "name": "demo castle pick follows the seed",
+    "file": "crates/core/src/app/demo.rs",
+    "find": "((seed ^ PICK_SALT) % CASTLES.len() as u64) as usize",
+    "replace": "0",
+    "test": "demo_pick_follows_the_seed_and_shows_every_castle"
+  },
+  {
+    "name": "demo backdrop stays behind Settings",
+    "file": "crates/core/src/app.rs",
+    "find": "Screen::Title | Screen::Settings | Screen::Notes | Screen::Online",
+    "replace": "Screen::Title",
+    "test": "demo_siege_runs_behind_the_menus_and_stops_for_a_match"
+  },
+  {
+    "name": "demo volume sample counts slider moves",
+    "file": "crates/core/src/app.rs",
+    "find": "                self.save.volume = percent(value)?;\n                self.samples += 1;\n",
+    "replace": "                self.save.volume = percent(value)?;\n",
+    "test": "volume_sample_plays_on_each_slider_move"
   }
 ]

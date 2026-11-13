@@ -323,7 +323,6 @@ impl Demo {
                 }
                 match s.plan() {
                     Some(plan) => {
-                        self.sandbox.throw_at(plan.release);
                         self.shots += 1;
                         Step::Throw
                     }
