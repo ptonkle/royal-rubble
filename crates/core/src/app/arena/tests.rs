@@ -153,9 +153,12 @@ fn arena_a_high_shot_widens_the_view_and_keeps_the_ground_in_it() {
     let mut a = arena(1);
     a.set_size("1920,1080").unwrap();
     to_siege(&mut a);
-    // a short swing throws nearly straight up
+    // the first forward release throws nearly straight up (R1.1601)
+    let up = (0..crate::physics::SWING_END)
+        .find(|&t| crate::physics::trebuchet_launch(Vec2::ZERO, t, 0, false).vel.x > Fx::ZERO)
+        .unwrap();
     a.space();
-    for _ in 0..20 {
+    for _ in 0..up {
         a.tick();
     }
     a.space();
