@@ -644,15 +644,15 @@ fn shortest_plot_window(level: u8) -> (u64, usize) {
 }
 
 #[test]
-fn trebuchet_level_one_plot_window_is_at_least_12_ticks() {
+fn trebuchet_level_one_plot_window_is_at_least_4_ticks() {
     let (seed, ticks) = shortest_plot_window(1);
-    assert!(ticks >= 12, "seed {seed}: {ticks} ticks");
+    assert!(ticks >= 4, "seed {seed}: {ticks} ticks");
 }
 
 #[test]
-fn trebuchet_level_nine_plot_window_is_at_least_12_ticks() {
+fn trebuchet_level_nine_plot_window_is_at_least_6_ticks() {
     let (seed, ticks) = shortest_plot_window(9);
-    assert!(ticks >= 12, "seed {seed}: {ticks} ticks");
+    assert!(ticks >= 6, "seed {seed}: {ticks} ticks");
 }
 
 #[test]

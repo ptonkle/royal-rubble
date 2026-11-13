@@ -204,6 +204,8 @@ pub struct Engine {
     pub sling: [[i32; 2]; 3],
     pub arm_w: i32,
     pub rope_w: i32,
+    /// the sling rope, thicker so it reads in the whip (R1.1800)
+    pub sling_w: i32,
     /// pixel lengths of the two uprights (feet to pivot), the base (foot to
     /// foot), the arm (weight to tip) and the brace, for placing textures
     pub lens: [i32; 5],
@@ -254,6 +256,7 @@ impl Engine {
             sling,
             arm_w: cam.len(Fx::ratio(1, 6), 3),
             rope_w: cam.len(Fx::ratio(1, 24), 1),
+            sling_w: cam.len(Fx::ratio(1, 10), 2),
             lens: [
                 px_len(feet[0], pivot),
                 px_len(feet[1], pivot),

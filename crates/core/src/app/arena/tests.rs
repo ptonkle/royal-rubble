@@ -63,16 +63,39 @@ fn arena_a_press_and_release_in_build_places_a_wood_segment_through_play() {
 /// Plays a whole match: Ready in every phase, and in the siege two taps of
 /// Space for each shot. Returns the ticks it took.
 fn play_out(a: &mut Arena) -> (u32, usize) {
+    // a release that ends the match on this seed (R1.1802); with the steady
+    // 110-tick swing (R1.1803) every release 40-190 does, in 36,500-39,300
+    // ticks, and 120 is past the swing's end (the held swing throws itself)
+    play_out_at(a, 70, 200_000)
+}
+
+/// Swing ticks to release at for `play_out`: run with `--ignored` after a
+/// trebuchet change; it fails listing the releases that end the match.
+#[test]
+#[ignore]
+fn arena_whole_match_release_sweep() {
+    let mut ends = vec![];
+    for r in (40u32..=190).step_by(10) {
+        let mut a = arena(1);
+        let (t, _) = play_out_at(&mut a, r, 40_000);
+        if a.over() {
+            ends.push((r, t));
+        }
+    }
+    panic!("(release, ticks) that end the match: {ends:?}");
+}
+
+fn play_out_at(a: &mut Arena, release: u32, cap: u32) -> (u32, usize) {
     let mut ticks = 0;
     let mut bot_pieces = 0;
-    while !a.over() && ticks < 200_000 {
+    while !a.over() && ticks < cap {
         match a.phase() {
             Phase::Siege => {
                 let left = a.my_field().map_or(0, |f| f.shooter.shots_left());
                 let swinging = a.my_field().is_some_and(|f| f.shooter.swing_from.is_some());
                 if left == 0 {
                     a.queue(Input::Ready);
-                } else if (!swinging && ticks % 200 == 0) || (swinging && ticks % 200 == 150) {
+                } else if (!swinging && ticks % 200 == 0) || (swinging && ticks % 200 == release) {
                     a.space();
                 }
             }
@@ -193,4 +216,35 @@ fn arena_a_high_shot_widens_the_view_and_keeps_the_ground_in_it() {
         "ground off {:?}",
         a.camera()
     );
+}
+
+#[test]
+fn arena_the_view_keeps_the_trebuchet_in_just_after_release() {
+    // R1.1800: the whip and follow-through are seen before the view follows
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    to_siege(&mut a);
+    let t = crate::physics::SWING_END * 2 / 3;
+    a.space();
+    for _ in 0..t {
+        a.tick();
+    }
+    a.space();
+    let base = a.my_field().unwrap().base;
+    let top = base + Vec2::new(Fx::ZERO, Fx::from_int(8));
+    // the shot ages one tick as it leaves
+    for k in 0..CAM_HOLD - 1 {
+        a.tick();
+        assert!(
+            on_screen(&a, base) && on_screen(&a, top),
+            "tick {k}: {:?}",
+            a.camera()
+        );
+        // still the aiming view, not the wider flight view
+        let target = a.camera_target();
+        assert!(
+            target.width() <= Fx::from_int(CAM_AIM_MAX_W),
+            "tick {k}: {target:?}"
+        );
+    }
 }

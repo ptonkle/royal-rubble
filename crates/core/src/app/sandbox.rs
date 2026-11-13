@@ -412,6 +412,9 @@ impl Sandbox {
                     .shot
                     .and_then(|i| self.world.projectiles.get(i))
                     .filter(|b| b.alive);
+                // the trebuchet stays in view for the whip (R1.1800)
+                let held = flying.is_some_and(|b| b.age < super::arena::CAM_HOLD);
+                let flying = flying.filter(|_| !held);
                 if let Some(b) = flying {
                     // in flight: both ends, zoomed out to keep the shot in view
                     let left = base.x - Fx::from_int(6);
@@ -427,7 +430,7 @@ impl Sandbox {
                 }
                 // the build view's width, so a castle and a trebuchet read at one scale
                 let width = zr - zl + margin * 2;
-                if self.swing.is_none() && !self.trail.is_empty() {
+                if self.swing.is_none() && !self.trail.is_empty() && !held {
                     // after a shot lands: settle on the castle
                     let left = zl - margin;
                     let mut cam = Camera::spanning(

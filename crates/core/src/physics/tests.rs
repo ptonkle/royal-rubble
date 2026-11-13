@@ -453,7 +453,7 @@ fn trebuchet_forward_release_window_is_one_block_before_the_arm_stops() {
     let last = *forward.last().unwrap();
     let first = forward[0];
     assert!(
-        forward.len() as u32 == last - first + 1 && forward.len() >= 120 && last < trebuchet::SWING_END,
+        forward.len() as u32 == last - first + 1 && forward.len() >= 30 && last < trebuchet::SWING_END,
         "forward and up {forward:?}"
     );
 }
@@ -505,7 +505,7 @@ fn trebuchet_pose_holds_the_shot_until_release_then_the_arm_rocks_and_rests() {
     let rest = pose(base, Phase::Rest, false);
     assert!(rest.loaded);
     // in the pouch: the sling's last point is where the shot leaves
-    let t = 120;
+    let t = 75;
     let swing = pose(base, Phase::Swing(t), false);
     assert_eq!(swing.sling[2], trebuchet_launch(base, t, 0, false).pos);
     let after = pose(base, Phase::After { at: t, since: 10 }, false);
@@ -515,4 +515,48 @@ fn trebuchet_pose_holds_the_shot_until_release_then_the_arm_rocks_and_rests() {
     // and once rocked and winched back it is cocked again
     let done = trebuchet::ROCK_TICKS + trebuchet::WINCH_TICKS;
     assert_eq!(pose(base, Phase::After { at: t, since: done }, false), rest);
+}
+
+#[test]
+fn trebuchet_arm_turns_at_a_steady_speed_through_the_release_block() {
+    // R1.1803, the person: "a consistentish speed of swinging around"; from
+    // tick 15 to the last forward-and-up release the fastest tick is under twice
+    // the slowest
+    let base = Vec2::ints(0, 0);
+    let last = (0..trebuchet::SWING_END)
+        .filter(|&t| {
+            let v = trebuchet_launch(base, t, 0, false).vel;
+            v.x > Fx::ZERO && v.y > Fx::ZERO
+        })
+        .max()
+        .unwrap();
+    let speeds: Vec<i64> = (15..=last).map(|t| arm_at(t).1).collect();
+    let (lo, hi) = (*speeds.iter().min().unwrap(), *speeds.iter().max().unwrap());
+    assert!(lo > 0 && hi < lo * 2, "speeds {lo} to {hi}");
+}
+
+/// Whether segments a0-a1 and b0-b1 cross.
+fn crosses(a0: Vec2, a1: Vec2, b0: Vec2, b1: Vec2) -> bool {
+    let side = |p: Vec2, q: Vec2, r: Vec2| (q - p).cross(r - p).raw().signum();
+    side(a0, a1, b0) * side(a0, a1, b1) < 0 && side(b0, b1, a0) * side(b0, b1, a1) < 0
+}
+
+#[test]
+fn trebuchet_counterweight_stays_clear_of_the_frame_and_the_ground() {
+    // R1.1800: the box drops through the middle of the A-frame
+    let base = Vec2::ints(0, 0);
+    for t in 0..=trebuchet::SWING_END {
+        let p = pose(base, Phase::Swing(t), false);
+        let b = p.box_;
+        for k in 0..4 {
+            let (c0, c1) = (b[k], b[(k + 1) % 4]);
+            assert!(c0.y > p.base[0].y, "tick {t}: corner {c0:?} below the base beam");
+            for foot in p.base {
+                assert!(
+                    !crosses(c0, c1, foot, p.pivot),
+                    "tick {t}: box {b:?} crosses the frame"
+                );
+            }
+        }
+    }
 }

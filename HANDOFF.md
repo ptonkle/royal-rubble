@@ -32,6 +32,7 @@ Every `SECOND-ORDER.md` row with status *person*, by number, with what the perso
 
 - R1.407: run `scripts/setup.sh` once (it needs the network) so ctc has its own `.venv` with Playwright; until then the browser check borrows Fleeced's through `BUILDER_PYTHON`.
 - R1.505: listen to every sound and both music loops on `notes/sound/preview.html`, and say what to change.
+- R1.1803: the fast trebuchet lands about 7-10 cells apart per release tick, so bots cannot aim at a lone royal (two AI tests fail). Choose finer aim (power steps, sub-tick release) or bots that accept near misses.
 
 ## Mistakes so far
 
