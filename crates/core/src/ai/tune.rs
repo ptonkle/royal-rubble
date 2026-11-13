@@ -67,9 +67,9 @@ pub const BOX_MARGIN_RAW: i64 = 1 << 16;
 /// one shot costs 1 plus 1 per target it is measured against; one
 /// full-physics step of the castle costs `WORLD_STEP_COST`; cloning the
 /// castle's world costs `CLONE_COST`. Calibrated on the 201-segment probe
-/// castle (MEASUREMENTS.md), where one unit is roughly 25 ns.
-pub const WORLD_STEP_COST: u64 = 6_000;
-pub const CLONE_COST: u64 = 1_000;
+/// castle (MEASUREMENTS.md), where one unit is roughly 15-25 ns.
+pub const WORLD_STEP_COST: u64 = 9_000;
+pub const CLONE_COST: u64 = 1_500;
 
 /// Score of a verified shot: per point of royal damage killed, per segment
 /// broken near a royal, and a bonus that falls off with the closest approach.
