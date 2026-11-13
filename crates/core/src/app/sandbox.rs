@@ -717,7 +717,14 @@ impl Sandbox {
     /// Where a drag from `a` toward `to` ends: snapped, and pulled back
     /// inside the material's reach.
     pub fn drag_end(&self, a: Vec2, to: Vec2) -> Vec2 {
-        let max = self.max_len();
+        reach_end(a, to, self.max_len())
+    }
+}
+
+/// Where a drag from `a` toward `to` ends for a piece at most `max` long:
+/// snapped, and pulled back inside the reach.
+pub(super) fn reach_end(a: Vec2, to: Vec2, max: Fx) -> Vec2 {
+    {
         let b = Vec2::new(snap(to.x), snap(to.y));
         if (b - a).len() <= max {
             return b;
@@ -737,7 +744,9 @@ impl Sandbox {
         }
         end
     }
+}
 
+impl Sandbox {
     fn can_place(&self, a: Vec2, b: Vec2) -> bool {
         a != b
             && self.in_zone(b)
@@ -930,7 +939,9 @@ impl Sandbox {
             trail: self.trail.iter().map(|&p| cam.px(p)).collect(),
             preview,
             ring,
-            flag: self.flag(),
+            flag: Some(self.flag()),
+            spots: Vec::new(),
+            inset: None,
             cues: self.cues.clone(),
             music: if build { "music_build" } else { "music_siege" },
             loops,
@@ -1136,7 +1147,7 @@ impl Sandbox {
 const TUNE_TICKS: i64 = crate::physics::tune::TICKS_PER_SECOND as i64;
 
 /// `v` on the grid, rounded toward `origin`.
-fn toward(v: Fx, origin: Fx) -> Fx {
+pub(super) fn toward(v: Fx, origin: Fx) -> Fx {
     let g = TUNE.grid.0;
     if v >= origin {
         Fx(v.0.div_euclid(g) * g)
@@ -1145,7 +1156,7 @@ fn toward(v: Fx, origin: Fx) -> Fx {
     }
 }
 
-fn num(part: Option<&str>) -> Result<i32, String> {
+pub(super) fn num(part: Option<&str>) -> Result<i32, String> {
     let p = part.ok_or("A position needs x and y.")?;
     // a browser may hand in a fraction of a pixel: the whole part is enough
     p.trim()
@@ -1156,7 +1167,7 @@ fn num(part: Option<&str>) -> Result<i32, String> {
         .map_err(|_| format!("\"{p}\" is not a whole number."))
 }
 
-fn pair(value: &str) -> Result<(i32, i32), String> {
+pub(super) fn pair(value: &str) -> Result<(i32, i32), String> {
     let mut parts = value.split(',');
     Ok((num(parts.next())?, num(parts.next())?))
 }
