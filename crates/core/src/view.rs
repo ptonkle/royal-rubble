@@ -297,6 +297,8 @@ pub struct Ui {
     pub version: String,
     /// the version button opens What's New (not during a match)
     pub version_opens: bool,
+    /// the version button shows: on menus, never over a field (R1.3201)
+    pub version_shown: bool,
     pub panels: Vec<Panel>,
     pub hints: Vec<Hint>,
     /// the tab icon, as a data URL
@@ -338,6 +340,8 @@ pub struct Ui {
     /// An online match, for the two-browser check to compare: round, then
     /// the newest checksum's tick and value (`body[data-sync]`).
     pub sync: String,
+    /// The action Esc sends on this screen, or empty.
+    pub escape: String,
 }
 
 #[cfg(test)]

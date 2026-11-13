@@ -46,7 +46,7 @@
 | Plummet | silver | Trick: drop straight down. 2 uses per round | yes |
 | Turnabout | silver | Trick: reverse direction. 2 uses per round | yes |
 | Spur | silver | Trick: +50% speed. 2 uses per round | no |
-| Kestrel | silver | Trick: hang still for 1 second. 2 uses per round | no |
+| Skipping Stone | silver | Trick: the next hit bounces off. 2 uses per round | no |
 | Ghost Stone | gold | Trick: pass through the next 2 segments. 2 uses per round | yes |
 | Hawk Dive | gold | Trick: dive at double speed. 2 uses per round | no |
 | Splinter | gold | Trick: split into 3. 2 uses per round | yes |

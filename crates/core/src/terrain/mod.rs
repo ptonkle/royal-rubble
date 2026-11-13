@@ -40,15 +40,18 @@ pub mod tune {
     pub const BUILD_H_STEP: i32 = 2 * CELL;
     /// Ground height the pad is centered on.
     pub const BASE_H: i32 = 40 * CELL;
-    /// Launch column to the plot's front edge, in columns (about 130, give or take 14%).
-    pub const DIST: (i32, i32) = (112, 148);
+    /// Launch column to the plot's front edge, in columns (about 70, give
+    /// or take 14%; was 112-148 until R1.3700: "make the distance less").
+    pub const DIST: (i32, i32) = (60, 80);
     /// The plot's front ground sits this many cells above or below the pad (either way, by seed).
-    pub const FRONT_RISE: (i32, i32) = (6, 15);
+    pub const FRONT_RISE: (i32, i32) = (3, 9);
     /// Ground between the pad and the gap: a bump's height in cells (negative is a dip),
     /// its half-width in columns, and the steepest rise per column.
-    pub const BETWEEN_HILL_H: (i32, i32) = (8, 20);
-    pub const BETWEEN_HILL_HALF_W: (i32, i32) = (14, 24);
-    pub const BETWEEN_DIP_H: (i32, i32) = (4, 10);
+    pub const BETWEEN_HILL_H: (i32, i32) = (4, 11);
+    pub const BETWEEN_HILL_HALF_W: (i32, i32) = (7, 13);
+    pub const BETWEEN_DIP_H: (i32, i32) = (2, 6);
+    /// A dip's half-width in columns.
+    pub const BETWEEN_DIP_HALF_W: (i32, i32) = (3, 6);
     pub const BETWEEN_STEP: i32 = CELL * 5 / 4;
     /// The between-ground never rises above the line from the launch column to the plot
     /// front by more than this percent of a 45-degree arc's height over it.
@@ -181,6 +184,22 @@ pub struct Plot {
 impl Plot {
     pub fn generate(seed: u64) -> Plot {
         let mut plot = gen::ground(seed);
+        spots::place(&mut plot, seed);
+        plot
+    }
+
+    /// The lobby's Flat map: the same plot layout with every column at the
+    /// launch pad's height, and no hills, cliffs or water.
+    pub fn generate_flat(seed: u64) -> Plot {
+        let mut plot = gen::ground(seed);
+        let h = plot.heights[plot.launch_col];
+        plot.heights.iter_mut().for_each(|v| *v = h);
+        let at = plot.gap.start;
+        plot.water = Water {
+            cols: ColRange { start: at, end: at },
+            level: h - CELL,
+        };
+        plot.features.clear();
         spots::place(&mut plot, seed);
         plot
     }

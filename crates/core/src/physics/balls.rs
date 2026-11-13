@@ -17,8 +17,8 @@ pub struct Ball {
     pub phase: u32,
     /// Sets wood alight on contact.
     pub fire: bool,
-    /// Ticks left hanging still in the air (Hover); then it falls.
-    pub hover: u32,
+    /// Armed by Bounce: the next contact bounces it off hard, then clears.
+    pub bounce: bool,
     pub alive: bool,
     pub age: u32,
 }
@@ -31,7 +31,7 @@ pub enum AirEffect {
     Split,
     Dive,
     Boost,
-    Hover,
+    Bounce,
 }
 
 impl Ball {
@@ -43,7 +43,7 @@ impl Ball {
             mass,
             phase: 0,
             fire: false,
-            hover: 0,
+            bounce: false,
             alive: true,
             age: 0,
         }
@@ -62,10 +62,20 @@ impl Ball {
         self.phase = ticks;
     }
 
-    /// Hangs still for `ticks`, then falls from rest.
-    pub fn hover_for(&mut self, ticks: u32) {
-        self.hover = ticks;
-        self.vel = Vec2::new(Fx::ZERO, Fx::ZERO);
+    /// Arms Bounce for its next contact.
+    pub fn arm_bounce(&mut self) {
+        self.bounce = true;
+    }
+
+    /// Bounce's rebound: the velocity relative to a surface moving at `vs`
+    /// reflects about the unit normal `n`, keeping `bounce_restitution` of
+    /// its speed into the surface, and Bounce is spent.
+    fn bounce_off(&mut self, n: Vec2, vs: Vec2) {
+        let vn = (self.vel - vs).dot(n);
+        if vn < Fx::ZERO {
+            self.vel -= n * (vn * (Fx::ONE + TUNE.bounce_restitution));
+        }
+        self.bounce = false;
     }
 
     /// Straight down at twice its current speed.
@@ -117,7 +127,7 @@ impl World {
             AirEffect::Phase => ball.phase_for(TUNE.phase_ticks),
             AirEffect::Dive => ball.dive(),
             AirEffect::Boost => ball.boost(TUNE.boost_speed),
-            AirEffect::Hover => ball.hover_for(TUNE.hover_ticks),
+            AirEffect::Bounce => ball.arm_bounce(),
             AirEffect::Split => {
                 let [left, mid, right] = ball.split(TUNE.split_spread);
                 *ball = mid;
@@ -166,12 +176,6 @@ impl World {
         if !ball.alive {
             return;
         }
-        if ball.hover > 0 {
-            ball.hover -= 1;
-            ball.age += 1;
-            self.collide_bodies(ball, index, debris, events);
-            return;
-        }
         ball.vel.y -= TUNE.gravity;
         if !debris {
             ball.vel.x += self.wind;
@@ -200,7 +204,9 @@ impl World {
         let h = self.terrain.height_at(ball.pos.x);
         if ball.pos.y - ball.radius < h {
             ball.pos.y = h + ball.radius;
-            if ball.vel.y < Fx::ZERO {
+            if ball.bounce {
+                ball.bounce_off(Vec2::new(Fx::ZERO, Fx::ONE), Vec2::new(Fx::ZERO, Fx::ZERO));
+            } else if ball.vel.y < Fx::ZERO {
                 ball.vel.y = -ball.vel.y * TUNE.ground_bounce;
                 ball.vel.x = ball.vel.x * TUNE.ground_friction;
             }
@@ -268,6 +274,9 @@ impl World {
             let iu = Fx::ONE - u;
             let w_seg = wa * iu * iu + wb * u * u;
             let w_ball = Fx::ONE / ball.mass;
+            // Bounce rebounds from the speed it came in with; the damage
+            // and the push on the beam stay those of a plain hit
+            let came_in = ball.vel;
             let mut j = -((Fx::ONE + TUNE.restitution) * vn) / (w_ball + w_seg);
             let seg = &mut self.segments[si];
             let mut breaks = false;
@@ -282,6 +291,10 @@ impl World {
                 seg.burn_ticks = TUNE.burn_ticks;
             }
             ball.vel += n * (j * w_ball);
+            if ball.bounce {
+                ball.vel = came_in;
+                ball.bounce_off(n, vs);
+            }
             self.nodes[a].prev += n * (j * wa * iu);
             self.nodes[b].prev += n * (j * wb * u);
             if breaks && World::mark_broken(&mut self.segments, si) {
@@ -290,7 +303,7 @@ impl World {
         }
     }
 
-    fn collide_bodies(&mut self, ball: &Ball, index: usize, debris: bool, events: &mut Vec<Event>) {
+    fn collide_bodies(&mut self, ball: &mut Ball, index: usize, debris: bool, events: &mut Vec<Event>) {
         for (bi, body) in self.bodies.iter_mut().enumerate() {
             if !body.alive {
                 continue;
@@ -299,6 +312,15 @@ impl World {
                 continue;
             }
             if !debris {
+                if ball.bounce {
+                    let d = ball.pos - body.nearest(ball.pos);
+                    let n = if d.len2() == Fx::ZERO {
+                        -ball.vel.normalized()
+                    } else {
+                        d.normalized()
+                    };
+                    ball.bounce_off(n, body.pos - body.prev);
+                }
                 body.alive = false;
                 events.push(Event::BodyHit {
                     body: bi,

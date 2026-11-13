@@ -128,7 +128,9 @@ impl Ledger {
         gold: &mut u32,
         mods: &Modifiers,
     ) -> Result<u32, Refusal> {
-        if level < unlock_level(piece) {
+        // a stockpiled material is free to use before its level (R1.3701)
+        let stocked = matches!(piece, Piece::Segment(m) if *self.stock.get_mut(m) > 0);
+        if level < unlock_level(piece) && !stocked {
             return Err(Refusal::Locked);
         }
         let value = price(piece, mods);
@@ -319,6 +321,23 @@ mod tests {
         assert_eq!(gold, 4);
         l.sell(a, 1, &mut gold).unwrap();
         assert_eq!((gold, l.stock.wood), (4, 1));
+    }
+
+    #[test]
+    fn stockpiled_stone_places_before_its_level_and_buys_none() {
+        // R1.3701: the starting stone is usable at level 1; gold still can't buy it
+        let mut l = Ledger::default();
+        l.stock.stone = 1;
+        let mut gold = 50;
+        let m = Modifiers::default();
+        assert!(l
+            .place(Piece::Segment(Material::Stone), 1, 1, &mut gold, &m)
+            .is_ok());
+        assert_eq!((gold, l.stock.stone), (50, 0));
+        assert_eq!(
+            l.place(Piece::Segment(Material::Stone), 1, 1, &mut gold, &m),
+            Err(Refusal::Locked)
+        );
     }
 
     #[test]

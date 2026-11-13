@@ -544,6 +544,7 @@ function draw(result) {
   const version = el("version");
   if (version.textContent !== ui.version) version.textContent = ui.version;
   version.disabled = !ui.version_opens;
+  version.hidden = !ui.version_shown;
   el("message").textContent = ui.status;
   drawMenus();
   showField(ui);
@@ -583,6 +584,12 @@ let tapped = 0;
 let pressedAt;
 
 function pressKey(e, down) {
+  // Esc does what the core names for this screen (pause, back)
+  if (e.code === "Escape" && down && ui && ui.escape && !openSelect) {
+    e.preventDefault();
+    send(ui.escape, "");
+    return;
+  }
   const bit = ui && ui.capture && ui.keys ? ui.keys[e.code] : undefined;
   if (bit === undefined) return;
   e.preventDefault();
