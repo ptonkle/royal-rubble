@@ -377,13 +377,17 @@ pub fn plan_castle(ask: &BuildAsk) -> CastlePlan {
     let mut gold = ask
         .gold
         .saturating_sub(tune::reserve_gold(ask.difficulty, ask.round));
-    // producers first: they pay every round
+    // producers first: they pay every round. Each keeps back its own price
+    // and a one-bay wooden ground floor, in case no keep floor covers its
+    // spot, before the keep is sized (R1.4700)
+    let floor = ledger::price(Piece::Segment(Material::Wood), &Modifiers::default());
     let mut want = Vec::new();
     let mut producers = 0;
     for &k in ask.buildings {
         let row = ledger::building_row(k);
-        if row.level <= level && row.cost <= gold {
-            gold -= row.cost;
+        let need = row.cost + floor;
+        if row.level <= level && need <= gold {
+            gold -= need;
             producers += row.cost;
             want.push(k);
         }

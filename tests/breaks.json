@@ -497,6 +497,13 @@
     "test": "ai_castle_puts_a_producer_on_its_own_spot"
   },
   {
+    "name": "bot producers keep back their ground floor",
+    "file": "crates/core/src/ai/build.rs",
+    "find": "let need = row.cost + floor;",
+    "replace": "let need = row.cost + floor * 0;",
+    "test": "ai_castle_puts_a_producer_on_its_own_spot"
+  },
+  {
     "name": "upgrade cards not built are never dealt",
     "file": "crates/core/src/game/upgrades.rs",
     "find": "UPGRADES[*i].dealable && ",
