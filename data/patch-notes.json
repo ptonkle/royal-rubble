@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.2.12",
+    "date": "2026-11-13",
+    "notes": [
+      "How to Play and an Upgrades list on the menu.",
+      "The siege view frames your trebuchet and the castle up close."
+    ]
+  },
+  {
     "version": "0.2.11",
     "date": "2026-11-13",
     "notes": [
