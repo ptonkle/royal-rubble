@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.2.14",
+    "date": "2026-11-13",
+    "notes": [
+      "New menu look to match the game; the old borders are gone.",
+      "Smooth menu battle and smoother sieges.",
+      "Bots build producers again."
+    ]
+  },
+  {
     "version": "0.2.13",
     "date": "2026-11-13",
     "notes": [
