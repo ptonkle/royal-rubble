@@ -24,7 +24,7 @@
  "treb_band": 1.1,
  "treb_rivet": 0.9,
  "treb_back": 0.9,
- "treb_back_shade": "brightness(0.55)",
+ "treb_back_alpha": 0.6,
  "treb_wheel": 1.9,
  "treb_pin": 0.42,
  "treb_strap": 1.6,

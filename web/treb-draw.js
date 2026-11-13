@@ -53,7 +53,8 @@ export function drawTreb(g, e, kit) {
   const off = e.arm_w * P.treb_back;
   g.save();
   g.translate(off, -off);
-  g.filter = P.treb_back_shade;
+  // faded rather than filtered: a canvas filter cost a whole frame (R1.4600)
+  g.globalAlpha = P.treb_back_alpha;
   frame(g, kit, e, w);
   g.restore();
   kit.beam(g, f0, f1, w, base, "base");

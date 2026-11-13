@@ -75,15 +75,14 @@ function pattern(g, name) {
   return patterns[name];
 }
 
-// A beam's strip pattern scaled to a width ww, made once per width.
+// A beam's strip pattern scaled to a width ww: one pattern per material,
+// its scale set for each beam. A pattern per width piled up a new one every
+// frame while the view zoomed, which slowed the menu's siege to a crawl.
 function strip(g, name, ww) {
-  const key = name + " " + ww;
-  if (!patterns[key]) {
-    const k = ww / sprites[name].h;
-    patterns[key] = g.createPattern(images[name], "repeat");
-    patterns[key].setTransform(new DOMMatrix([k, 0, 0, k, 0, -half(ww)]));
-  }
-  return patterns[key];
+  const pat = pattern(g, name);
+  const k = ww / sprites[name].h;
+  pat.setTransform(new DOMMatrix([k, 0, 0, k, 0, -half(ww)]));
+  return pat;
 }
 
 const half = (v) => v * K.n.half;
