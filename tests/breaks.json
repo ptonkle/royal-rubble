@@ -355,5 +355,82 @@
     "find": "n.pos.y -= g;",
     "replace": "n.pos.y -= g * 2;",
     "test": "a_free_beam_falls_by_gravity_each_tick"
+  },
+  {
+    "name": "spots: stone deposit doubles a quarry",
+    "file": "crates/core/src/game/tune.rs",
+    "find": "(SpotKind::StoneDeposit, BuildingKind::Quarry)",
+    "replace": "(SpotKind::StoneDeposit, BuildingKind::Mine)",
+    "test": "spot_stone_deposit_doubles_a_quarry"
+  },
+  {
+    "name": "spots: ore deposit doubles a mine",
+    "file": "crates/core/src/game/ledger.rs",
+    "find": "let mult = if boosted { tune::SPOT_YIELD_MULT } else { 1 };",
+    "replace": "let mult = 1;",
+    "test": "spot_ore_deposit_doubles_a_mine"
+  },
+  {
+    "name": "spots: forest doubles a carpenter",
+    "file": "crates/core/src/game/ledger.rs",
+    "find": "Yield::Stock(m, n) => *self.stock.get_mut(m) += n * mult,",
+    "replace": "Yield::Stock(m, n) => *self.stock.get_mut(m) += n * 2,",
+    "test": "spot_forest_doubles_a_carpenter_but_not_off_the_spot"
+  },
+  {
+    "name": "spots: gold vein pays gold",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "o.purse.gold += pay.gold;",
+    "replace": "",
+    "test": "spot_gold_vein_pays_gold_per_surviving_round"
+  },
+  {
+    "name": "spots: holy well heals",
+    "file": "crates/core/src/game/ledger.rs",
+    "find": "Some(SpotKind::HolyWell) => out.heal += tune::HOLY_WELL_HEAL,",
+    "replace": "",
+    "test": "spot_holy_well_heals_the_owner"
+  },
+  {
+    "name": "spots: holy well heal cap",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "o.health = (o.health + pay.heal).min(tune::START_HEALTH);",
+    "replace": "o.health += pay.heal;",
+    "test": "spot_holy_well_heal_stops_at_full_health"
+  },
+  {
+    "name": "spots: armory ruin gives a shot",
+    "file": "crates/core/src/game/ledger.rs",
+    "find": "Some(SpotKind::ArmoryRuin) => out.shots += tune::ARMORY_RUIN_SHOTS,",
+    "replace": "",
+    "test": "spot_armory_ruin_gives_a_shot"
+  },
+  {
+    "name": "spots: watchtower forecast is next round's wind",
+    "file": "crates/core/src/game/flow.rs",
+    "find": ".then(|| self.wind_for(self.round + 1))",
+    "replace": ".then(|| self.wind_for(self.round))",
+    "test": "spot_watchtower_shows_next_rounds_wind"
+  },
+  {
+    "name": "spots: watchtower respects wind off",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "(pl.sees_next_wind && self.settings.wind)",
+    "replace": "(pl.sees_next_wind)",
+    "test": "spot_watchtower_shows_nothing_with_wind_off"
+  },
+  {
+    "name": "spots: old ruins stone is free",
+    "file": "crates/core/src/game/ledger.rs",
+    "find": "            value: 0,\n            paid_gold: 0,",
+    "replace": "            value: 3,\n            paid_gold: 3,",
+    "test": "spot_old_ruins_give_free_stone_worth_nothing"
+  },
+  {
+    "name": "spots: building outside the span refused",
+    "file": "crates/core/src/game/sites.rs",
+    "find": "if !terrain.buildable(level).contains(col) {",
+    "replace": "if false {",
+    "test": "spot_building_outside_the_buildable_span_is_refused"
   }
 ]

@@ -4,6 +4,7 @@
 
 use super::ledger::{BuildingKind, Material};
 use super::royals::RoyalKind;
+use crate::terrain::SpotKind;
 
 // ---- Clock ----------------------------------------------------------------
 
@@ -231,6 +232,23 @@ pub const SELL_LATER_DEN: u32 = 2;
 /// Gold per extra normal shot bought in build, and how many a round.
 pub const SHOT_COST: u32 = 2;
 pub const MAX_SHOTS_BOUGHT: u32 = 3;
+
+// ---- Map spots (R1.600) ----------------------------------------------------
+
+/// A producer on its own deposit or forest yields this many times as much.
+pub const SPOT_YIELD_MULT: u32 = 2;
+/// Which spot boosts which producer.
+pub const SPOT_BOOSTS: &[(SpotKind, BuildingKind)] = &[
+    (SpotKind::StoneDeposit, BuildingKind::Quarry),
+    (SpotKind::OreDeposit, BuildingKind::Mine),
+    (SpotKind::Forest, BuildingKind::Carpenter),
+];
+/// Gold per round a building on the gold vein survives.
+pub const GOLD_VEIN_GOLD: u32 = 2;
+/// Health per round a building on the holy well survives (never above START_HEALTH).
+pub const HOLY_WELL_HEAL: i32 = 3;
+/// Extra normal shots per round a building on the armory ruin survives.
+pub const ARMORY_RUIN_SHOTS: u32 = 1;
 
 // ---- Upgrades -------------------------------------------------------------
 

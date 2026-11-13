@@ -11,6 +11,7 @@ pub mod flow;
 pub mod ledger;
 pub mod pairing;
 pub mod royals;
+pub mod sites;
 pub mod tune;
 pub mod upgrades;
 

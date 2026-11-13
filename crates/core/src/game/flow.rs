@@ -6,12 +6,13 @@
 use super::bots::{BotAction, BotPolicy, SimpleBot};
 use super::dice::Dice;
 use super::economy::{self, Purse};
-use super::ledger::{Ledger, Piece};
+use super::ledger::{Ledger, Material, Piece};
 use super::pairing::{self, History, Pairing};
 use super::royals::{self, Plot, Royal, RoyalKind, Spot};
 use super::tune;
 use super::upgrades::{self, AirKind, AmmoKind, Modifiers, Offer, Tier, UPGRADES};
-use super::{PlayerId, Refusal};
+use super::{sites, PlayerId, Refusal};
+use crate::terrain::{self, Segment};
 
 // Salts that keep each kind of roll on its own stream.
 const SALT_PAIRS: u32 = 1;
@@ -108,16 +109,30 @@ pub struct Player {
     pub standing_spots: Vec<Spot>,
     /// The round this player was knocked out, if they were.
     pub out_round: Option<u32>,
+    /// This player's copy of the match terrain.
+    pub terrain: terrain::Plot,
+    /// The old ruins' free stone: ledger id and the segment it is (R1.600).
+    pub ruin_pieces: Vec<(u32, Segment)>,
+    /// A building on the watchtower hill stood last siege: this player sees
+    /// next round's wind.
+    pub sees_next_wind: bool,
 }
 
 impl Player {
-    fn new(id: PlayerId, seat: Seat) -> Self {
+    fn new(id: PlayerId, seat: Seat, terrain: terrain::Plot) -> Self {
+        let mut ledger = Ledger::default();
+        let ruin_pieces = terrain
+            .spots
+            .iter()
+            .flat_map(|s| s.segments.iter())
+            .map(|seg| (ledger.grant_free(Piece::Segment(Material::Stone), 0), *seg))
+            .collect();
         Player {
             id,
             seat,
             health: tune::START_HEALTH,
             purse: Purse::default(),
-            ledger: Ledger::default(),
+            ledger,
             royals: Vec::new(),
             upgrades: Vec::new(),
             mods: Modifiers::default(),
@@ -126,6 +141,9 @@ impl Player {
             armory_shots: 0,
             standing_spots: Vec::new(),
             out_round: None,
+            terrain,
+            ruin_pieces,
+            sees_next_wind: false,
         }
     }
 
@@ -163,6 +181,8 @@ pub struct Match {
     pub history: History,
     pub tier: Option<Tier>,
     upgrade_rounds: usize,
+    /// The match's seeded terrain; every player's plot is a copy.
+    pub terrain: terrain::Plot,
     /// This round's wind, -WIND_MAX..=WIND_MAX; 0 with wind off.
     pub wind: i32,
     /// Knocked-out players, first out first.
@@ -178,11 +198,12 @@ pub fn is_upgrade_round(round: u32) -> bool {
 impl Match {
     pub fn new(settings: Settings) -> Result<Self, Refusal> {
         settings.validate()?;
+        let ground = terrain::Plot::generate(settings.seed);
         let players = settings
             .seats
             .iter()
             .enumerate()
-            .map(|(i, s)| Player::new(i as PlayerId, *s))
+            .map(|(i, s)| Player::new(i as PlayerId, *s, ground.clone()))
             .collect();
         Ok(Match {
             settings,
@@ -194,6 +215,7 @@ impl Match {
             history: History::default(),
             tier: None,
             upgrade_rounds: 0,
+            terrain: ground,
             wind: 0,
             knocked_out: Vec::new(),
             winner: None,
@@ -282,12 +304,7 @@ impl Match {
             &mut self.history,
             &mut Dice::derive(seed, self.round, SALT_PAIRS),
         );
-        self.wind = if self.settings.wind {
-            let span = (2 * tune::WIND_MAX + 1) as u32;
-            Dice::derive(seed, self.round, SALT_WIND).below(span) as i32 - tune::WIND_MAX
-        } else {
-            0
-        };
+        self.wind = self.wind_for(self.round);
         let arriving = royals::arrivals(self.round);
         for p in self.players.iter_mut().filter(|p| p.alive()) {
             p.offer = None;
@@ -353,6 +370,21 @@ impl Match {
         }
     }
 
+    /// Wind for `round`, the same for everyone; 0 with wind off.
+    fn wind_for(&self, round: u32) -> i32 {
+        if !self.settings.wind {
+            return 0;
+        }
+        let span = (2 * tune::WIND_MAX + 1) as u32;
+        Dice::derive(self.settings.seed, round, SALT_WIND).below(span) as i32 - tune::WIND_MAX
+    }
+
+    /// Next round's wind, when `p` holds the watchtower hill and wind is on.
+    pub fn forecast(&self, p: PlayerId) -> Option<i32> {
+        let pl = self.player(p)?;
+        (pl.sees_next_wind && self.settings.wind).then(|| self.wind_for(self.round + 1))
+    }
+
     pub fn set_ready(&mut self, p: PlayerId) -> Result<(), Refusal> {
         self.player_mut(p)?.ready = true;
         Ok(())
@@ -367,6 +399,7 @@ impl Match {
         let round = self.round;
         for p in &mut self.players {
             p.armory_shots = 0;
+            p.sees_next_wind = false;
         }
         for c in &result.castles {
             if self.target_of(c.attacker) == Some((c.owner, c.ghost)) {
@@ -384,7 +417,13 @@ impl Match {
                 continue;
             }
             o.health -= royals::damage(&c.royals_killed, round) as i32;
-            o.armory_shots += o.ledger.collect_yields(&c.buildings_survived);
+            let pay = o.ledger.collect_yields(&c.buildings_survived);
+            o.armory_shots += pay.shots;
+            o.purse.gold += pay.gold;
+            o.sees_next_wind |= pay.sees_wind;
+            if o.health > 0 {
+                o.health = (o.health + pay.heal).min(tune::START_HEALTH);
+            }
         }
         let mut out: Vec<&Player> = self
             .players
@@ -428,13 +467,31 @@ impl Match {
         pl.ledger.buy_shot(&mut pl.purse.gold)
     }
 
-    /// Place a piece; returns its ledger id for the physics world.
+    /// Place a segment or rope; returns its ledger id for the physics world.
+    /// Buildings go through `place_at`.
     pub fn place(&mut self, p: PlayerId, piece: Piece) -> Result<u32, Refusal> {
         self.need(Phase::Build)?;
+        if matches!(piece, Piece::Building(_)) {
+            return Err(Refusal::BadSpot);
+        }
         let round = self.round;
         let pl = self.player_mut(p)?;
         pl.ledger
             .place(piece, round, pl.purse.level, &mut pl.purse.gold, &pl.mods)
+    }
+
+    /// Place a building with its footprint at terrain column `col`, which
+    /// must lie in the player's buildable span. Returns its ledger id.
+    pub fn place_at(&mut self, p: PlayerId, piece: Piece, col: usize) -> Result<u32, Refusal> {
+        self.need(Phase::Build)?;
+        let round = self.round;
+        let pl = self.player_mut(p)?;
+        let spot = sites::site(&pl.terrain, pl.purse.level, col)?;
+        let id = pl
+            .ledger
+            .place(piece, round, pl.purse.level, &mut pl.purse.gold, &pl.mods)?;
+        pl.ledger.set_site(id, col, spot);
+        Ok(id)
     }
 
     pub fn sell(&mut self, p: PlayerId, id: u32) -> Result<u32, Refusal> {
@@ -494,6 +551,7 @@ impl Match {
             let _ = match *a {
                 BotAction::BuyXp => self.buy_xp(p),
                 BotAction::Place(piece) => self.place(p, piece).map(|_| ()),
+                BotAction::PlaceAt(piece, col) => self.place_at(p, piece, col).map(|_| ()),
                 BotAction::BuyShot => self.buy_shot(p),
                 BotAction::Reroll => self.reroll(p),
                 BotAction::Pick(slot) => self.pick(p, slot),
@@ -535,7 +593,6 @@ impl Match {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::ledger::Material;
 
     fn humans(n: usize) -> Match {
         let mut m = Match::new(Settings {
