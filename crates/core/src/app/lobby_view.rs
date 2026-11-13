@@ -112,6 +112,7 @@ impl App {
         });
         items.push(Item::Button {
             tip: String::new(),
+            icon: String::new(),
             id: "online.accept_answer".into(),
             text: self.strings.get("online.connect"),
             quiet: false,
@@ -133,6 +134,7 @@ impl App {
             },
             Item::Button {
                 tip: String::new(),
+                icon: String::new(),
                 id: "online.make_answer".into(),
                 text: self.strings.get("online.make_reply"),
                 quiet: false,
@@ -228,6 +230,7 @@ impl App {
         if host {
             items.push(Item::Button {
                 tip: String::new(),
+                icon: String::new(),
                 id: "lobby.start".into(),
                 text: self.strings.get("lobby.start"),
                 quiet: false,

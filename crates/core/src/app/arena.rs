@@ -17,6 +17,7 @@ use super::field::{
     cloth_at, ground_line, material_name, tree_marks, world_parts, world_right, Camera, Cue, Engine, Figure,
     Flag, Frame, Inset, Preview, Ring, SpotMark,
 };
+use super::hud_icon;
 use super::sandbox::{num, pair, reach_end};
 use crate::game::flow::Phase;
 use crate::game::ledger::{self, BuildingKind, Piece};
@@ -34,7 +35,7 @@ use crate::play::units::GridPt;
 use crate::play::{Input, Play};
 use crate::strings::Strings;
 use crate::terrain::{Plot, SpotKind};
-use crate::view::{BarOption, Item, Panel};
+use crate::view::{BarOption, HealthRow, Item, Panel};
 
 /// Input bits, by key code (the page reads them from `Ui::keys`).
 const KEY_SPACE: u32 = 1;
@@ -178,6 +179,67 @@ fn air_name(a: AirKind) -> &'static str {
         AirKind::Dive => "dive",
         AirKind::Boost => "boost",
         AirKind::Bounce => "bounce",
+    }
+}
+
+/// The phase clock turns urgent at this many seconds left.
+const TIMER_URGENT_SECONDS: u32 = 10;
+
+/// A top-bar value with its icon.
+fn stat(id: &str, icon: &str, text: String, tip: String) -> Item {
+    Item::Stat {
+        id: id.into(),
+        icon: hud_icon::url(icon),
+        icon_name: icon.into(),
+        text,
+        tip,
+    }
+}
+
+/// An upgrade card's icon, by its first effect.
+fn card_icon(effects: &[crate::game::upgrades::Effect]) -> &'static str {
+    use crate::game::upgrades::Effect as E;
+    match effects.first() {
+        Some(E::Ammo(k, _)) => ammo_name(Ammo::Special(*k)),
+        Some(E::Air(k, _)) => air_name(*k),
+        Some(E::AirUses(_)) => "boost",
+        Some(
+            E::Gold(_)
+            | E::Stock(..)
+            | E::GoldPerRound(_)
+            | E::XpPerRound(_)
+            | E::StockPerRound(..)
+            | E::InterestCap(_)
+            | E::InterestStep(_)
+            | E::KillGold(_)
+            | E::Discount(..),
+        ) => "economy",
+        Some(E::GainBuilding(_) | E::ProducerOutput(_) | E::ArmoryShots(_)) => "carpenter",
+        Some(
+            E::Strength(..)
+            | E::JointStrength(_)
+            | E::GroundedStrength(_)
+            | E::RopeStrength(_)
+            | E::RopesUncuttable
+            | E::SlowBurn(_)
+            | E::HitImmunity(_),
+        ) => "defense",
+        Some(
+            E::RoyalSave(..)
+            | E::FallLimit(_)
+            | E::Decoys(_)
+            | E::RoyalSpacing(_)
+            | E::FirstDeathSpared(_)
+            | E::RoyalDamageCut(_),
+        ) => "royal",
+        Some(
+            E::ShotsPerRound(_)
+            | E::ShotDiscount(_)
+            | E::LuckyShots { .. }
+            | E::ShotsPerKill { .. }
+            | E::ShotsPerLoss { .. },
+        ) => "buy_shot",
+        _ => "siege",
     }
 }
 
@@ -1653,43 +1715,40 @@ impl Arena {
         if self.over() {
             return self.results_panels(s);
         }
-        let button = |id: &str, text: String, disabled: bool| Item::Button {
-            tip: String::new(),
+        let button = |id: &str, text: String, icon: &str, disabled: bool| Item::Button {
             id: id.into(),
             text,
             quiet: false,
             disabled,
-        };
-        let quiet = |id: &str, text: String| Item::Button {
             tip: String::new(),
-            id: id.into(),
-            text,
-            quiet: true,
-            disabled: false,
+            icon: hud_icon::url(icon),
         };
         let rules = &self.play.rules;
         let Some(me) = rules.player(self.me) else {
             return Vec::new();
         };
         let phase = self.view_phase();
-        let phase_key = match self.phase() {
-            Phase::Upgrade => "phase.upgrade",
-            Phase::Build => "phase.build",
-            _ => "phase.siege",
+        let (phase_key, phase_icon) = match self.phase() {
+            Phase::Upgrade => ("phase.upgrade", "upgrade"),
+            Phase::Build => ("phase.build", "build"),
+            _ => ("phase.siege", "siege"),
         };
-        let mut top = vec![Item::Lines {
-            id: "match.phase".into(),
-            lines: vec![
+        let left = self.seconds_left();
+        let mut top = vec![
+            Item::Timer {
+                id: "match.phase".into(),
+                icon: hud_icon::url(phase_icon),
+                phase: s.get(phase_key),
+                text: left.to_string(),
+                urgent: left <= TIMER_URGENT_SECONDS && left > 0,
+            },
+            stat(
+                "match.round",
+                "timer",
                 s.fill("hud.round", &[("n", rules.round.to_string())]),
-                s.fill(
-                    "hud.phase",
-                    &[
-                        ("phase", s.get(phase_key)),
-                        ("n", self.seconds_left().to_string()),
-                    ],
-                ),
-            ],
-        }];
+                String::new(),
+            ),
+        ];
         let alive = me.alive();
         let ready_text = if me.ready {
             s.get("hud.waiting")
@@ -1703,70 +1762,84 @@ impl Arena {
                 id: "match.replay".into(),
                 lines: vec![s.get("hud.replay")],
             });
-            top.push(button("match.skip", s.get("hud.skip"), false));
+            bar.push(button("match.skip", s.get("hud.skip"), "skip", false));
+        }
+        if alive {
+            top.push(stat(
+                "match.gold",
+                "gold",
+                me.purse.gold.to_string(),
+                s.get("tip.gold"),
+            ));
+            let (value, max, xp) = match me.purse.xp_needed() {
+                Some(n) => (
+                    me.purse.xp,
+                    n,
+                    s.fill("hud.xp", &[("n", me.purse.xp.to_string()), ("m", n.to_string())]),
+                ),
+                None => (1, 1, s.get("hud.xp_max")),
+            };
+            top.push(Item::Meter {
+                id: "match.purse".into(),
+                icon: hud_icon::url("level"),
+                icon_name: "level".into(),
+                label: me.purse.level.to_string(),
+                value,
+                max,
+                text: xp,
+                tip: s.get("tip.level"),
+            });
+            if let Some((t, _)) = rules.target_of(self.me) {
+                top.push(stat(
+                    "match.target",
+                    "target",
+                    self.names[t as usize].clone(),
+                    s.get("tip.target"),
+                ));
+            }
         }
         match phase {
             Phase::Build if alive => {
-                let xp = match me.purse.xp_needed() {
-                    Some(n) => s.fill("hud.xp", &[("n", me.purse.xp.to_string()), ("m", n.to_string())]),
-                    None => s.get("hud.xp_max"),
-                };
-                top.push(Item::Lines {
-                    id: "match.purse".into(),
-                    lines: vec![
-                        s.fill("hud.gold", &[("n", me.purse.gold.to_string())]),
-                        s.fill("hud.level", &[("n", me.purse.level.to_string())]),
-                        xp,
-                    ],
-                });
-                top.push(button(
+                if let Some(p) = self.scout {
+                    top.push(stat(
+                        "match.scouting",
+                        "scout",
+                        self.names[p as usize].clone(),
+                        s.get("tip.scouting"),
+                    ));
+                }
+                bar.push(self.tool_bar(s));
+                let xp_cost = crate::game::tune::XP_BUY_COST;
+                bar.push(button(
                     "match.buy_xp",
                     s.fill(
                         "hud.buy_xp",
                         &[
                             ("x", crate::game::tune::XP_BUY_AMOUNT.to_string()),
-                            ("n", crate::game::tune::XP_BUY_COST.to_string()),
+                            ("n", xp_cost.to_string()),
                         ],
                     ),
-                    me.purse.xp_needed().is_none() || me.purse.gold < crate::game::tune::XP_BUY_COST,
+                    "xp",
+                    me.purse.xp_needed().is_none() || me.purse.gold < xp_cost,
                 ));
                 let shot = me.mods.shot_price();
-                top.push(button(
+                bar.push(button(
                     "match.buy_shot",
                     s.fill("hud.buy_shot", &[("n", shot.to_string())]),
+                    "buy_shot",
                     me.purse.gold < shot || self.phase() != Phase::Build,
                 ));
-                if let Some((t, _)) = rules.target_of(self.me) {
-                    top.push(Item::Lines {
-                        id: "match.target".into(),
-                        lines: vec![s.fill("hud.target", &[("name", self.names[t as usize].clone())])],
-                    });
-                }
-                top.push(button("match.test", s.get("sandbox.test"), false));
-                top.push(quiet("match.scout", s.get("hud.scout")));
-                if let Some(p) = self.scout {
-                    top.push(Item::Lines {
-                        id: "match.scouting".into(),
-                        lines: vec![s.fill("hud.scouting", &[("name", self.names[p as usize].clone())])],
-                    });
-                }
-                top.push(button("match.ready", ready_text, me.ready));
-                bar.push(self.tool_bar(s));
+                bar.push(button("match.test", s.get("sandbox.test"), "test", false));
+                bar.push(button("match.scout", s.get("hud.scout"), "scout", false));
+                bar.push(button("match.ready", ready_text, "ready", me.ready));
             }
             Phase::Upgrade if alive => {
                 if self.replay.is_none() {
                     extra.push(self.cards_panel(s, cards));
                 }
-                top.push(button("match.ready", ready_text, me.ready));
             }
             Phase::Siege | Phase::SiegeOver if alive => {
                 if let Some(f) = self.my_field() {
-                    if let Some((t, _)) = rules.target_of(self.me) {
-                        top.push(Item::Lines {
-                            id: "match.target".into(),
-                            lines: vec![s.fill("hud.target", &[("name", self.names[t as usize].clone())])],
-                        });
-                    }
                     let key = if f.shooter.swing_from.is_some() {
                         "sandbox.throw"
                     } else {
@@ -1776,8 +1849,8 @@ impl Arena {
                         id: "match.hint".into(),
                         lines: vec![s.get(key)],
                     });
-                    top.push(button("match.ready", ready_text, me.ready));
                     bar.extend(self.siege_bars(f, s));
+                    bar.push(button("match.ready", ready_text, "ready", me.ready));
                 }
             }
             _ => {
@@ -1787,10 +1860,14 @@ impl Arena {
                 });
             }
         }
-        top.push(quiet("play.leave", s.get("play.leave")));
+        let mut leave = button("play.leave", s.get("play.leave"), "leave", false);
+        if let Item::Button { quiet, .. } = &mut leave {
+            *quiet = true;
+        }
+        top.push(leave);
         let mut panels = vec![
             Panel::new("field-top", String::new(), top),
-            Panel::new("field-side", String::new(), vec![self.health_list(s)]),
+            Panel::new("field-side", String::new(), vec![self.health_list()]),
             Panel::new("field-bar", String::new(), bar),
         ];
         panels.extend(extra);
@@ -1806,25 +1883,33 @@ impl Arena {
         panels
     }
 
-    fn health_list(&self, s: &Strings) -> Item {
+    fn health_list(&self) -> Item {
         let rules = &self.play.rules;
         let mut order: Vec<PlayerId> = rules.alive();
         order.sort_by_key(|&p| std::cmp::Reverse(rules.players[p as usize].health));
         order.extend(rules.knocked_out.iter().rev());
-        Item::Lines {
+        let target = rules.target_of(self.me).map(|(t, _)| t);
+        let max = crate::game::tune::START_HEALTH.max(1) as u32;
+        Item::Health {
             id: "match.health".into(),
-            lines: order
+            icon: hud_icon::url("heart"),
+            rows: order
                 .iter()
                 .map(|&p| {
                     let pl = &rules.players[p as usize];
-                    let name = self.names[p as usize].clone();
-                    if pl.alive() {
-                        s.fill(
-                            "hud.health",
-                            &[("name", name), ("n", pl.health.max(0).to_string())],
-                        )
-                    } else {
-                        s.fill("hud.out", &[("name", name)])
+                    let value = pl.health.max(0) as u32;
+                    HealthRow {
+                        name: self.names[p as usize].clone(),
+                        value: value.min(max),
+                        max,
+                        text: value.to_string(),
+                        me: p == self.me,
+                        out: !pl.alive(),
+                        look: if target == Some(p) {
+                            "target".into()
+                        } else {
+                            String::new()
+                        },
                     }
                 })
                 .collect(),
@@ -1843,25 +1928,38 @@ impl Arena {
                 _ => 0,
             };
             let cost = ledger::price(*piece, &me.mods);
-            let tool = s.get(&format!("tool.{name}"));
-            let text = if stock > 0 {
-                s.fill("tool.stocked", &[("name", tool), ("n", stock.to_string())])
-            } else {
-                s.fill("tool.priced", &[("name", tool), ("n", cost.to_string())])
-            };
             let unlock = ledger::unlock_level(*piece);
+            let tool = s.get(&format!("tool.{name}"));
             let tip = if level < unlock {
                 s.fill("tip.locked", &[("n", unlock.to_string())])
+            } else if stock > 0 {
+                s.fill(
+                    "tool.stocked",
+                    &[("name", tool.clone()), ("n", stock.to_string())],
+                )
             } else {
-                s.fill("tip.segment", &[("n", cost.to_string())])
+                s.fill("tool.priced", &[("name", tool.clone()), ("n", cost.to_string())])
             };
             options.push(BarOption {
                 tip,
+                icon: hud_icon::url(name),
+                icon_name: name.to_string(),
+                count: if stock > 0 {
+                    stock.to_string()
+                } else {
+                    String::new()
+                },
+                cost: if stock > 0 {
+                    String::new()
+                } else {
+                    cost.to_string()
+                },
+                group: "beam".into(),
                 value: name.to_string(),
-                text,
+                text: tool,
                 key: (k + 1).to_string(),
                 selected: self.tool == Tool::Beam(*piece),
-                disabled: level < ledger::unlock_level(*piece) && stock == 0,
+                disabled: level < unlock && stock == 0,
             });
         }
         let unplaced = (0..me.royals.len())
@@ -1875,38 +1973,43 @@ impl Arena {
                         .is_none()
             })
             .count();
-        if unplaced > 0 {
-            options.push(BarOption {
-                tip: s.get("tip.royal"),
-                value: "royal".into(),
-                text: s.fill("tool.royals", &[("n", unplaced.to_string())]),
-                key: (BEAMS.len() + 1).to_string(),
-                selected: self.tool == Tool::Royal,
-                disabled: false,
-            });
-        }
+        options.push(BarOption {
+            tip: s.get("tip.royal"),
+            icon: hud_icon::url("royal"),
+            icon_name: "royal".into(),
+            count: unplaced.to_string(),
+            cost: String::new(),
+            group: "royal".into(),
+            value: "royal".into(),
+            text: s.get("tool.royal"),
+            key: (BEAMS.len() + 1).to_string(),
+            selected: self.tool == Tool::Royal,
+            disabled: unplaced == 0,
+        });
         for (kind, name) in BUILDINGS.iter() {
             let piece = Piece::Building(*kind);
-            if level < ledger::unlock_level(piece) {
-                continue;
-            }
+            let unlock = ledger::unlock_level(piece);
             let made = match ledger::building_row(*kind).yields {
                 crate::game::tune::Yield::Stock(_, n) => n + me.mods.producer_bonus,
                 crate::game::tune::Yield::Shots(n) => me.mods.armory_shots.unwrap_or(n),
             };
+            let tip = if level < unlock {
+                s.fill("tip.locked", &[("n", unlock.to_string())])
+            } else {
+                s.fill(&format!("tip.{name}"), &[("n", made.to_string())])
+            };
             options.push(BarOption {
-                tip: s.fill(&format!("tip.{name}"), &[("n", made.to_string())]),
+                tip,
+                icon: hud_icon::url(name),
+                icon_name: name.to_string(),
+                count: String::new(),
+                cost: ledger::price(piece, &me.mods).to_string(),
+                group: "make".into(),
                 value: name.to_string(),
-                text: s.fill(
-                    "tool.priced",
-                    &[
-                        ("name", s.get(&format!("tool.{name}"))),
-                        ("n", ledger::price(piece, &me.mods).to_string()),
-                    ],
-                ),
+                text: s.get(&format!("tool.{name}")),
                 key: String::new(),
                 selected: self.tool == Tool::Building(*kind),
-                disabled: false,
+                disabled: level < unlock,
             });
         }
         Item::Bar {
@@ -1927,14 +2030,13 @@ impl Arena {
                 .take(KEY_DIGITS.len())
                 .map(|(k, (a, n))| BarOption {
                     tip: s.get(&format!("tip.ammo.{}", ammo_name(*a))),
+                    icon: hud_icon::url(ammo_name(*a)),
+                    icon_name: ammo_name(*a).to_string(),
+                    count: n.to_string(),
+                    cost: String::new(),
+                    group: String::new(),
                     value: k.to_string(),
-                    text: s.fill(
-                        "hud.ammo",
-                        &[
-                            ("name", s.get(&format!("ammo.{}", ammo_name(*a)))),
-                            ("n", n.to_string()),
-                        ],
-                    ),
+                    text: s.get(&format!("ammo.{}", ammo_name(*a))),
                     key: (k + 1).to_string(),
                     selected: k == sh.selected as usize,
                     disabled: *n == 0 || (busy && k != sh.selected as usize),
@@ -1957,6 +2059,11 @@ impl Arena {
                     .enumerate()
                     .map(|(k, (a, (code, _)))| BarOption {
                         tip: s.get(&format!("tip.air.{}", air_name(*a))),
+                        icon: hud_icon::url(air_name(*a)),
+                        icon_name: air_name(*a).to_string(),
+                        count: String::new(),
+                        cost: String::new(),
+                        group: String::new(),
                         value: k.to_string(),
                         text: s.get(&format!("air.{}", air_name(*a))),
                         key: code.trim_start_matches("Key").to_string(),
@@ -1983,6 +2090,7 @@ impl Arena {
                     tier: s.get(&format!("tier.{}", tier_name(row.tier))),
                     look: tier_name(row.tier).to_string(),
                     text,
+                    icon: hud_icon::url(card_icon(row.effects)),
                     picked: offer.picked == Some(i),
                     disabled: offer.picked.is_some(),
                 });
@@ -1994,11 +2102,12 @@ impl Arena {
                 s.fill("hud.reroll", &[("n", cost.to_string())])
             };
             items.push(Item::Button {
-                tip: String::new(),
                 id: "match.reroll".into(),
                 text,
                 quiet: true,
                 disabled: offer.picked.is_some() || me.purse.gold < cost,
+                tip: s.get("tip.reroll"),
+                icon: hud_icon::url("reroll"),
             });
         }
         Panel::new("cards", s.get("phase.upgrade"), items)
@@ -2031,6 +2140,7 @@ impl Arena {
                 if self.is_online() {
                     Item::Button {
                         tip: String::new(),
+                        icon: String::new(),
                         id: "play.lobby".into(),
                         text: s.get("results.lobby"),
                         quiet: false,
@@ -2039,6 +2149,7 @@ impl Arena {
                 } else {
                     Item::Button {
                         tip: String::new(),
+                        icon: String::new(),
                         id: "match.again".into(),
                         text: s.get("results.again"),
                         quiet: false,
@@ -2047,6 +2158,7 @@ impl Arena {
                 },
                 Item::Button {
                     tip: String::new(),
+                    icon: String::new(),
                     id: "play.leave".into(),
                     text: s.get("results.menu"),
                     quiet: true,

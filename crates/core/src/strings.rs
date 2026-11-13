@@ -175,6 +175,10 @@ pub const KEYS: &[&str] = &[
     "pause.heading",
     "pause.resume",
     "pause.leave",
+    "tip.gold",
+    "tip.level",
+    "tip.target",
+    "tip.scouting",
 ];
 
 /// The strings file, checked.

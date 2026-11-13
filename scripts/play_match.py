@@ -109,8 +109,8 @@ def main():
                 page.wait_for_timeout(100)
                 continue
             if page.locator(by_id("match.ammo")).count():
-                left = page.locator(by_id("match.ammo.0")).inner_text()
-                if left.strip().endswith(" 0") and not page.locator(by_id("match.ammo.1")).count():
+                left = page.locator(by_id("match.ammo.0") + " .bar-count").inner_text()
+                if left.strip() == "0" and not page.locator(by_id("match.ammo.1")).count():
                     if page.locator(by_id("match.ready")).is_enabled():
                         press(page, "match.ready")
                     continue
@@ -122,7 +122,7 @@ def main():
                 page.wait_for_timeout(400)
                 continue
             if page.locator(by_id("match.tool")).count():
-                rnd = page.locator(by_id("match.phase")).inner_text().split("\n")[0]
+                rnd = page.locator(by_id("match.round")).inner_text()
                 if rnd not in built_rounds:
                     built_rounds.add(rnd)
                     build_some(page)

@@ -164,5 +164,9 @@
   "tip.air.bounce": "Bounce off",
   "pause.heading": "Paused",
   "pause.resume": "Resume",
-  "pause.leave": "Leave match"
+  "pause.leave": "Leave match",
+  "tip.gold": "Gold",
+  "tip.level": "Level and XP",
+  "tip.target": "You attack",
+  "tip.scouting": "Scouting"
 }
