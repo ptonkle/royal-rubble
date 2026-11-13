@@ -57,7 +57,7 @@ body {
 
 h1, h2 { margin: 0 0 1rem; font-family: var(--font-title); text-transform: var(--heading-case); }
 h1 { font-size: var(--title-size); font-weight: var(--title-weight); letter-spacing: var(--title-spacing); color: var(--title-ink); line-height: 1.1; margin-bottom: 1.5rem; }
-h2 { font-size: var(--heading-size); font-weight: var(--heading-weight); letter-spacing: var(--heading-spacing); color: var(--heading-ink); padding-bottom: 0.5rem; border-bottom: 1px dashed var(--rule); }
+h2 { font-size: var(--heading-size); font-weight: var(--heading-weight); letter-spacing: var(--heading-spacing); color: var(--heading-ink); padding-bottom: 0.5rem; border-bottom: 1px solid var(--rule); }
 .sub { margin: 0 0 1rem; color: var(--page-ink-dim); }
 
 /* ---- buttons ---- */
@@ -82,7 +82,7 @@ h2 { font-size: var(--heading-size); font-weight: var(--heading-weight); letter-
   border-color: var(--button-quiet-edge);
 }
 /* a panel's first full button is its main action */
-.panel > .button:not(.quiet):first-of-type { background: var(--button-main-bg); border-color: var(--button-main-edge); }
+.panel > .button:not(.quiet):first-of-type, .panel > .button[id="lobby.start"] { background: var(--button-main-bg); border-color: var(--button-main-edge); }
 .button .icon { width: 1.2rem; height: 1.2rem; }
 .button.with-icon { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
 .button:hover:not(:disabled) { filter: var(--button-hover); }
@@ -221,6 +221,7 @@ body[data-screen="match"] .panel { pointer-events: auto; width: auto; box-shadow
   padding: 0.25rem 0.75rem;
   background: var(--bar-bg);
 }
+.panel.field-inset { border-color: var(--slate-edge); color: var(--hud-ink); }
 .panel.field-inset .lines { color: var(--hud-ink); }
 .panel.field-inset .lines p { margin: 0; }
 /* upgrade cards, in the middle of the field */
