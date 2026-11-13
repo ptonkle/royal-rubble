@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.2.6",
+    "date": "2026-11-13",
+    "notes": [
+      "Castle beams show their wood, stone and metal at every zoom."
+    ]
+  },
+  {
     "version": "0.2.5",
     "date": "2026-11-13",
     "notes": [
