@@ -41,6 +41,8 @@ pub struct Settings {
     pub seats: Vec<Seat>,
     pub wind: bool,
     pub seed: u64,
+    /// Flat ground (the lobby's Flat map).
+    pub flat: bool,
 }
 
 impl Settings {
@@ -129,6 +131,8 @@ pub struct Player {
 impl Player {
     fn new(id: PlayerId, seat: Seat, terrain: terrain::Plot) -> Self {
         let mut ledger = Ledger::default();
+        ledger.stock.wood = tune::START_WOOD;
+        ledger.stock.stone = tune::START_STONE;
         let ruin_pieces = terrain
             .spots
             .iter()
@@ -214,7 +218,11 @@ pub fn is_upgrade_round(round: u32) -> bool {
 impl Match {
     pub fn new(settings: Settings) -> Result<Self, Refusal> {
         settings.validate()?;
-        let ground = terrain::Plot::generate(settings.seed);
+        let ground = if settings.flat {
+            terrain::Plot::generate_flat(settings.seed)
+        } else {
+            terrain::Plot::generate(settings.seed)
+        };
         let players = settings
             .seats
             .iter()
@@ -270,6 +278,28 @@ impl Match {
         }
     }
 
+    /// Whether `p` may build now: in the build phase, or in the upgrade
+    /// phase once they have picked their card (R1.3400). The phase clock
+    /// stays shared.
+    pub fn builds_now(&self, p: PlayerId) -> bool {
+        match self.phase {
+            Phase::Build => true,
+            Phase::Upgrade => self
+                .player(p)
+                .and_then(|pl| pl.offer.as_ref())
+                .is_some_and(|o| o.picked.is_some()),
+            _ => false,
+        }
+    }
+
+    fn need_build(&self, p: PlayerId) -> Result<(), Refusal> {
+        if self.builds_now(p) {
+            Ok(())
+        } else {
+            Err(Refusal::WrongPhase)
+        }
+    }
+
     /// The castle `p` attacks this round, and whether it is a ghost.
     pub fn target_of(&self, p: PlayerId) -> Option<(PlayerId, bool)> {
         self.pairings.iter().find_map(|pr| pr.target_of(p))
@@ -279,7 +309,15 @@ impl Match {
 
     fn begin_round(&mut self, round: u32) {
         self.round = round;
-        self.pairings.clear();
+        // Pairings and wind are set at the round's start, so a player who
+        // builds early in the upgrade phase sees their target (R1.3400).
+        let alive = self.alive();
+        self.pairings = pairing::pair_round(
+            &alive,
+            &mut self.history,
+            &mut Dice::derive(self.settings.seed, round, SALT_PAIRS),
+        );
+        self.wind = self.wind_for(round);
         if is_upgrade_round(round) {
             self.begin_upgrade();
         } else {
@@ -314,18 +352,13 @@ impl Match {
     fn begin_build(&mut self) {
         self.set_phase(Phase::Build, tune::BUILD_SECONDS);
         let seed = self.settings.seed;
-        let alive = self.alive();
-        self.pairings = pairing::pair_round(
-            &alive,
-            &mut self.history,
-            &mut Dice::derive(seed, self.round, SALT_PAIRS),
-        );
-        self.wind = self.wind_for(self.round);
         let arriving = royals::arrivals(self.round);
         for p in self.players.iter_mut().filter(|p| p.alive()) {
             p.offer = None;
             p.ledger.shots_bought = 0;
-            p.purse.collect_income();
+            if self.round >= tune::FIRST_INCOME_ROUND {
+                p.purse.collect_income();
+            }
             p.purse.gold += p.mods.gold_per_round;
             p.purse.add_xp(tune::FREE_XP_PER_ROUND + p.mods.xp_per_round);
             for m in [Material::Wood, Material::Stone, Material::Metal] {
@@ -498,7 +531,7 @@ impl Match {
     // ---- Player actions ------------------------------------------------------
 
     pub fn buy_xp(&mut self, p: PlayerId) -> Result<(), Refusal> {
-        self.need(Phase::Build)?;
+        self.need_build(p)?;
         self.player_mut(p)?.purse.buy_xp()
     }
 
@@ -512,7 +545,7 @@ impl Match {
     /// Place a segment or rope; returns its ledger id for the physics world.
     /// Buildings go through `place_at`.
     pub fn place(&mut self, p: PlayerId, piece: Piece) -> Result<u32, Refusal> {
-        self.need(Phase::Build)?;
+        self.need_build(p)?;
         if matches!(piece, Piece::Building(_)) {
             return Err(Refusal::BadSpot);
         }
@@ -525,7 +558,7 @@ impl Match {
     /// Place a building with its footprint at terrain column `col`, which
     /// must lie in the player's buildable span. Returns its ledger id.
     pub fn place_at(&mut self, p: PlayerId, piece: Piece, col: usize) -> Result<u32, Refusal> {
-        self.need(Phase::Build)?;
+        self.need_build(p)?;
         let round = self.round;
         let pl = self.player_mut(p)?;
         let spot = sites::site(&pl.terrain, pl.purse.level, col)?;
@@ -537,14 +570,14 @@ impl Match {
     }
 
     pub fn sell(&mut self, p: PlayerId, id: u32) -> Result<u32, Refusal> {
-        self.need(Phase::Build)?;
+        self.need_build(p)?;
         let round = self.round;
         let pl = self.player_mut(p)?;
         pl.ledger.sell(id, round, &mut pl.purse.gold)
     }
 
     pub fn place_royal(&mut self, p: PlayerId, index: usize, spot: Spot) -> Result<(), Refusal> {
-        self.need(Phase::Build)?;
+        self.need_build(p)?;
         let pl = self.player_mut(p)?;
         if index >= pl.royals.len() {
             return Err(Refusal::Unknown);
@@ -577,6 +610,8 @@ impl Match {
         let i = offer.pick(slot)?;
         upgrades::apply_upgrade(i, &mut pl.purse, &mut pl.ledger.stock, &mut pl.mods);
         pl.upgrades.push(i);
+        // Picking is being done with the upgrade phase (R1.3400).
+        pl.ready = true;
         Ok(())
     }
 
@@ -643,6 +678,7 @@ mod tests {
             seats: vec![Seat::Human; n],
             wind: true,
             seed: 11,
+            flat: false,
         })
         .unwrap();
         m.start().unwrap();
@@ -662,6 +698,7 @@ mod tests {
             seats: vec![Seat::Human; n],
             wind: false,
             seed: 0,
+            flat: false,
         };
         assert_eq!(Match::new(s(1)).unwrap_err(), Refusal::BadSettings);
         assert_eq!(Match::new(s(9)).unwrap_err(), Refusal::BadSettings);
@@ -698,13 +735,24 @@ mod tests {
     }
 
     #[test]
-    fn round_one_pays_income_and_free_xp_and_brings_a_squire() {
+    fn round_one_pays_free_xp_and_brings_a_squire() {
         let m = humans(2);
         let p = &m.players[0];
-        assert_eq!(p.purse.gold, tune::BASE_INCOME);
+        assert_eq!(p.purse.gold, 0);
         assert_eq!(p.purse.level, 2);
         assert_eq!(p.royals.len(), 1);
         assert_eq!(m.target_of(0), Some((1, false)));
+    }
+
+    #[test]
+    fn round_one_starts_with_a_stockpile_and_no_gold() {
+        // R1.3701, the person: "start with a set amount of stone and wood and zero gold"
+        let m = humans(2);
+        let p = &m.players[0];
+        assert_eq!(
+            (p.purse.gold, p.ledger.stock.wood, p.ledger.stock.stone),
+            (0, 12, 6)
+        );
     }
 
     #[test]
@@ -722,8 +770,8 @@ mod tests {
         };
         m.apply_siege(&r).unwrap();
         assert_eq!(m.players[1].health, 99);
-        // 5 income round 1, +1 kill gold, and round 2 has not paid yet (upgrade phase)
-        assert_eq!(m.players[0].purse.gold, 6);
+        // no income round 1 (R1.3701), +1 kill gold, and round 2 has not paid yet (upgrade phase)
+        assert_eq!(m.players[0].purse.gold, 1);
     }
 
     #[test]
@@ -863,6 +911,8 @@ mod tests {
     fn level_unlocks_stone_at_four_and_grow_the_plot() {
         let mut m = humans(2);
         m.players[0].purse.gold = 100;
+        // the starting stone is usable early (R1.3701); gold can't buy more
+        m.players[0].ledger.stock.stone = 0;
         assert_eq!(m.place(0, Piece::Segment(Material::Stone)), Err(Refusal::Locked));
         let small = m.players[0].plot();
         m.players[0].purse.add_xp(8); // level 2 -> 4
@@ -885,6 +935,30 @@ mod tests {
         // player 1 never picked: the first card is taken for them at phase end
         run_out(&mut m);
         assert_eq!(m.players[1].upgrades.len(), 1);
+    }
+
+    #[test]
+    fn early_build_opens_for_a_player_once_they_pick_while_the_clock_runs() {
+        let mut m = humans(3);
+        run_out(&mut m);
+        m.apply_siege(&SiegeResult::default()).unwrap();
+        assert_eq!(m.phase, Phase::Upgrade);
+        let wood = Piece::Segment(Material::Wood);
+        assert_eq!(m.place(0, wood), Err(Refusal::WrongPhase));
+        // the round's target is known before anyone builds
+        assert!(m.target_of(0).is_some());
+        m.pick(0, 0).unwrap();
+        assert!(m.place(0, wood).is_ok());
+        // player 1 has not picked: still choosing, so cannot build
+        assert_eq!(m.place(1, wood), Err(Refusal::WrongPhase));
+        let left = m.ticks_left;
+        m.tick();
+        assert_eq!((m.phase, m.ticks_left), (Phase::Upgrade, left - 1));
+        // the last pick ends the upgrade phase for everyone
+        m.pick(1, 0).unwrap();
+        m.pick(2, 0).unwrap();
+        m.tick();
+        assert_eq!(m.phase, Phase::Build);
     }
 
     fn give(m: &mut Match, p: PlayerId, key: &str) {
@@ -918,7 +992,7 @@ mod tests {
         let (a, b) = (&m.players[0], &m.players[1]);
         // both got base income on the same bank; player 0 got 1 more
         assert_eq!(a.purse.gold - b.purse.gold, 1);
-        assert_eq!(a.ledger.stock.wood, 6);
+        assert_eq!(a.ledger.stock.wood, tune::START_WOOD + 6);
         // level 2 to 3 takes 2 XP: 4 free XP leaves 2, against 0
         assert_eq!((a.purse.level, a.purse.xp, b.purse.xp), (3, 2, 0));
     }
@@ -975,6 +1049,7 @@ mod tests {
     fn quartermaster_makes_bought_shots_cost_one() {
         let mut m = humans(2);
         give(&mut m, 0, "quartermaster");
+        m.players[0].purse.gold = 5; // round 1 pays no gold (R1.3701)
         let gold = m.players[0].purse.gold;
         m.buy_shot(0).unwrap();
         assert_eq!(m.players[0].purse.gold, gold - 1);
@@ -987,6 +1062,7 @@ mod tests {
             seats,
             wind: true,
             seed: 5,
+            flat: false,
         })
         .unwrap();
         m.start().unwrap();

@@ -45,7 +45,7 @@ pub struct ShotTune {
 }
 
 const NORMAL: ShotTune = ShotTune {
-    radius: Fx::ratio(1, 3),
+    radius: Fx::ratio(1, 2),
     mass: Fx::from_int(6),
     ignites: false,
     blast_radius: Fx::ZERO,
@@ -78,7 +78,7 @@ pub const SHOTS: [(ShotKind, ShotTune); 7] = [
     (
         ShotKind::Heavy,
         ShotTune {
-            radius: Fx::ratio(1, 2),
+            radius: Fx::ratio(3, 4),
             mass: Fx::from_int(15),
             ..NORMAL
         },
@@ -86,7 +86,7 @@ pub const SHOTS: [(ShotKind, ShotTune); 7] = [
     (
         ShotKind::Spread,
         ShotTune {
-            radius: Fx::ratio(1, 6),
+            radius: Fx::ratio(1, 4),
             mass: Fx::from_int(2),
             pieces: 5,
             spread: TURN / 72,
@@ -97,7 +97,7 @@ pub const SHOTS: [(ShotKind, ShotTune); 7] = [
     (
         ShotKind::Meteor,
         ShotTune {
-            radius: Fx::ratio(2, 3),
+            radius: Fx::from_int(1),
             mass: Fx::from_int(18),
             ignites: true,
             ..NORMAL

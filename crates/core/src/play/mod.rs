@@ -188,7 +188,7 @@ impl Play {
 
     /// One player input, now.
     pub fn apply(&mut self, p: PlayerId, input: Input) -> Result<(), Refusal> {
-        let build = self.rules.phase == Phase::Build;
+        let build = self.rules.builds_now(p);
         let r = self.apply_input(p, input);
         if build && r.is_ok() && input != Input::Ready {
             if self.edits.len() <= p as usize {

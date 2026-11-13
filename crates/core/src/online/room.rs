@@ -660,6 +660,10 @@ impl Room {
                 self.host_only(name)?;
                 self.lobby.set_wind(value == "on");
             }
+            "lobby.flat" => {
+                self.host_only(name)?;
+                self.lobby.set_flat(value == "on");
+            }
             other => return self.seat_act(other, value),
         }
         Ok(())

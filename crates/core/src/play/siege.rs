@@ -40,7 +40,7 @@ pub fn air_effect(k: AirKind) -> AirEffect {
         AirKind::Split => AirEffect::Split,
         AirKind::Dive => AirEffect::Dive,
         AirKind::Boost => AirEffect::Boost,
-        AirKind::Hover => AirEffect::Hover,
+        AirKind::Bounce => AirEffect::Bounce,
     }
 }
 

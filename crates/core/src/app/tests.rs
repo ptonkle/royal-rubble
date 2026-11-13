@@ -193,3 +193,50 @@ fn online_two_apps_play_the_same_match_from_the_lobby() {
     assert!(!h.ends_with(": 0"), "a checksum was compared: {h}");
     assert_eq!(h, j);
 }
+
+/// A solo match against one bot, running.
+fn solo_match() -> App {
+    let mut a = app();
+    a.act("menu.solo", "").unwrap();
+    a.act("lobby.start", "").unwrap();
+    a.pump(17, 0);
+    a.pump(1017, 0);
+    a
+}
+
+#[test]
+fn pause_menu_stops_a_solo_match_and_resume_skips_the_time_paused() {
+    let mut a = solo_match();
+    let before = a.arena.as_ref().unwrap().ticks_run();
+    a.act("pause.open", "").unwrap();
+    assert_eq!(ids(&a), ["pause.resume", "pause.settings", "play.leave"]);
+    assert!(!a.ui().capture, "the keys are the menu's while paused");
+    assert!(a.ui().field.is_some(), "the match stays drawn behind");
+    a.pump(9017, 0);
+    assert_eq!(a.arena.as_ref().unwrap().ticks_run(), before);
+    a.act("pause.resume", "").unwrap();
+    a.pump(9017, 0);
+    // eight seconds paused are not caught up on resume
+    assert_eq!(a.arena.as_ref().unwrap().ticks_run(), before);
+    assert!(a.ui().capture);
+}
+
+#[test]
+fn pause_escape_walks_pause_settings_and_back() {
+    let mut a = solo_match();
+    assert_eq!(a.ui().escape, "pause.open");
+    a.act("pause.open", "").unwrap();
+    assert_eq!(a.ui().escape, "pause.resume");
+    a.act("pause.settings", "").unwrap();
+    assert_eq!(ids(&a), ["settings.volume", "settings.music", "pause.back"]);
+    assert_eq!(a.ui().escape, "pause.back");
+    a.act("settings.music", "40").unwrap();
+    assert_eq!(a.ui().music, 40);
+    a.act("pause.back", "").unwrap();
+    assert_eq!(a.ui().escape, "pause.resume");
+    a.act("play.leave", "").unwrap();
+    assert_eq!(a.ui().screen, "title");
+    assert_eq!(a.ui().escape, "");
+    a.act("menu.settings", "").unwrap();
+    assert_eq!(a.ui().escape, "menu.back");
+}
