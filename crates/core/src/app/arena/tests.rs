@@ -363,3 +363,24 @@ fn arena_the_siege_view_never_shows_past_the_world_edges() {
         }
     }
 }
+
+fn timer_urgent(a: &Arena) -> Option<bool> {
+    let s = Strings::parse(&sample()).unwrap();
+    a.panels(&s, &CardText::default())
+        .iter()
+        .flat_map(|p| p.items.iter())
+        .find_map(|i| match i {
+            Item::Timer { urgent, .. } => Some(*urgent),
+            _ => None,
+        })
+}
+
+#[test]
+fn arena_the_timer_turns_urgent_in_its_last_ten_seconds() {
+    let mut a = arena(1);
+    let tps = crate::game::tune::TICKS_PER_SECOND;
+    a.play.rules.ticks_left = 11 * tps;
+    assert_eq!(timer_urgent(&a), Some(false));
+    a.play.rules.ticks_left = 10 * tps;
+    assert_eq!(timer_urgent(&a), Some(true));
+}

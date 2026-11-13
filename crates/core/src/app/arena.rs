@@ -1632,16 +1632,16 @@ impl Arena {
             return Vec::new();
         };
         let phase = self.view_phase();
-        let (phase_key, phase_icon) = match self.phase() {
-            Phase::Upgrade => ("phase.upgrade", "upgrade"),
-            Phase::Build => ("phase.build", "build"),
-            _ => ("phase.siege", "siege"),
+        let phase_key = match self.phase() {
+            Phase::Upgrade => "phase.upgrade",
+            Phase::Build => "phase.build",
+            _ => "phase.siege",
         };
         let left = self.seconds_left();
         let mut top = vec![
             Item::Timer {
                 id: "match.phase".into(),
-                icon: hud_icon::url(phase_icon),
+                icon: hud_icon::url("timer"),
                 phase: s.get(phase_key),
                 text: left.to_string(),
                 urgent: left <= TIMER_URGENT_SECONDS && left > 0,

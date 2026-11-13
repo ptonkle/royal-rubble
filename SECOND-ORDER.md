@@ -260,6 +260,11 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R1.3403 | finding | The sound bank's group label changed | `data/sounds.json` and `data/sound-programs.json` held the label "Shots and air effects"; both now say "Shots and tricks". The sound agent may regenerate the bank; keep the new label | `data/sounds.json` | | done |
 | R1.3100 | finding | The late match ended right after round 8 | It did not. A core run of the same match (8 seats, the human only picks card 0 and readies, 7 Normal bots, the real bot castles and shot planner) runs to round 16 and ends with one player standing (seed 4: health 78-88 at round 8 as on screen, first knockouts in round 14, bot 7 wins at 31). `play_late.py` shoots only rounds 5-8 (`ROUNDS = range(5, 9)`) and then plays on unseen until Results, so the results shot looked like it followed round 8. The human placed a royal in the open each round, so going out first fits. The health list was current; nothing in the core or page changed | `game/flow.rs` tests `eight_seats_play_on_while_two_players_have_health`, `eight_seats_end_when_one_player_is_left` | | done |
 | R1.3101 | worklist | The late script says which round Results came in | `play_late.py` could print the round reached (or shoot a frame each later round) so a results shot is not read as following round 8. Left to the agent editing `scripts/play_*.py` | `scripts/play_late.py` | | open |
+| R1.3404 | divergence | The match HUD was a list of labels at the top | Rebuilt: a slim top bar (timer, round, gold, level badge and XP bar, target, Leave), a health column of sorted rows (heart, number, name, bar; you outlined, your target marked) and a fixed-height bottom bar of fixed-size slots (materials with icon and price or stock badge, Royal with a count, producers, then Buy XP, Extra shot, Test, Scout, Ready; ammo and tricks in the siege). New view items `Stat`, `Timer`, `Meter`, `Health`; `BarOption` gained icon, count, cost and group | `app/arena.rs` `panels`, `view.rs`, `web/app.js`, `web/hud.css` | | done |
+| R1.3405 | divergence | One icon set for the HUD | Icons are single silhouettes made in the core as SVG data URLs (`app/hud_icon.rs`), drawn by the page as CSS masks and colored by name in `web/hud.css`, so the palette stays in CSS tokens beside the art agent's. Upgrade cards get an icon by their first effect (`card_icon`) | `app/hud_icon.rs` | | done |
+| R1.3406 | finding | The timer's icon showed the build hammer in every phase | Seen in the siege screenshot; not traced (time box). The timer now always shows the hourglass and names the phase in words | `app/arena.rs` `panels` | | open |
+| R1.3407 | worklist | HUD strings no screen uses now | `hud.gold`, `hud.level`, `hud.target`, `hud.scouting`, `hud.health`, `hud.out`, `hud.ammo` and `tool.royals` are still in `KEYS` and strings.json but the new HUD shows icons and bare values in their place. Remove them once the person settles the HUD | `strings.rs` | | open |
+| R1.3408 | worklist | HUD rough edges | Leave and Reroll still use the tapestry button style; resource-spot hover tips on the field are not built yet (the producer tips say what each makes); the timer's urgency threshold is a const in arena.rs (`TIMER_URGENT_SECONDS`) | `web/hud.css`, `app/arena.rs` | | open |
 
 ## Strings written by the agent
 
@@ -373,3 +378,7 @@ Each reader-visible string the agent wrote, with its key, for the person to read
 | tip.air.dive | Dive straight down |
 | tip.air.boost | Speed up |
 | tip.air.hover | Hang still |
+| tip.gold | Gold |
+| tip.level | Level and XP |
+| tip.target | You attack |
+| tip.scouting | Scouting |

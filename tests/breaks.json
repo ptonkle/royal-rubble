@@ -1258,5 +1258,19 @@
     "find": "        if alive.len() <= 1 {\n",
     "replace": "        if alive.is_empty() {\n",
     "test": "eight_seats_end_when_one_player_is_left"
+  },
+  {
+    "name": "hudbar timer turns urgent",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "urgent: left <= TIMER_URGENT_SECONDS && left > 0,",
+    "replace": "urgent: false,",
+    "test": "arena_the_timer_turns_urgent_in_its_last_ten_seconds"
+  },
+  {
+    "name": "hudbar icon urls are svg",
+    "file": "crates/core/src/app/hud_icon.rs",
+    "find": "format!(\"data:image/svg+xml,{}\", crate::icon::encode(&s))",
+    "replace": "format!(\"data:image/svg+xml,{}\", s)",
+    "test": "hud_icons_are_svg_data_urls_with_unique_names"
   }
 ]
