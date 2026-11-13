@@ -964,5 +964,19 @@
     "find": "            let d = (b - a) / div;",
     "replace": "            let d = b - a;",
     "test": "camera_eases_part_way_then_arrives"
+  },
+  {
+    "name": "swept collision for fast shots",
+    "file": "crates/core/src/physics/tune.rs",
+    "find": "pub const MAX_SUBSTEPS: i64 = 8;",
+    "replace": "pub const MAX_SUBSTEPS: i64 = 1;",
+    "test": "a_full_speed_shot_cannot_skip_a_single_stone_wall"
+  },
+  {
+    "name": "siege targets carry royal damage",
+    "file": "crates/core/src/ai/planner.rs",
+    "find": "Target { body, value: damage }",
+    "replace": "Target { body, value: 1 }",
+    "test": "ai_siege_targets_carry_each_royals_damage"
   }
 ]

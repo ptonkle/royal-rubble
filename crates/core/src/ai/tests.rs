@@ -439,3 +439,37 @@ fn ai_bot_castle_grows_every_round_and_stands() {
     }
     assert!(more_covered >= 1);
 }
+
+#[test]
+fn ai_siege_targets_carry_each_royals_damage() {
+    let play = match_with(vec![Seat::Human, Seat::Human], 2);
+    let plot = play.rules.players[1].terrain.clone();
+    let mut w = crate::physics::World::new(super::units::physics_terrain(&plot));
+    let body = |x: i64| crate::physics::Body {
+        pos: crate::physics::Vec2::ints(x, 30),
+        prev: crate::physics::Vec2::ints(x, 30),
+        radius: Fx::ratio(1, 4),
+        attached: None,
+        peak_y: Fx::from_int(30),
+        alive: true,
+    };
+    w.bodies = vec![body(150), body(160), body(170)];
+    w.bodies[2].alive = false;
+    // a Squire (1), a King (10), and a dead Knight left out
+    let royals = [(0usize, 1u32), (1, 10), (2, 2)];
+    let v = crate::play::siege::SiegeView {
+        world: &w,
+        plot: &plot,
+        base: crate::physics::Vec2::ints(4, 0),
+        power: 0,
+        ammo: &[],
+        air: &[],
+        difficulty: None,
+        royals: &royals,
+    };
+    let t: Vec<(usize, u32)> = super::planner::royal_targets(&v)
+        .iter()
+        .map(|t| (t.body, t.value))
+        .collect();
+    assert_eq!(t, vec![(0, 1), (1, 10)]);
+}

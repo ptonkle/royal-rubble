@@ -109,6 +109,7 @@ fn probe_siege_plan_time() {
                 ammo: &ammo,
                 air: &air,
                 difficulty: Some(d),
+                royals: &[],
             };
             let t0 = Instant::now();
             let plan = tool_core::ai::planner::plan_siege(&v);

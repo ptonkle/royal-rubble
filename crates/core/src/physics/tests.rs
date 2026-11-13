@@ -451,3 +451,25 @@ fn trebuchet_forward_release_window_ends_by_tick_160() {
     let last = *forward.last().unwrap();
     assert!(forward.len() >= 120 && last <= 160, "forward and up {forward:?}");
 }
+
+#[test]
+fn a_full_speed_shot_cannot_skip_a_single_stone_wall() {
+    // a small shot at 1.5 units a tick (faster than any throw) from eight
+    // starting offsets: every one touches the one-segment wall
+    for k in 0..8 {
+        let mut w = flat_world();
+        let wall = beam(&mut w, (20, 0), (20, 2), Material::Stone);
+        let hp = TUNE.material(Material::Stone).hp;
+        let from = Vec2::new(Fx::from_int(10) + Fx::ratio(k, 8), Fx::ONE);
+        w.fire(
+            shot(from, Vec2::new(Fx::ratio(3, 2), Fx::ZERO)),
+            Fx::ratio(1, 6),
+            Fx::ONE,
+        );
+        for _ in 0..12 {
+            w.step();
+        }
+        let s = &w.segments[wall];
+        assert!(s.broken || s.hp < hp, "offset {k}/8: the shot passed through");
+    }
+}

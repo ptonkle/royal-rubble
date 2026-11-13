@@ -331,7 +331,16 @@ impl Play {
             let mut shooter = Shooter::new(attacker, bot, &a.loadout(), &a.mods);
             let base = units::trebuchet_base(&o.terrain);
             if bot {
+                let royals: Vec<(usize, u32)> = cw_bodies
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(body, owner)| match owner {
+                        castle::BodyOwner::Royal(i) => o.royals.get(*i).map(|r| (body, r.kind.base_damage())),
+                        castle::BodyOwner::Building(_) => None,
+                    })
+                    .collect();
                 let view = SiegeView {
+                    royals: &royals,
                     world: &cw.world,
                     plot: &o.terrain,
                     base,

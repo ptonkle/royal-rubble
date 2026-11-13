@@ -66,6 +66,9 @@ pub struct SiegeView<'a> {
     pub air: &'a [AirKind],
     /// The seat's difficulty; `None` for a ghost's stand-in trebuchet.
     pub difficulty: Option<Difficulty>,
+    /// Each royal's body index in `world` and its damage before round
+    /// scaling, so the aimer can go for the King (R1.912).
+    pub royals: &'a [(usize, u32)],
 }
 
 /// Chooses a bot trebuchet's shots for a siege. The aiming AI plugs in

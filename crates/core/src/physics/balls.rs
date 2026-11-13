@@ -176,14 +176,27 @@ impl World {
         if !debris {
             ball.vel.x += self.wind;
         }
-        ball.pos += ball.vel;
         ball.age += 1;
-        if ball.phase > 0 {
+        let hits_beams = if ball.phase > 0 {
             ball.phase -= 1;
-        } else if !debris || ball.age > TUNE.debris_grace {
-            self.collide_beams(ball, to_break);
+            false
+        } else {
+            !debris || ball.age > TUNE.debris_grace
+        };
+        // swept: a fast ball moves in substeps no longer than its radius, so
+        // it cannot jump a segment's collision band between checks (R1.1455)
+        let speed = ball.vel.len();
+        let mut n = 1i64;
+        while speed > ball.radius * n && n < super::tune::MAX_SUBSTEPS {
+            n += 1;
         }
-        self.collide_bodies(ball, index, debris, events);
+        for _ in 0..n {
+            ball.pos += Vec2::new(ball.vel.x / n, ball.vel.y / n);
+            if hits_beams {
+                self.collide_beams(ball, to_break);
+            }
+            self.collide_bodies(ball, index, debris, events);
+        }
         let h = self.terrain.height_at(ball.pos.x);
         if ball.pos.y - ball.radius < h {
             ball.pos.y = h + ball.radius;

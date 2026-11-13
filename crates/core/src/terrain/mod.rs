@@ -52,7 +52,7 @@ pub mod tune {
     pub const BETWEEN_STEP: i32 = CELL * 5 / 4;
     /// The between-ground never rises above the line from the launch column to the plot
     /// front by more than this percent of a 45-degree arc's height over it.
-    pub const ARC_CAP_PCT: i64 = 55;
+    pub const ARC_CAP_PCT: i64 = 35;
     /// Steepest buildable slope: rise per column inside the plot, away from a cliff.
     pub const MAX_STEP: i32 = CELL / 2;
     /// Steepest any plot column may be (a terrace ramp, a mound's flank), away from a cliff.

@@ -14,9 +14,18 @@ use crate::physics::AirEffect;
 use crate::play::siege::{air_effect, PlannedShot, SiegeView};
 use crate::play::tune as play_tune;
 
-/// The royals in a siege world. `SiegeView` carries no body owners, so a
-/// royal is told from a building by its radius (R1.912).
+/// The royals in a siege world, each worth its damage, so a King draws the
+/// aim before a Squire (R1.912). A view with no royal list (the probes)
+/// tells a royal from a building by its radius, each worth 1.
 pub fn royal_targets(v: &SiegeView) -> Vec<Target> {
+    if !v.royals.is_empty() {
+        return v
+            .royals
+            .iter()
+            .filter(|(body, _)| v.world.bodies.get(*body).is_some_and(|b| b.alive))
+            .map(|&(body, damage)| Target { body, value: damage })
+            .collect();
+    }
     v.world
         .bodies
         .iter()

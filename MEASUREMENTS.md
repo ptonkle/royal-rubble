@@ -12,6 +12,7 @@ The state measured rather than recalled, so later changes can be compared with i
 | WebAssembly size | printed by `./scripts/build.sh` | | |
 | Breaks caught | `python3 scripts/break_tests.py` | | |
 | Physics step time (201-segment castle, 5 shots, 600 ticks, release) | `cargo test --release --test physics_probe probe_step_time -- --ignored --nocapture` | 174 µs mean step, 594 µs worst step (15 segments broken, 30 debris); static test of the castle: 0 breaks | 2026-11-12, WSL2, 16 threads |
+| Physics step time with swept shots (R1.1455), same probe | same | 180 µs mean step, 383 µs worst (13 broken, 26 debris) | 2026-11-12, WSL2 |
 | Cantilever strain (wood, off a braced wood tower) | `cargo test --release --test physics_probe probe_cantilever_strain -- --ignored --nocapture` | root strain 12% (1 unit), 71% (2), 147% breaks (3), 426% breaks (4) | 2026-11-12 |
 | Physics breaks caught | `python3 scripts/break_tests.py physics` | 22 of 22 | 2026-11-12 |
 | AI aiming decision time (201-segment castle, 3 royals, release) | `cargo test --release --test ai_probe -- --ignored --nocapture --test-threads=1` | one shot, plain: easy 10.1 ms, normal 9.9, hard 21.1 mean (26.1 worst); with drop: 11.0, 12.2, 23.5 (23.9); with drop and split: 13.8, 18.4, 45.1 (45.5). Whole siege plan of 5 shots: 100, 98, 149 ms; with drop 104, 108, 164 ms | 2026-11-12, WSL2 |
