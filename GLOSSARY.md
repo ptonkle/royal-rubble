@@ -231,6 +231,10 @@ A building that gives you an extra shot next round if it survives the siege.
 
 An air effect: the shot speeds up along its path.
 
+### Bounce
+
+An air effect: the shot's next hit bounces it off hard instead of stopping it. One hit, then it flies as normal.
+
 ### Carpenter
 
 A building that gives you wood each round it survives.
@@ -250,10 +254,6 @@ An exploding shot, on the ammo bar.
 ### Gold
 
 What you spend on segments, buildings, XP and shots. Also the middle tier of upgrade cards.
-
-### Hover
-
-An air effect: the shot hangs still for a moment.
 
 ### Level
 

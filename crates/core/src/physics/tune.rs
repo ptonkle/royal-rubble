@@ -97,8 +97,9 @@ pub struct Tune {
     /// Fire spreads to touching wood every this many ticks.
     pub burn_spread_every: u32,
     pub phase_ticks: u32,
-    /// Hover: ticks a shot hangs still before it falls.
-    pub hover_ticks: u32,
+    /// Bounce: fraction of its speed into a surface an armed shot keeps,
+    /// reflected, on its next contact.
+    pub bounce_restitution: Fx,
     /// Split: angle between the pieces, in brads.
     pub split_spread: i64,
     /// Boost: added speed along the flight path.
@@ -203,7 +204,7 @@ pub const TUNE: Tune = Tune {
     burn_damage: Fx::ratio(1, 600),
     burn_spread_every: 60,
     phase_ticks: 30,
-    hover_ticks: 60,
+    bounce_restitution: Fx::ratio(4, 5),
     split_spread: TURN / 36,
     boost_speed: Fx::ratio(1, 10),
     treb_pivot_height: Fx::ratio(7, 2),

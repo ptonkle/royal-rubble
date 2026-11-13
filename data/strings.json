@@ -92,7 +92,7 @@
   "ammo.meteor": "Meteor",
   "air.dive": "Dive",
   "air.boost": "Boost",
-  "air.hover": "Hover",
+  "air.bounce": "Bounce",
   "seat.bot_n": "Bot {n}",
   "phase.upgrade": "Upgrade",
   "phase.build": "Build",

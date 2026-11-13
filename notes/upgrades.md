@@ -46,7 +46,7 @@
 | Plummet | silver | Air effect: drop straight down. 2 uses per round | yes |
 | Turnabout | silver | Air effect: reverse direction. 2 uses per round | yes |
 | Spur | silver | Air effect: +50% speed. 2 uses per round | no |
-| Kestrel | silver | Air effect: hang still for 1 second. 2 uses per round | no |
+| Skipping Stone | silver | Air effect: the next hit bounces off. 2 uses per round | no |
 | Ghost Stone | gold | Air effect: pass through the next 2 segments. 2 uses per round | yes |
 | Hawk Dive | gold | Air effect: dive at double speed. 2 uses per round | no |
 | Splinter | gold | Air effect: split into 3. 2 uses per round | yes |

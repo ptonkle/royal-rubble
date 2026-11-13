@@ -102,7 +102,7 @@ pub const KEYS: &[&str] = &[
     "ammo.meteor",
     "air.dive",
     "air.boost",
-    "air.hover",
+    "air.bounce",
     "seat.bot_n",
     "phase.upgrade",
     "phase.build",

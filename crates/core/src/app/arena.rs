@@ -173,7 +173,7 @@ fn air_name(a: AirKind) -> &'static str {
         AirKind::Split => "split",
         AirKind::Dive => "dive",
         AirKind::Boost => "boost",
-        AirKind::Hover => "hover",
+        AirKind::Bounce => "bounce",
     }
 }
 

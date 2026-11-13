@@ -48,9 +48,9 @@
       "name": "Spur",
       "text": "Air effect: +50% speed. 2 uses per round"
     },
-    "kestrel": {
-      "name": "Kestrel",
-      "text": "Air effect: hang still for 1 second. 2 uses per round"
+    "skipping_stone": {
+      "name": "Skipping Stone",
+      "text": "Air effect: the next hit bounces off. 2 uses per round"
     },
     "ghost_stone": {
       "name": "Ghost Stone",
