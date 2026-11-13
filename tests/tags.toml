@@ -146,3 +146,9 @@ name = "the sound tools"
 # they write data/sound*.json, which crates/core/tests/sound.rs reads
 files = ["tools/sound/**"]
 steps = ["core"]
+
+[[rule]]
+name = "the menu art generator"
+# it writes web/look/*.svg, which the page rule covers
+files = ["tools/look/**"]
+steps = []

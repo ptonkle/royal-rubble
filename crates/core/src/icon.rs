@@ -1,17 +1,20 @@
-//! The tab icon, made here as an SVG data URL: a castle tower. The page sets it on its `<link rel="icon">`; the CSP's
+//! The tab icon, made here as an SVG data URL: a stitched castle tower. The page sets it on its `<link rel="icon">`; the CSP's
 //! `img-src data:` lets it through. A data URL means no icon file to request
 //! and no second copy of the art. After Crabble's and Honey Hole's tab icons.
 
 /// The icon as SVG text, on a 32-unit grid so it stays readable at 16
-/// pixels: a crenellated tower with a gate, on a plain rounded square. The
-/// colors are neutral until the person picks the look (R1.401).
+/// pixels: a crenellated tower worked in wool on linen, in the tapestry
+/// palette (`data/look.json`): a tan laid fill with brick-red courses, a
+/// dark blue stem-stitch outline and gate, on a linen square with a thin
+/// brick rule.
 pub fn svg() -> String {
     concat!(
         "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>",
-        "<rect x='1' y='1' width='30' height='30' rx='7' fill='#2f3540'/>",
-        "<path d='M8 28 V10 H11 V7 H14 V10 H18 V7 H21 V10 H24 V28 Z' fill='#d9d4c7'/>",
-        "<path d='M13.5 28 V22 Q16 18.5 18.5 22 V28 Z' fill='#2f3540'/>",
-        "<rect x='14.8' y='13' width='2.4' height='4' fill='#2f3540'/>",
+        "<rect x='1' y='1' width='30' height='30' rx='5' fill='#ddd3c8' stroke='#8e4a3b' stroke-width='1.2'/>",
+        "<path d='M8 28 V10 H11 V7 H14 V10 H18 V7 H21 V10 H24 V28 Z' fill='#a88e6c'/>",
+        "<path d='M8 15 H24 M8 21 H24' stroke='#8e4a3b' stroke-width='1.3' stroke-dasharray='2 1'/>",
+        "<path d='M8 28 V10 H11 V7 H14 V10 H18 V7 H21 V10 H24 V28 Z' fill='none' stroke='#2a3646' stroke-width='1.6' stroke-linejoin='round'/>",
+        "<path d='M13.5 28 V23 Q16 19.5 18.5 23 V28 Z' fill='#2a3646'/>",
         "</svg>"
     )
     .to_string()
