@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.2.8",
+    "date": "2026-11-13",
+    "notes": [
+      "Smoother: no pause when a view first appears."
+    ]
+  },
+  {
     "version": "0.2.7",
     "date": "2026-11-13",
     "notes": [
