@@ -1092,6 +1092,7 @@ impl Sandbox {
     pub fn panels(&self, s: &Strings) -> Vec<Panel> {
         let button = |id: &str, key: &str| Item::Button {
             tip: String::new(),
+            icon: String::new(),
             id: id.into(),
             text: s.get(key),
             quiet: false,
@@ -1106,6 +1107,7 @@ impl Sandbox {
         }
         top.push(Item::Button {
             tip: String::new(),
+            icon: String::new(),
             id: "sandbox.leave".into(),
             text: s.get("play.leave"),
             quiet: true,
@@ -1123,6 +1125,11 @@ impl Sandbox {
                         .enumerate()
                         .map(|(k, n)| BarOption {
                             tip: String::new(),
+                            icon: String::new(),
+                            icon_name: String::new(),
+                            count: String::new(),
+                            cost: String::new(),
+                            group: String::new(),
                             value: n.to_string(),
                             text: s.get(&format!("tool.{n}")),
                             key: key(k),
@@ -1141,6 +1148,11 @@ impl Sandbox {
                         .enumerate()
                         .map(|(k, a)| BarOption {
                             tip: String::new(),
+                            icon: String::new(),
+                            icon_name: String::new(),
+                            count: String::new(),
+                            cost: String::new(),
+                            group: String::new(),
                             value: a.name.to_string(),
                             text: s.get(&format!("ammo.{}", a.name)),
                             key: key(k),
@@ -1157,6 +1169,11 @@ impl Sandbox {
                         .zip(KEY_AIR.iter())
                         .map(|((_, n, _), (code, _))| BarOption {
                             tip: String::new(),
+                            icon: String::new(),
+                            icon_name: String::new(),
+                            count: String::new(),
+                            cost: String::new(),
+                            group: String::new(),
                             value: n.to_string(),
                             text: s.get(&format!("air.{n}")),
                             key: code.trim_start_matches("Key").to_string(),

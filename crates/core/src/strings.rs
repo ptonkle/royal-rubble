@@ -172,6 +172,10 @@ pub const KEYS: &[&str] = &[
     "tip.air.dive",
     "tip.air.boost",
     "tip.air.hover",
+    "tip.gold",
+    "tip.level",
+    "tip.target",
+    "tip.scouting",
 ];
 
 /// The strings file, checked.

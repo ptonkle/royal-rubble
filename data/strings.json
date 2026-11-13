@@ -161,5 +161,9 @@
   "tip.air.split": "Break into three",
   "tip.air.dive": "Dive straight down",
   "tip.air.boost": "Speed up",
-  "tip.air.hover": "Hang still"
+  "tip.air.hover": "Hang still",
+  "tip.gold": "Gold",
+  "tip.level": "Level and XP",
+  "tip.target": "You attack",
+  "tip.scouting": "Scouting"
 }
