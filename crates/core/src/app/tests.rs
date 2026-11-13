@@ -107,6 +107,18 @@ fn play_vs_bots_opens_a_lobby_with_a_bot_and_start_shows_the_match() {
 }
 
 #[test]
+fn the_menus_play_the_menu_theme_and_a_match_leaves_music_to_its_field() {
+    let mut a = app();
+    assert_eq!(a.ui().menu_music, "music_menu");
+    a.act("menu.solo", "").unwrap();
+    assert_eq!(a.ui().menu_music, "music_menu");
+    a.act("lobby.start", "").unwrap();
+    a.pump(17, 0);
+    assert_eq!(a.ui().screen, "match");
+    assert_eq!(a.ui().menu_music, "");
+}
+
+#[test]
 fn hosting_shows_the_code_its_link_and_the_lobby_options() {
     let mut a = app();
     a.act("menu.host", "").unwrap();

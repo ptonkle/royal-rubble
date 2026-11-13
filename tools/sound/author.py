@@ -10,6 +10,8 @@ Edit here, not in the JSON. See tools/sound/compile.py for the recipe fields.
 import json
 import pathlib
 
+import songs
+
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SILENCE = 0.001
 
@@ -267,6 +269,11 @@ cue("victory", "Victory",
     struck("noise", 0.2, [[1260, 1]], 120, filters=[lp(400)]))
 cue("ui_click", "Click", tone("sine", 1000, 0.08, 35, to=700), struck("noise", 0.03, [[0, 1]], 4, filters=[bp(3000, 2)]))
 cue("ui_hover", "Hover", tone("sine", 1800, 0.025, 28))
+# a short lute strum for the volume sliders to play (R1.3803)
+LUTE = [1, 0.62, 0.46, 0.32, 0.22, 0.16, 0.1, 0.07]
+cue("sample", "Volume sample",
+    [{"wave": "periodic", "harmonics": LUTE, "freq": f, "gain": 0.09, "at_ms": k * 28, "attack_ms": 3, "release_ms": 650,
+      "filters": [lp(f * 8, sweep_ms=260, to_freq=f * 2.2)]} for k, f in enumerate((146.83, 220, 293.66, 369.99))])
 
 # tidy: drop helper keys that are not recipe fields
 for c in C:
@@ -394,6 +401,8 @@ URGENT = {
     ],
 }
 
+INSTRUMENTS.update(songs.INSTRUMENTS)
+
 DATA = {
     "_note": "Every sound in Royal Rubble. There are no audio files: tools/sound/compile.py compiles these recipes into data/sound-programs.json, which web/synth.js plays and tools/sound/render.py renders. Written by tools/sound/author.py; edit there. Frequencies in Hz, times in ms, gains 0 to 1.",
     "silence": SILENCE,
@@ -422,12 +431,13 @@ DATA = {
         {"label": "Building and gold", "ids": ["place_segment", "sell_segment", "coin", "buy_xp", "level_up",
                                                "cards_reveal", "card_pick", "reroll"]},
         {"label": "Phases and menus", "ids": ["horn_build", "horn_siege", "drum_count", "drum_close", "elimination", "victory",
-                                              "ui_click", "ui_hover"]},
-        {"label": "Music", "ids": ["music_build", "music_siege", "music_siege_urgent"]},
+                                              "ui_click", "ui_hover", "sample"]},
+        {"label": "Music", "ids": ["music_menu", "music_build"] + [m["id"] for m in songs.SONGS]
+         + ["music_siege", "music_siege_urgent"]},
     ],
     "cues": C,
     "instruments": INSTRUMENTS,
-    "music": [BUILD, SIEGE, URGENT],
+    "music": [songs.MENU, BUILD] + songs.SONGS + [SIEGE, URGENT],
 }
 
 if __name__ == "__main__":

@@ -141,6 +141,21 @@ pub(crate) fn drum_beat(was: u32, now: u32) -> Option<&'static str> {
     })
 }
 
+/// The building songs, one a round in turn through the upgrade and build
+/// phases; the siege keeps its own (R1.3802).
+pub(crate) const BUILD_SONGS: [&str; 5] = [
+    "music_build",
+    "music_jig",
+    "music_pastoral",
+    "music_ballad",
+    "music_mandolins",
+];
+
+/// Round `round`'s building song (rounds count from 1).
+pub(crate) fn build_song_for(round: u32) -> &'static str {
+    BUILD_SONGS[round.saturating_sub(1) as usize % BUILD_SONGS.len()]
+}
+
 /// A royal's cry as it dies, by rank (R1.3801).
 pub(crate) fn death_cry(k: RoyalKind) -> &'static str {
     match k {
@@ -1034,6 +1049,11 @@ impl Arena {
         }
     }
 
+    /// This round's building song.
+    fn build_song(&self) -> &'static str {
+        build_song_for(self.play.rules.round)
+    }
+
     /// The first royal of yours not yet placed.
     fn unplaced_royal(&self) -> Option<usize> {
         let pl = self.play.rules.player(self.me)?;
@@ -1420,7 +1440,7 @@ impl Arena {
         if let Some(r) = &self.replay {
             let mut f = self.field_frame(&r.field, r.tick, cam, false);
             f.cues = self.cues.clone();
-            f.music = "music_build";
+            f.music = self.build_song();
             f.flag = Some(self.flag());
             return f;
         }
@@ -1497,7 +1517,7 @@ impl Arena {
             spots: self.spot_marks(p, &cam),
             inset: None,
             cues: self.cues.clone(),
-            music: "music_build",
+            music: self.build_song(),
             loops: Vec::new(),
         }
     }
@@ -1527,7 +1547,7 @@ impl Arena {
             spots: Vec::new(),
             inset: None,
             cues: self.cues.clone(),
-            music: "music_build",
+            music: self.build_song(),
             loops: Vec::new(),
         }
     }

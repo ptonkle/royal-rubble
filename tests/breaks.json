@@ -1237,5 +1237,26 @@
     "find": "cries.extend(kinds.iter().skip(seen).map(|&k| death_cry(k)));",
     "replace": "cries.extend(kinds.iter().skip(seen).map(|_| \"royal_knight\"));",
     "test": "arena_a_royal_killed_in_your_siege_cries_by_its_rank"
+  },
+  {
+    "name": "buildsongs every round plays the first song",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "BUILD_SONGS[round.saturating_sub(1) as usize % BUILD_SONGS.len()]",
+    "replace": "BUILD_SONGS[0]",
+    "test": "arena_songs_building_songs_take_turns_round_by_round"
+  },
+  {
+    "name": "buildsongs a named song is missing from the sounds",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "    \"music_mandolins\",\n];",
+    "replace": "    \"music_lost\",\n];",
+    "test": "arena_songs_every_track_the_core_names_is_compiled"
+  },
+  {
+    "name": "menutheme the menus stay silent",
+    "file": "crates/core/src/app.rs",
+    "find": "                MENU_MUSIC.into()\n",
+    "replace": "                String::new()\n",
+    "test": "the_menus_play_the_menu_theme_and_a_match_leaves_music_to_its_field"
   }
 ]

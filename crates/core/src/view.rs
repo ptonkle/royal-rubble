@@ -253,6 +253,9 @@ pub struct Ui {
     pub hash: String,
     /// a status line, or nothing
     pub status: String,
+    /// the music while no playfield shows: the menu theme on the menus,
+    /// "" for none (R1.3802)
+    pub menu_music: String,
     /// the playfield's canvas, while one shows
     #[serde(skip_serializing_if = "Option::is_none")]
     pub field: Option<crate::app::field::Frame>,

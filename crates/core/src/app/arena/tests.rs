@@ -392,3 +392,33 @@ fn arena_a_royal_killed_in_your_siege_cries_by_its_rank() {
         .collect();
     assert_eq!(cries, vec![death_cry(kind)]);
 }
+
+#[test]
+fn arena_songs_building_songs_take_turns_round_by_round() {
+    assert_eq!(build_song_for(1), "music_build");
+    assert_eq!(build_song_for(2), "music_jig");
+    assert_eq!(build_song_for(5), "music_mandolins");
+    assert_eq!(build_song_for(6), "music_build");
+    let mut a = arena(1);
+    a.play.rules.round = 3;
+    assert_eq!(a.frame().music, "music_pastoral");
+}
+
+/// Every track the core names is in the compiled sounds.
+#[test]
+fn arena_songs_every_track_the_core_names_is_compiled() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data/sound-programs.json");
+    let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let ids: Vec<&str> = v["programs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|p| p["id"].as_str())
+        .collect();
+    for name in BUILD_SONGS
+        .iter()
+        .chain(["music_siege", "music_menu", "drum_count", "drum_close"].iter())
+    {
+        assert!(ids.contains(name), "{name} is not compiled");
+    }
+}
