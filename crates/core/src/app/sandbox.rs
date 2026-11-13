@@ -227,6 +227,9 @@ pub struct Sandbox {
     /// The siege view as shown, easing toward `camera_target` each tick
     /// (R1.2201).
     eye: Option<Camera>,
+    /// A release planned for the swing under way, in sixteenths of a tick
+    /// from its start (the menu's backdrop throws this way).
+    planned: Option<u32>,
 }
 
 impl Sandbox {
@@ -262,6 +265,7 @@ impl Sandbox {
             cues: Vec::new(),
             eye: None,
             serial: 0,
+            planned: None,
         };
         s.starter_castle();
         s.rebuild();
@@ -379,6 +383,11 @@ impl Sandbox {
         self.shot = None;
         self.swing = None;
         self.released = false;
+    }
+
+    /// The view's size in pixels.
+    pub fn size(&self) -> (i32, i32) {
+        self.size
     }
 
     pub fn set_size(&mut self, value: &str) -> Result<(), String> {
@@ -600,8 +609,31 @@ impl Sandbox {
         }
     }
 
+    /// Starts a swing that lets go `release` sixteenths of a tick after it
+    /// starts (`ai::aim::Plan::release`), as a bot's throw does.
+    pub fn throw_at(&mut self, release: u32) {
+        if self.mode != Mode::Siege || self.swing.is_some() || self.shot_alive() {
+            return;
+        }
+        self.swing = Some(self.world.tick);
+        self.planned = Some(release);
+        self.cue("trebuchet_creak", 0);
+    }
+
+    /// A swing or a shot is under way.
+    pub fn throwing(&self) -> bool {
+        self.swing.is_some() || self.world.projectiles.iter().any(|p| p.alive)
+    }
+
     /// One physics tick of the siege, and the sounds it makes.
     pub fn tick(&mut self) {
+        let parts = crate::physics::RELEASE_PARTS;
+        if let (Some(t), Some(r)) = (self.swing_tick(), self.planned) {
+            if !self.released && (t + 1) * parts > r {
+                self.planned = None;
+                self.release(Some(r.saturating_sub(t * parts) as u8));
+            }
+        }
         if let Some(t) = self.swing_tick() {
             if !self.released && t >= Sandbox::swing_end() {
                 self.release(None);
@@ -930,7 +962,11 @@ impl Sandbox {
     // ---- what the page draws ----
 
     pub fn frame(&self) -> Frame {
-        let cam = self.camera();
+        self.frame_from(self.camera())
+    }
+
+    /// The frame seen through `cam` (the menu's backdrop holds its own view).
+    pub fn frame_from(&self, cam: Camera) -> Frame {
         let (ground, water) = ground_line(&self.plot, &cam);
         let build = self.mode == Mode::Build;
         let (beams, nodes, shots, debris) = world_parts(&self.world, &cam, self.test.as_deref(), build);

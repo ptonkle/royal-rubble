@@ -237,3 +237,28 @@ fn pause_escape_walks_pause_settings_and_back() {
     a.act("menu.settings", "").unwrap();
     assert_eq!(a.ui().escape, "menu.back");
 }
+
+#[test]
+fn demo_siege_runs_behind_the_menus_and_stops_for_a_match() {
+    let mut a = app();
+    a.pump(17, 0);
+    assert!(a.ui().field.is_some(), "the title shows the backdrop");
+    assert!(a.ui().live);
+    a.act("menu.settings", "").unwrap();
+    a.pump(34, 0);
+    assert!(a.ui().field.is_some(), "Settings keeps it, music and all");
+    a.act("menu.back", "").unwrap();
+    a.act("menu.solo", "").unwrap();
+    a.pump(51, 0);
+    assert!(a.demo.is_none(), "the lobby has no backdrop");
+}
+
+#[test]
+fn volume_sample_plays_on_each_slider_move() {
+    let mut a = app();
+    a.act("menu.settings", "").unwrap();
+    assert_eq!(a.ui().samples, 0);
+    a.act("settings.volume", "40").unwrap();
+    a.act("settings.music", "20").unwrap();
+    assert_eq!(a.ui().samples, 2);
+}

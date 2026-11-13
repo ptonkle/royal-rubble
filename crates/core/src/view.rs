@@ -261,6 +261,9 @@ pub struct Ui {
     pub sync: String,
     /// The action Esc sends on this screen, or empty.
     pub escape: String,
+    /// Volume slider moves so far; the page plays `sample_cue` on each.
+    pub samples: u32,
+    pub sample_cue: String,
 }
 
 #[cfg(test)]

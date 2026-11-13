@@ -5,6 +5,7 @@
 
 pub mod arena;
 mod bot_names;
+pub mod demo;
 pub mod field;
 mod lobby_view;
 pub mod sandbox;
@@ -118,6 +119,10 @@ pub struct App {
     pause: Pause,
     /// When a solo match was paused: its clock skips the time paused.
     paused_at: Option<i64>,
+    /// The siege behind the menus, while one of them shows.
+    demo: Option<demo::Demo>,
+    /// Volume slider moves so far: each plays the sample cue.
+    samples: u32,
 }
 
 fn percent(value: &str) -> Result<u32, String> {
@@ -181,6 +186,8 @@ impl App {
             cards: arena::CardText::default(),
             pause: Pause::Off,
             paused_at: None,
+            demo: None,
+            samples: 0,
         })
     }
 
@@ -340,8 +347,14 @@ impl App {
                     self.open(Screen::Notes);
                 }
             }
-            "settings.volume" => self.save.volume = percent(value)?,
-            "settings.music" => self.save.music = percent(value)?,
+            "settings.volume" => {
+                self.save.volume = percent(value)?;
+                self.samples += 1;
+            }
+            "settings.music" => {
+                self.save.music = percent(value)?;
+                self.samples += 1;
+            }
             "save.load" => self.load_save(value),
             // the page has the refused text now, and Settings still offers it
             "save.kept" => self.keep_refused.clear(),
@@ -416,6 +429,16 @@ impl App {
     /// page's clock), so a release lands between ticks (R1.2103).
     pub fn pump_pressed(&mut self, now_ms: i64, keys: u32, press_us: Option<i64>) -> Pump {
         self.now_ms = now_ms;
+        if self.menu_backdrop() {
+            if self.demo.is_none() {
+                self.demo = Some(demo::Demo::new(self.rng.next_u64()));
+            }
+        } else {
+            self.demo = None;
+        }
+        if let Some(d) = &mut self.demo {
+            d.pump(now_ms);
+        }
         if let Some(s) = &mut self.sandbox {
             s.pump(now_ms, keys, press_us);
         }
@@ -567,6 +590,14 @@ impl App {
         }
     }
 
+    /// The menus that show the siege behind them.
+    fn menu_backdrop(&self) -> bool {
+        matches!(
+            self.screen,
+            Screen::Title | Screen::Settings | Screen::Notes | Screen::Online
+        ) && self.room.is_none()
+    }
+
     /// What Esc does on this screen, as an action name, or empty.
     fn escape(&self) -> &'static str {
         match (self.screen, self.pause) {
@@ -696,7 +727,7 @@ impl App {
             music_gain: decimal(save::music_gain(self.save.music)),
             sound_share: decimal(self.save.volume * 10),
             music_share: decimal(self.save.music * 10),
-            live: room.is_some() || sandbox.is_some(),
+            live: room.is_some() || sandbox.is_some() || self.menu_backdrop(),
             capture: playing,
             keys: if arena.is_some() {
                 arena::keys()
@@ -713,7 +744,17 @@ impl App {
             } else {
                 self.strings.get(status)
             },
-            field: arena.map(|a| a.frame()).or_else(|| sandbox.map(|s| s.frame())),
+            field: arena
+                .map(|a| a.frame())
+                .or_else(|| sandbox.map(|s| s.frame()))
+                .or_else(|| {
+                    self.demo
+                        .as_ref()
+                        .filter(|_| self.menu_backdrop())
+                        .map(|d| d.frame())
+                }),
+            samples: self.samples,
+            sample_cue: "ui_click".into(),
             escape: self.escape().into(),
             sync: room
                 .filter(|r| r.game.is_some())
