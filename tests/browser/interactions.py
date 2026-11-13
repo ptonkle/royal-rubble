@@ -45,7 +45,7 @@ def offline(page, part=""):
 
 def title(page, check):
     on_screen(page, "title")
-    check(page.inner_text("h1") == STRINGS["title"], "the Title shows the game's name")
+    check(page.text_content("h1") == STRINGS["title"], "the Title shows the game's name")
     check(page.title() == STRINGS["title"], "the tab shows the game's name")
     for key in ("menu.solo", "menu.host", "menu.join", "menu.settings"):
         check(page.locator(by_id(key)).text_content() == STRINGS[key], f"the Title offers {STRINGS[key]}")
