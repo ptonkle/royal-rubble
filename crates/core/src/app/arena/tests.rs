@@ -436,8 +436,8 @@ fn arena_songs_building_songs_take_turns_round_by_round() {
 /// Every track the core names is in the compiled sounds.
 #[test]
 fn arena_songs_every_track_the_core_names_is_compiled() {
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data/sound-programs.json");
-    let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let v: serde_json::Value =
+        serde_json::from_str(include_str!("../../../../../data/sound-programs.json")).unwrap();
     let ids: Vec<&str> = v["programs"]
         .as_array()
         .unwrap()
