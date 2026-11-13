@@ -10,8 +10,8 @@
 use std::collections::BTreeMap;
 
 use super::field::{
-    cell_units, ground_line, material_name, terrain_of, world_parts, Camera, Cue, Engine, Figure, Flag,
-    Frame, Preview, Ring, CELL_TO_RAW,
+    cell_units, cloth_at, ground_line, material_name, terrain_of, tree_marks, world_parts, Camera, Cue,
+    Engine, Figure, Flag, Frame, Preview, Ring, CELL_TO_RAW,
 };
 use crate::game::royals::RoyalKind;
 use crate::physics::trebuchet::{pose, Phase as Arm};
@@ -921,8 +921,10 @@ impl Sandbox {
         Frame {
             mode: if build { "build" } else { "siege" },
             size: [self.size.0, self.size.1],
+            cloth: cloth_at(&cam),
             ground,
             water,
+            trees: tree_marks(&self.plot, &cam),
             zone,
             grid: if build { cam.len(TUNE.grid, 1) } else { 0 },
             beams,

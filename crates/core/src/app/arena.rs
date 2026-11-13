@@ -14,8 +14,8 @@
 use std::collections::BTreeMap;
 
 use super::field::{
-    ground_line, material_name, world_parts, Camera, Cue, Engine, Figure, Flag, Frame, Inset, Preview, Ring,
-    SpotMark,
+    cloth_at, ground_line, material_name, tree_marks, world_parts, Camera, Cue, Engine, Figure, Flag, Frame,
+    Inset, Preview, Ring, SpotMark,
 };
 use super::sandbox::{num, pair, reach_end};
 use crate::game::flow::Phase;
@@ -1287,8 +1287,10 @@ impl Arena {
         Frame {
             mode: "siege",
             size: [cam.w, cam.h],
+            cloth: cloth_at(&cam),
             ground,
             water,
+            trees: tree_marks(plot, &cam),
             zone: None,
             grid: 0,
             beams,
@@ -1377,8 +1379,10 @@ impl Arena {
         Frame {
             mode: "build",
             size: [w, h],
+            cloth: cloth_at(&cam),
             ground,
             water,
+            trees: tree_marks(plot, &cam),
             zone,
             grid: if building { cam.len(TUNE.grid, 1) } else { 0 },
             beams,
@@ -1405,8 +1409,10 @@ impl Arena {
         Frame {
             mode: "build",
             size: [self.size.0, self.size.1],
+            cloth: cloth_at(&cam),
             ground,
             water,
+            trees: tree_marks(self.plot(self.me), &cam),
             zone: None,
             grid: 0,
             beams: Vec::new(),

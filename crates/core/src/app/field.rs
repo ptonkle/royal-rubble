@@ -170,6 +170,40 @@ pub struct Dot {
     pub hot: bool,
 }
 
+/// A scenery tree as drawn: its foot on the ground, its height, its look.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Tree {
+    pub x: i32,
+    pub y: i32,
+    pub h: i32,
+    pub look: u8,
+}
+
+/// How tall a scenery tree stands, in cells.
+pub const TREE_TALL_CELLS: i32 = 5;
+
+/// The plot's scenery trees inside the view, in pixels.
+pub fn tree_marks(plot: &Plot, cam: &Camera) -> Vec<Tree> {
+    let col = crate::terrain::COL_W;
+    let h = cam.len(cell_units(TREE_TALL_CELLS * crate::terrain::CELL), 8);
+    plot.trees()
+        .into_iter()
+        .map(|(c, look)| {
+            let p = cam.px(Vec2::new(
+                cell_units(col * c as i32 + col / 2),
+                cell_units(plot.heights[c]),
+            ));
+            Tree {
+                x: p[0],
+                y: p[1],
+                h,
+                look,
+            }
+        })
+        .filter(|t| t.x > -t.h && t.x < cam.w + t.h)
+        .collect()
+}
+
 /// A royal as drawn.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Figure {
@@ -318,8 +352,14 @@ pub struct Frame {
     /// "build" or "siege"
     pub mode: &'static str,
     pub size: [i32; 2],
+    /// where the world's origin falls on screen, so the cloth and its
+    /// border scroll with the view (R1.1405)
+    pub cloth: [i32; 2],
     /// the ground's top edge, left to right; the page fills below it
     pub ground: Vec<[i32; 2]>,
+    /// scenery trees standing on the ground
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub trees: Vec<Tree>,
     /// the water's surface: left and right ends
     pub water: Vec<[i32; 2]>,
     /// the buildable area: left, top, right, bottom
@@ -375,6 +415,12 @@ pub struct Inset {
 
 fn is_zero_i(v: &i32) -> bool {
     *v == 0
+}
+
+/// Where the world's origin falls on screen: the page lays the cloth from
+/// here so it moves with the ground.
+pub fn cloth_at(cam: &Camera) -> [i32; 2] {
+    cam.px(Vec2::new(Fx::ZERO, Fx::ZERO))
 }
 
 /// The ground line and the water across the view.
@@ -483,6 +529,16 @@ mod tests {
         // the whole castle across
         assert!(cam.px(Vec2::new(Fx::from_int(100), Fx::from_int(10)))[0] >= 0);
         assert!(cam.px(Vec2::new(Fx::from_int(126), Fx::from_int(10)))[0] <= 1920);
+    }
+
+    #[test]
+    fn cloth_offset_moves_with_the_view() {
+        // 100 units across 1000 px: 10 px a unit, the origin at the bottom left
+        let a = Camera::spanning(Fx::ZERO, Fx::from_int(100), Fx::ZERO, 1000, 500);
+        assert_eq!(cloth_at(&a), [0, 500]);
+        // the view 10 units right and 5 up: the cloth slides 100 px left, 50 down
+        let b = Camera::spanning(Fx::from_int(10), Fx::from_int(100), Fx::from_int(5), 1000, 500);
+        assert_eq!(cloth_at(&b), [-100, 550]);
     }
 
     #[test]

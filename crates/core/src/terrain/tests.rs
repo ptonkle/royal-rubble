@@ -236,3 +236,30 @@ fn terrain_plot_front_is_far_from_the_trebuchet() {
     assert!(lo >= Some(DIST.0 as usize) && hi <= Some(DIST.1 as usize));
     assert!(hi.unwrap_or(0) - lo.unwrap_or(0) >= 20, "{lo:?}..{hi:?}");
 }
+
+#[test]
+fn terrain_trees_stand_apart_in_open_country() {
+    let mut any = 0;
+    for seed in 1..60u64 {
+        let p = Plot::generate(seed);
+        let t = p.trees();
+        assert_eq!(
+            t,
+            Plot::generate(seed).trees(),
+            "seed {seed}: same seed, same trees"
+        );
+        any += t.len();
+        for w in t.windows(2) {
+            assert!(w[1].0 >= w[0].0 + 10, "seed {seed}: trees {:?} too close", w);
+        }
+        for &(c, look) in &t {
+            assert!(
+                c > p.between.start && c + 4 < p.between.end,
+                "seed {seed}: tree at {c} outside open country"
+            );
+            assert!(!p.water.cols.contains(c), "seed {seed}: tree in water");
+            assert!(look < 3);
+        }
+    }
+    assert!(any > 59, "about one tree a plot at least, got {any}");
+}

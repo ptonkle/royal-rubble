@@ -165,7 +165,7 @@ function stroke(g, pts, wool_, w, dash, gap) {
 
 function background(slot, f) {
   const [w, h] = f.size;
-  const key = JSON.stringify([w, h, f.ground, f.water, f.zone, f.grid]);
+  const key = JSON.stringify([w, h, f.cloth, f.trees, f.ground, f.water, f.zone, f.grid]);
   let L = layers[slot];
   if (L && L.key === key) return L.c;
   if (!L || L.c.width !== w || L.c.height !== h) {
@@ -176,8 +176,26 @@ function background(slot, f) {
   }
   L.key = key;
   const g = L.c.getContext("2d");
-  g.fillStyle = pattern(g, "linen");
+  // the cloth is laid from the core's origin point, so it moves with the ground
+  const [cx, cy] = f.cloth;
+  const lin = pattern(g, "linen");
+  lin.setTransform(new DOMMatrix([1, 0, 0, 1, cx, cy]));
+  g.fillStyle = lin;
   g.fillRect(0, 0, w, h);
+  // the top border band, behind the HUD; the main view only
+  if (slot === "main") {
+    const bh = h * G.border_share;
+    const k = bh / sprites.border.h;
+    const bp = pattern(g, "border");
+    bp.setTransform(new DOMMatrix([k, 0, 0, k, cx, 0]));
+    g.fillStyle = bp;
+    g.fillRect(0, 0, w, bh);
+  }
+  // scenery trees, their feet tucked under the ground's edge
+  (f.trees || []).forEach((t) => {
+    const name = "tree-" + t.look;
+    place(g, name, t.x, t.y, t.h / sprites[name].tall);
+  });
   const pts = f.ground;
   if (pts.length > 1) {
     const last = pts[pts.length - 1][0];
