@@ -74,8 +74,9 @@ pub const ROYAL_SCHEDULE: &[(u32, RoyalKind)] = &[
     (15, RoyalKind::Prince),
 ];
 
-/// Grid cells in one segment length (R1.206: to agree with physics).
-pub const GRID_PER_SEGMENT: i32 = 4;
+/// Grid cells in one segment length: wood's longest, 2 physics units of
+/// one cell each (R1.206, R1.700).
+pub const GRID_PER_SEGMENT: i32 = 2;
 /// Royals stand at least this many segment lengths apart.
 pub const ROYAL_SPACING_SEGMENTS: i32 = 4;
 
@@ -95,11 +96,10 @@ pub const MAX_LEVEL: u8 = 9;
 /// XP from level i+1 to level i+2 (TFT's curve, R1.203).
 pub const XP_TO_NEXT: [u32; 8] = [2, 2, 6, 10, 20, 36, 48, 72];
 
-/// What each level gives. Plot sizes are grid cells.
+/// What each level gives. The plot's size comes from the terrain
+/// (`terrain::Plot::buildable`, `build_height`; R1.606, R1.700).
 pub struct LevelRow {
     pub level: u8,
-    pub plot_width: i32,
-    pub plot_height: i32,
     pub normal_shots: u32,
     /// Trebuchet power in percent of the level-1 throw.
     pub shot_power_pct: u32,
@@ -108,64 +108,46 @@ pub struct LevelRow {
 pub const LEVELS: [LevelRow; 9] = [
     LevelRow {
         level: 1,
-        plot_width: 48,
-        plot_height: 32,
         normal_shots: 3,
         shot_power_pct: 100,
     },
     LevelRow {
         level: 2,
-        plot_width: 52,
-        plot_height: 36,
         normal_shots: 3,
         shot_power_pct: 100,
     },
     LevelRow {
         level: 3,
-        plot_width: 56,
-        plot_height: 40,
         normal_shots: 4,
         shot_power_pct: 105,
     },
     LevelRow {
         level: 4,
-        plot_width: 64,
-        plot_height: 44,
         normal_shots: 4,
         shot_power_pct: 110,
     },
     LevelRow {
         level: 5,
-        plot_width: 72,
-        plot_height: 48,
         normal_shots: 4,
         shot_power_pct: 115,
     },
     LevelRow {
         level: 6,
-        plot_width: 80,
-        plot_height: 52,
         normal_shots: 5,
         shot_power_pct: 120,
     },
     LevelRow {
         level: 7,
-        plot_width: 88,
-        plot_height: 56,
         normal_shots: 5,
         shot_power_pct: 125,
     },
     LevelRow {
         level: 8,
-        plot_width: 100,
-        plot_height: 60,
         normal_shots: 5,
         shot_power_pct: 130,
     },
     LevelRow {
         level: 9,
-        plot_width: 112,
-        plot_height: 64,
         normal_shots: 6,
         shot_power_pct: 140,
     },
@@ -231,6 +213,8 @@ pub const SELL_LATER_DEN: u32 = 2;
 
 /// Gold per extra normal shot bought in build, and how many a round.
 pub const SHOT_COST: u32 = 2;
+/// A discount never makes a bought shot cheaper than this.
+pub const MIN_SHOT_COST: u32 = 1;
 pub const MAX_SHOTS_BOUGHT: u32 = 3;
 
 // ---- Map spots (R1.600) ----------------------------------------------------
@@ -255,6 +239,8 @@ pub const ARMORY_RUIN_SHOTS: u32 = 1;
 pub const CARDS_OFFERED: usize = 3;
 pub const FREE_REROLLS: u32 = 1;
 pub const REROLL_COST: u32 = 2;
+/// Air effects take the Q, W, E and R keys: four at most.
+pub const MAX_AIR_SLOTS: usize = 4;
 /// Tier weights (silver, gold, prismatic) for the 1st, 2nd, ... upgrade
 /// round; the last row repeats.
 pub const TIER_WEIGHTS: &[(u32, u32, u32)] = &[

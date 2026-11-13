@@ -1,0 +1,188 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Woodcut</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script src="scene.js"></script>
+<script>
+const c = document.getElementById("c"), ctx = c.getContext("2d");
+const R = rng(1493);
+const INK = "#1b1612", PAPER = "#ece3cf";
+const SERIF = "'Palatino Linotype', Palatino, Georgia, serif";
+
+// a carved line: slight wobble and uneven width
+function carve(pts, w = 3) {
+  ctx.strokeStyle = INK; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / 14));
+    for (let k = 0; k < n; k++) {
+      ctx.lineWidth = w * (0.75 + R() * 0.5);
+      ctx.beginPath(); ctx.moveTo(x0 + (x1 - x0) * k / n + (R() - .5), y0 + (y1 - y0) * k / n + (R() - .5));
+      ctx.lineTo(x0 + (x1 - x0) * (k + 1) / n + (R() - .5), y0 + (y1 - y0) * (k + 1) / n + (R() - .5)); ctx.stroke();
+    }
+  }
+}
+function closed(pts, w) { carve(pts.concat([pts[0]]), w); }
+function rectPts(x, y, w, h) { return [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]; }
+function beamPts(x1, y1, x2, y2, t) { const a = Math.atan2(y2 - y1, x2 - x1), nx = -Math.sin(a) * t / 2, ny = Math.cos(a) * t / 2; return [[x1 + nx, y1 + ny], [x2 + nx, y2 + ny], [x2 - nx, y2 - ny], [x1 - nx, y1 - ny]]; }
+function clipTo(pts) { ctx.beginPath(); ctx.moveTo(...pts[0]); for (const p of pts.slice(1)) ctx.lineTo(...p); ctx.closePath(); }
+// hatching clipped to a shape; angle and gap set the tone
+function hatch(pts, angle, gap, w = 1.6, box) {
+  ctx.save(); clipTo(pts); ctx.clip();
+  ctx.fillStyle = PAPER; ctx.fill();
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2, r = Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  const s = Math.sin(angle), co = Math.cos(angle);
+  if (gap) for (let d = -r; d < r; d += gap) {
+    ctx.strokeStyle = INK; ctx.lineWidth = w * (0.7 + R() * 0.6);
+    ctx.beginPath(); ctx.moveTo(cx - co * r - s * d, cy - s * r + co * d); ctx.lineTo(cx + co * r - s * d, cy + s * r + co * d); ctx.stroke();
+  }
+  ctx.restore();
+}
+// hand-tinted wash, a little off register
+function tint(pts, col) {
+  ctx.save(); ctx.translate(4, -3); clipTo(pts); ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = col; ctx.globalAlpha = .55; ctx.fill(); ctx.restore();
+}
+
+// --- rag paper
+ctx.fillStyle = PAPER; ctx.fillRect(0, 0, W, H);
+for (let i = 0; i < 1800; i++) { ctx.fillStyle = R() < .5 ? "rgba(120,90,50,.05)" : "rgba(255,255,245,.06)"; ctx.beginPath(); ctx.ellipse(R() * W, R() * H, 6 + R() * 50, 3 + R() * 18, R() * 3, 0, 7); ctx.fill(); }
+
+// --- sky: horizontal cuts, closer toward the horizon
+for (let y = 30; y < 700; y += 0) {
+  const gap = 22 - (y / 700) * 15;
+  ctx.strokeStyle = INK; ctx.lineWidth = 1 + (y / 700) * 1.2;
+  ctx.beginPath(); let x = 0; ctx.moveTo(0, y);
+  while (x < W) { x += 30 + R() * 50; if (R() < .12) { ctx.stroke(); ctx.beginPath(); x += 10 + R() * 40; ctx.moveTo(x, y + (R() - .5)); } else ctx.lineTo(x, y + (R() - .5) * 1.2); }
+  ctx.stroke(); y += gap;
+}
+// clouds: carved-out curls with a thick rim
+function cloud(cx, cy, s) {
+  const pts = []; for (let k = 0; k <= 40; k++) { const a = k / 40 * Math.PI * 2; const rr = (1 + .18 * Math.sin(a * 7)) * s; pts.push([cx + Math.cos(a) * rr * 2.4, cy + Math.sin(a) * rr * (a > 0 && a < Math.PI ? .45 : .8)]); }
+  ctx.save(); clipTo(pts); ctx.fillStyle = PAPER; ctx.fill(); ctx.restore();
+  closed(pts, 3.4);
+  ctx.save(); clipTo(pts); ctx.clip(); ctx.strokeStyle = INK; ctx.lineWidth = 1.5;
+  for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(cx - s * 1.2 + k * s * .8, cy + s * .3, s * .5, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); }
+  ctx.restore();
+}
+cloud(330, 170, 62); cloud(1150, 110, 44); cloud(820, 300, 36); cloud(1780, 330, 34);
+// sun with straight rays
+ctx.save(); ctx.beginPath(); ctx.arc(1820, 110, 46, 0, 7); ctx.fillStyle = PAPER; ctx.fill(); ctx.restore();
+closed(Array.from({ length: 33 }, (_, k) => [1820 + Math.cos(k / 32 * 7) * 46, 110 + Math.sin(k / 32 * 7) * 46]), 3);
+for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; carve([[1820 + Math.cos(a) * 58, 110 + Math.sin(a) * 58], [1820 + Math.cos(a) * (80 + (k % 2) * 22), 110 + Math.sin(a) * (80 + (k % 2) * 22)]], 2.4); }
+
+// --- distant hills: outlines with sparse hatching
+function hillPts(baseY, amp, seed) { const r = rng(seed), ph = r() * 6, pts = []; for (let x = -20; x <= W + 20; x += 24) pts.push([x, baseY - amp * (0.6 * Math.sin(x / 240 + ph) + .4 * Math.sin(x / 97 + ph))]); return pts; }
+for (const [base, amp, seed, gap, ang] of [[600, 60, 3, 7, 1.35], [690, 46, 8, 4.5, 1.75]]) {
+  const top = hillPts(base, amp, seed), pts = top.concat([[W + 20, H], [-20, H]]);
+  hatch(pts, ang, gap, 1.6); carve(top, 3.2);
+  for (let i = 0; i < 24; i++) { const x = R() * W, y = top[Math.round((x + 20) / 24)][1]; carve([[x, y + 2], [x, y - 22]], 2); closed(Array.from({ length: 13 }, (_, k) => [x + Math.cos(k / 12 * 7) * 9, y - 30 + Math.sin(k / 12 * 7) * 13]), 2); }
+}
+
+// --- foreground ground: cross-hatched earth under a bold contour
+const gpts = GROUND.map(p => p.slice()).concat([[W, H], [0, H]]);
+ctx.save(); clipTo([[MOAT.x0, MOAT.top], [MOAT.x1, MOAT.top], [MOAT.x1, MOAT.bottom], [MOAT.x0, MOAT.bottom]]); ctx.fillStyle = PAPER; ctx.fill(); ctx.restore();
+for (let row = 0; row < 4; row++) { const y = MOAT.top + 4 + row * 8; const pts = []; for (let x = MOAT.x0; x <= MOAT.x1; x += 8) pts.push([x, y + Math.sin(x / 6 + row) * 2.4]); carve(pts, 1.8); }
+tint([[MOAT.x0, MOAT.top], [MOAT.x1, MOAT.top], [MOAT.x1, MOAT.bottom], [MOAT.x0, MOAT.bottom]], "#5f86a8");
+hatch(gpts, -0.6, 5, 2.1); hatch(gpts, 0.7, 7, 1.7);
+ctx.save(); clipTo(gpts); ctx.clip(); { const g = ctx.createLinearGradient(0, 760, 0, H); g.addColorStop(0, "rgba(27,22,18,0)"); g.addColorStop(1, "rgba(27,22,18,.32)"); ctx.fillStyle = g; ctx.fillRect(0, 760, W, 320); } ctx.restore();
+ctx.save(); clipTo(gpts); ctx.clip(); ctx.strokeStyle = PAPER; ctx.lineWidth = 30; ctx.beginPath(); GROUND.forEach(([x, y], k) => k ? ctx.lineTo(x, y + 18) : ctx.moveTo(x, y + 18)); ctx.stroke(); ctx.restore();
+carve(GROUND, 4.4);
+// grass tufts and stones
+for (let i = 0; i < 150; i++) { const x = R() * W; if (x > 1040 && x < 1196) continue; const y = groundY(x) + 6 + R() * 18; carve([[x - 4, y + 4], [x - 6, y - 8]], 1.6); carve([[x, y + 4], [x + 1, y - 10]], 1.6); carve([[x + 4, y + 4], [x + 7, y - 7]], 1.6); }
+tint(gpts, "#9aa36a");
+
+// --- castle
+for (const [x1, y1, x2, y2] of ROPES) { const pts = []; for (let t = 0; t <= 1; t += .05) { const mx = (x1 + x2) / 2 + 10, my = (y1 + y2) / 2 + 24; pts.push([(1 - t) * (1 - t) * x1 + 2 * (1 - t) * t * mx + t * t * x2, (1 - t) * (1 - t) * y1 + 2 * (1 - t) * t * my + t * t * y2]); } carve(pts, 2.2); }
+hatch(ROOF, 0.5, 5, 1.8); closed(ROOF, 3.6); tint(ROOF, "#c0503c");
+function stone(x, y, w, h) {
+  const p = rectPts(x, y, w, h);
+  hatch(p, 0, 0);
+  ctx.save(); clipTo(p); ctx.clip();
+  // shade the left third with tight cuts, mortar as carved lines
+  ctx.strokeStyle = INK; ctx.lineWidth = 1.3; for (let xx = x + 2; xx < x + Math.max(6, w * .3); xx += 3.5) { ctx.beginPath(); ctx.moveTo(xx, y); ctx.lineTo(xx, y + h); ctx.stroke(); }
+  ctx.restore();
+  const ch = 20, cw = 34;
+  for (let yy = y + ch, row = 0; yy < y + h; yy += ch, row++) carve([[x, yy], [x + w, yy]], 1.8);
+  for (let yy = y, row = 0; yy < y + h; yy += ch, row++) for (let xx = x + (row % 2 ? cw / 2 : cw); xx < x + w - 4; xx += cw) carve([[xx, yy], [xx, Math.min(y + h, yy + ch)]], 1.8);
+  closed(p, 3.4);
+}
+function wood(pts, a) {
+  hatch(pts, a, 4.2, 1.3);
+  ctx.save(); clipTo(pts); ctx.clip(); ctx.strokeStyle = PAPER; ctx.lineWidth = 2.2; const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  ctx.beginPath(); ctx.moveTo(Math.min(...xs), Math.min(...ys) + 4); ctx.lineTo(Math.max(...xs), Math.max(...ys) - 4); ctx.stroke(); ctx.restore();
+  closed(pts, 3.2); tint(pts, "#b07a3c");
+}
+BLOCKS.forEach(([x, y, w, h, m]) => m === "stone" ? stone(x, y, w, h) : wood(rectPts(x, y, w, h), w > h ? 0 : Math.PI / 2));
+for (const [x1, y1, x2, y2, m, t] of BRACES) { const p = beamPts(x1, y1, x2, y2, t + 2); if (m === "metal") { hatch(p, Math.atan2(y2 - y1, x2 - x1) + 1.2, 3, 1.8); closed(p, 3.2); tint(p, "#7f93a6"); } else wood(p, Math.atan2(y2 - y1, x2 - x1)); }
+for (const [x, y, w, n] of CRENELS) { const mw = w / (n * 2 - 1); for (let i = 0; i < n; i++) stone(x + i * 2 * mw, y - 22, mw, 22); }
+const fx = FLAG.x, fy = FLAG.y - 22 - FLAG.h;
+carve([[fx, FLAG.y - 22], [fx, fy - 6]], 4.4);
+const pen = [[fx, fy], [fx + 50, fy - 6], [fx + 100, fy + 6], [fx + 80, fy + 20], [fx + 102, fy + 38], [fx + 50, fy + 34], [fx, fy + 42]];
+hatch(pen, 1, 5, 1.4); closed(pen, 3.2); tint(pen, "#c0503c");
+
+// --- royals: carved figures with hatched robes, tinted crowns
+function royal(x, foot, kind) {
+  const s = kind === "king" ? 1.18 : kind === "squire" ? .9 : 1.04;
+  ctx.save(); ctx.translate(x, foot); ctx.scale(s, s);
+  const robe = [[-16, 0], [-10, -44], [10, -44], [16, 0]];
+  hatch(robe, kind === "king" || kind === "queen" ? 0.9 : -0.9, kind === "squire" ? 0 : 4, 1.3); closed(robe, 2.8);
+  carve([[-2, -40], [-5, 0]], 1.6); carve([[4, -40], [6, 0]], 1.6);
+  const face = Array.from({ length: 17 }, (_, k) => [Math.cos(k / 16 * 7) * 9, -55 + Math.sin(k / 16 * 7) * 10.5]);
+  hatch(face, 0, 0); closed(face, 2.4);
+  ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(3.5, -57, 1.5, 0, 7); ctx.fill(); carve([[1, -50], [5, -50]], 1.2);
+  if (kind === "king") { const beard = [[-7, -50], [8, -50], [3, -36], [-3, -38]]; hatch(beard, 1.57, 2.6, 1.1); closed(beard, 2); }
+  const crown = kind === "squire" ? [[-9, -64], [9, -64], [9, -69], [-9, -69]] : [[-10, -63], [-11, -76], [-5, -69], [0, -80], [5, -69], [11, -76], [10, -63]];
+  hatch(crown, 0, 0); closed(crown, 2.2); tint(crown, "#e0a92c");
+  tint(robe, { king: "#c0503c", queen: "#4f6fa0", prince: "#5f8a52", princess: "#d38aa0", squire: "#a88457" }[kind]);
+  ctx.restore();
+}
+for (const [x, y, k] of ROYALS) royal(x, y, k);
+
+// --- trebuchet
+const T = trebParts();
+for (const [x1, y1, x2, y2, t] of [[290, TREB.baseY - 22, T.px + 8, T.py + 4, 12], [430, TREB.baseY - 22, T.px + 8, T.py + 4, 12]]) { const p = beamPts(x1, y1, x2, y2, t); hatch(p, 0, 2.4, 1.4); closed(p, 2.4); }
+for (const [x1, y1, x2, y2, t] of [[200, TREB.baseY - 14, 500, TREB.baseY - 14, 20], [268, TREB.baseY - 22, T.px, T.py, 18], [436, TREB.baseY - 22, T.px, T.py, 18], [296, TREB.baseY - 110, 408, TREB.baseY - 110, 12]]) wood(beamPts(x1, y1, x2, y2, t), Math.atan2(y2 - y1, x2 - x1));
+for (const wx of [236, 466]) { const wp = Array.from({ length: 25 }, (_, k) => [wx + Math.cos(k / 24 * 7) * 20, TREB.baseY - 4 + Math.sin(k / 24 * 7) * 20]); hatch(wp, 0, 0); closed(wp, 3.4); for (let k = 0; k < 4; k++) { const a = k * Math.PI / 4; carve([[wx - Math.cos(a) * 18, TREB.baseY - 4 - Math.sin(a) * 18], [wx + Math.cos(a) * 18, TREB.baseY - 4 + Math.sin(a) * 18]], 2.2); } }
+const cwx = T.shortEnd[0], cwy = T.shortEnd[1];
+carve([[cwx, cwy], [cwx - 22, cwy + 32]], 3); carve([[cwx, cwy], [cwx + 22, cwy + 32]], 3);
+const box = [[cwx - 40, cwy + 32], [cwx + 40, cwy + 32], [cwx + 32, cwy + 86], [cwx - 32, cwy + 86]];
+hatch(box, 0.8, 3.4, 1.5); hatch(box, -0.8, 6, 1.2); closed(box, 3.6);
+wood(beamPts(T.shortEnd[0], T.shortEnd[1], T.longEnd[0], T.longEnd[1], 22), Math.atan2(T.longEnd[1] - T.shortEnd[1], T.longEnd[0] - T.shortEnd[0]));
+ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(T.px, T.py, 8, 0, 7); ctx.fill();
+{ const pts = []; for (let t = 0; t <= 1; t += .1) { const mx = T.longEnd[0] + 50, my = T.longEnd[1] - 6; pts.push([(1 - t) * (1 - t) * T.longEnd[0] + 2 * (1 - t) * t * mx + t * t * T.pouch[0], (1 - t) * (1 - t) * T.longEnd[1] + 2 * (1 - t) * t * my + t * t * T.pouch[1]]); } carve(pts, 2); }
+for (let i = 0; i < 3; i++) { const pts = []; for (let a = -0.85; a <= -0.4; a += .05) pts.push([T.px + Math.cos(a) * (TREB.long - 12 - i * 16), T.py + Math.sin(a) * (TREB.long - 12 - i * 16)]); carve(pts, 2.2); }
+
+// last shot: short carved dashes; the shot: a solid black ball with speed cuts
+for (let t = 0.03; t < 1; t += 0.03) { const [x0, y0] = ghostArc(t), [x1, y1] = ghostArc(t + 0.012); carve([[x0, y0], [x1, y1]], 2.4); }
+const [sx, sy] = arc(SHOT_T), [bx, by] = arc(SHOT_T - .05), ang = Math.atan2(sy - by, sx - bx);
+for (const o of [-10, 0, 10]) carve([[sx - Math.cos(ang) * 26 - Math.sin(ang) * o, sy - Math.sin(ang) * 26 + Math.cos(ang) * o], [sx - Math.cos(ang) * (64 + Math.abs(o) * -1.5) - Math.sin(ang) * o, sy - Math.sin(ang) * (64 + Math.abs(o) * -1.5) + Math.cos(ang) * o]], 2.6);
+ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(sx, sy, SHOT.r + 2, 0, 7); ctx.fill();
+ctx.strokeStyle = PAPER; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx, sy, SHOT.r - 5, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke();
+// wind pennant
+carve([[120, 768], [120, 650]], 4); const wf = [[120, 652], [186, 664], [120, 680]]; hatch(wf, 0, 0); closed(wf, 2.6); tint(wf, "#c0503c");
+
+// --- frame: a thick black rule like the edge of the block
+ctx.strokeStyle = INK; ctx.lineWidth = 14; ctx.strokeRect(7, 7, W - 14, H - 14); ctx.lineWidth = 3; ctx.strokeRect(22, 22, W - 44, H - 44);
+
+// --- HUD sliver: a printed cartouche
+(function hud() {
+  const x0 = 560, y = 976, w = 800, h = 84;
+  const p = rectPts(x0, y, w, h); hatch(p, 0, 0); closed(p, 4); closed(rectPts(x0 + 7, y + 7, w - 14, h - 14), 1.8);
+  const fills = { Wood: "#b07a3c", Stone: null, Metal: "#7f93a6" };
+  HUD.mats.forEach(([name, cost, have], i) => {
+    const x = x0 + 26 + i * 196, cy = y + h / 2;
+    const sw = rectPts(x, cy - 20, 40, 40);
+    if (name === "Wood") wood(sw, 0); else if (name === "Stone") stone(x, cy - 20, 40, 40); else { hatch(sw, 1, 3, 1.6); closed(sw, 2.6); tint(sw, fills.Metal); }
+    if (i === 0) closed(rectPts(x - 8, cy - 28, 178, 56), 3);
+    ctx.fillStyle = INK; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.font = `700 25px ${SERIF}`; ctx.fillText(name, x + 52, cy - 11);
+    ctx.font = `italic 19px ${SERIF}`; ctx.fillText(cost + " gold · " + have, x + 52, cy + 14);
+  });
+  const gx = x0 + 628, cy = y + h / 2;
+  const coin = Array.from({ length: 17 }, (_, k) => [gx + Math.cos(k / 16 * 7) * 13, cy - 12 + Math.sin(k / 16 * 7) * 13]); hatch(coin, 0, 0); closed(coin, 2.4); tint(coin, "#e0a92c");
+  ctx.fillStyle = INK; ctx.font = `700 26px ${SERIF}`; ctx.fillText(String(HUD.gold), gx + 24, cy - 11);
+  ctx.font = `italic 19px ${SERIF}`; ctx.fillText(HUD.phase + " " + HUD.time, gx - 13, cy + 20);
+})();
+// ink speckle where the block didn't take
+for (let i = 0; i < 900; i++) { ctx.fillStyle = R() < .7 ? "rgba(27,22,18,.5)" : "rgba(236,227,207,.8)"; ctx.fillRect(R() * W, R() * H, 1 + R() * 2, 1 + R() * 2); }
+</script></body></html>

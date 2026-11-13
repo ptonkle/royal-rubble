@@ -6,7 +6,12 @@ use super::Refusal;
 
 /// Interest on banked gold: 1 per INTEREST_STEP, up to `cap`.
 pub fn interest(banked: u32, cap: u32) -> u32 {
-    (banked / tune::INTEREST_STEP).min(cap)
+    interest_per(banked, tune::INTEREST_STEP, cap)
+}
+
+/// Interest at 1 per `step` gold banked, up to `cap`.
+pub fn interest_per(banked: u32, step: u32, cap: u32) -> u32 {
+    (banked / step.max(1)).min(cap)
 }
 
 /// Gold for the royals an attacker killed.
@@ -37,6 +42,8 @@ pub struct Purse {
     pub xp: u32,
     /// Extra interest cap from upgrades.
     pub interest_cap_bonus: u32,
+    /// Gold banked per 1 interest (INTEREST_STEP unless an upgrade lowered it).
+    pub interest_step: u32,
 }
 
 impl Default for Purse {
@@ -46,6 +53,7 @@ impl Default for Purse {
             level: 1,
             xp: 0,
             interest_cap_bonus: 0,
+            interest_step: tune::INTEREST_STEP,
         }
     }
 }
@@ -57,7 +65,7 @@ impl Purse {
 
     /// Round income: base plus interest on what is banked now. Returns it.
     pub fn collect_income(&mut self) -> u32 {
-        let got = tune::BASE_INCOME + interest(self.gold, self.interest_cap());
+        let got = tune::BASE_INCOME + interest_per(self.gold, self.interest_step, self.interest_cap());
         self.gold += got;
         got
     }

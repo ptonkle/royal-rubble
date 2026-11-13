@@ -30,6 +30,9 @@ saves = "the save and the settings it keeps: save.rs, the storage fence"
 notes = "the version and What's New: patch_notes.rs, data/patch-notes.json"
 copy = "reader-visible words: GLOSSARY.md, TONE.md, data/strings.json, strings.rs, glossary.rs"
 ai = "bot aiming and castle plans: crates/core/src/ai/"
+upgrades = "upgrade cards and what they do: game/upgrades.rs, data/upgrades.json, the upgrade rules in game/flow.rs"
+ammo = "ammo kinds, blasts and strength bonuses: physics/ammo.rs"
+match = "the match glue: play/ (build, siege, units) and its probe"
 
 # A hit tag on the left also hits the tags on the right, transitively.
 [implies]
@@ -63,6 +66,15 @@ tags = ["boundary"]
 "lib:ticks" = ["foundation"]
 "lib:ai" = ["ai"]
 "test:ai_probe" = ["ai"]
+"lib:game::upgrades" = ["upgrades"]
+"lib:physics::ammo" = ["ammo"]
+"lib:game::flow::tests::round_upgrades_pay_at_build_start" = ["upgrades"]
+"lib:game::flow::tests::secret_passage_spares_the_first_death_and_pardon_cuts_the_rest" = ["upgrades"]
+"lib:game::flow::tests::vengeance_and_scavenger_add_shots_next_round" = ["upgrades"]
+"lib:game::flow::tests::long_arm_and_spare_stones_change_the_loadout" = ["upgrades"]
+"lib:game::flow::tests::quartermaster_makes_bought_shots_cost_one" = ["upgrades"]
+"lib:play" = ["match"]
+"test:play_probe" = ["match"]
 
 [[rule]]
 name = "the core and the shim"
@@ -155,3 +167,22 @@ name = "the sound tools"
 # they write data/sound*.json, which crates/core/tests/sound.rs reads
 files = ["tools/sound/**"]
 steps = ["core"]
+
+[[rule]]
+name = "tests of the upgrades"
+files = ["crates/core/src/game/upgrades.rs", "data/upgrades.json"]
+steps = ["core"]
+tags = ["upgrades"]
+
+[[rule]]
+name = "tests of the ammo"
+files = ["crates/core/src/physics/ammo.rs"]
+steps = ["core"]
+tags = ["ammo"]
+
+[[rule]]
+name = "tests of the match glue"
+# game/, physics/ and terrain/ stay on the wide core rule: play's tests read them
+files = ["crates/core/src/play/**", "crates/core/tests/play_probe.rs"]
+steps = ["core"]
+tags = ["match"]

@@ -1,0 +1,279 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Manuscript</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script src="scene.js"></script>
+<script>
+const c = document.getElementById("c"), ctx = c.getContext("2d");
+const R = rng(21);
+const INK = "#2b1a10", ULTRA = "#2449a6", ULTRA_D = "#17306f", VERM = "#c4372a", VERM_D = "#8e2219", GREEN = "#4f8a3c", GREEN_D = "#2f5e27", OCHRE = "#c9963a", ROSE = "#e5b9b0", WHITE = "#f6f0e2";
+const SERIF = "'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif";
+
+function gold(x, y, w, h) {
+  const g = ctx.createLinearGradient(x, y, x + w * .6, y + h);
+  g.addColorStop(0, "#f8e889"); g.addColorStop(.35, "#d9a92e"); g.addColorStop(.6, "#f2d36a"); g.addColorStop(1, "#9c7116");
+  return g;
+}
+function outline(w = 2.4) { ctx.strokeStyle = INK; ctx.lineWidth = w; ctx.lineJoin = "round"; ctx.stroke(); }
+function poly(pts) { ctx.beginPath(); ctx.moveTo(...pts[0]); for (const p of pts.slice(1)) ctx.lineTo(...p); ctx.closePath(); }
+
+// --- vellum
+ctx.fillStyle = "#efe2c4"; ctx.fillRect(0, 0, W, H);
+for (let i = 0; i < 2600; i++) {
+  ctx.fillStyle = R() < .5 ? "rgba(170,130,70,.05)" : "rgba(255,250,235,.07)";
+  ctx.beginPath(); ctx.ellipse(R() * W, R() * H, 10 + R() * 60, 6 + R() * 30, R() * 3, 0, 7); ctx.fill();
+}
+const edge = ctx.createRadialGradient(W / 2, H / 2, 600, W / 2, H / 2, 1200);
+edge.addColorStop(0, "rgba(0,0,0,0)"); edge.addColorStop(1, "rgba(140,95,40,.35)"); ctx.fillStyle = edge; ctx.fillRect(0, 0, W, H);
+
+// --- the miniature: scene drawn inside a frame
+const FX = 110, FY = 78, FW = 1700, FH = 822;
+const S = FW / W, TY = FY - 28 * S;
+ctx.save();
+ctx.beginPath(); ctx.rect(FX, FY, FW, FH); ctx.clip();
+ctx.translate(FX, TY); ctx.scale(S, S);
+
+// diaper sky: ultramarine and vermilion lozenges, gold and white dots
+(function diaper() {
+  const d = 64;
+  for (let gy = -8; gy < 20; gy++) for (let gx = -1; gx < 32; gx++) {
+    const cx = gx * d + (gy % 2 ? d / 2 : 0), cy = gy * d / 2 + 140;
+    const red = (gx + gy * 3) % 4 === 0;
+    ctx.fillStyle = red ? VERM : (gy % 2 ? ULTRA : ULTRA_D);
+    poly([[cx, cy - d / 2], [cx + d / 2, cy], [cx, cy + d / 2], [cx - d / 2, cy]]); ctx.fill();
+    ctx.strokeStyle = "rgba(20,10,5,.55)"; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = red ? "#f3d26b" : WHITE;
+    for (const [dx, dy] of [[0, -7], [7, 0], [0, 7], [-7, 0]]) { ctx.beginPath(); ctx.arc(cx + dx, cy + dy, 2.6, 0, 7); ctx.fill(); }
+    ctx.fillStyle = "#e8c04e"; ctx.beginPath(); ctx.arc(cx, cy, 3, 0, 7); ctx.fill();
+  }
+})();
+
+// stylized rock ledges behind the castle hill and on the left
+function ledges(x, baseY, w, h, cols) {
+  const steps = 5;
+  for (let i = 0; i < steps; i++) {
+    const t = i / steps, yy = baseY - h * (1 - t), ww = w * (0.45 + 0.55 * t), xx = x + (w - ww) / 2 + (i % 2 ? 18 : -18);
+    ctx.beginPath(); ctx.moveTo(xx, baseY);
+    ctx.lineTo(xx + 10, yy + 18); ctx.quadraticCurveTo(xx + ww * .25, yy - 10, xx + ww * .5, yy);
+    ctx.quadraticCurveTo(xx + ww * .75, yy - 12, xx + ww - 10, yy + 16); ctx.lineTo(xx + ww, baseY); ctx.closePath();
+    ctx.fillStyle = cols[i % cols.length]; ctx.fill(); outline(2.2);
+    ctx.strokeStyle = "rgba(255,250,230,.75)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(xx + ww * .2, yy + 8); ctx.quadraticCurveTo(xx + ww * .35, yy - 2, xx + ww * .5, yy + 4); ctx.stroke();
+  }
+}
+ledges(600, 820, 640, 230, ["#9bb47a", "#c7b488", "#7fa46a"]);
+ledges(-60, 790, 420, 170, ["#c7b488", "#9bb47a"]);
+ledges(1700, 740, 340, 160, ["#9bb47a", "#c7b488"]);
+
+// lollipop trees
+function tree(x, foot, h, col) {
+  ctx.fillStyle = "#7a4e26"; ctx.fillRect(x - 4, foot - h * .45, 8, h * .45); ctx.strokeStyle = INK; ctx.lineWidth = 2; ctx.strokeRect(x - 4, foot - h * .45, 8, h * .45);
+  const r = h * .32, cy = foot - h * .45 - r * .8;
+  ctx.beginPath();
+  for (let k = 0; k <= 12; k++) { const a = k / 12 * Math.PI * 2; const rr = r * (k % 2 ? .86 : 1.04); ctx.lineTo(x + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+  ctx.closePath(); ctx.fillStyle = col; ctx.fill(); outline(2.2);
+  ctx.fillStyle = "rgba(255,250,220,.55)"; for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.arc(x - r * .4 + R() * r * .8, cy - r * .4 + R() * r * .6, 2.5, 0, 7); ctx.fill(); }
+}
+tree(700, 806, 120, GREEN); tree(800, 838, 96, "#6a9a3c"); tree(960, 850, 110, GREEN_D); tree(140, 772, 104, "#6a9a3c"); tree(1880, 726, 110, GREEN);
+
+// moat: flat ultramarine with white wave strokes
+ctx.fillStyle = ULTRA; ctx.fillRect(MOAT.x0, MOAT.top, MOAT.x1 - MOAT.x0, 50);
+ctx.strokeStyle = WHITE; ctx.lineWidth = 2.5;
+for (let row = 0; row < 3; row++) { const y = MOAT.top + 8 + row * 9; ctx.beginPath(); for (let x = MOAT.x0 + (row % 2) * 8; x < MOAT.x1; x += 16) { ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 4, y - 5, x + 8, y); } ctx.stroke(); }
+
+// ground: flat green with painted tufts, flowers, and an ochre soil band
+groundPath(ctx); ctx.fillStyle = GREEN; ctx.fill(); outline(3);
+ctx.save(); groundPath(ctx); ctx.clip();
+for (let x = 0; x < W; x += 3) { const y = groundY(x); ctx.fillStyle = "#3b6e2c"; ctx.fillRect(x, y + 34, 3, 6); }
+const soil = []; for (let x = 0; x <= W; x += 30) soil.push([x, groundY(x) + 40]);
+ctx.beginPath(); ctx.moveTo(0, H); for (const p of soil) ctx.lineTo(...p); ctx.lineTo(W, H); ctx.closePath(); ctx.fillStyle = "#b98a4c"; ctx.fill(); outline(2);
+for (let i = 0; i < 140; i++) { const x = R() * W, y = groundY(x) + 70 + R() * 200; ctx.fillStyle = "#9c6f38"; ctx.beginPath(); ctx.ellipse(x, y, 14, 6, 0, 0, 7); ctx.fill(); ctx.strokeStyle = "rgba(43,26,16,.6)"; ctx.lineWidth = 1.5; ctx.stroke(); }
+for (let i = 0; i < 90; i++) { const x = R() * W; if (x > 1030 && x < 1200) continue; const y = groundY(x) + 8 + R() * 24; ctx.strokeStyle = GREEN_D; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y + 6); ctx.lineTo(x - 4, y - 6); ctx.moveTo(x, y + 6); ctx.lineTo(x + 4, y - 6); ctx.stroke(); ctx.fillStyle = [VERM, WHITE, "#f0c94c"][i % 3]; ctx.beginPath(); ctx.arc(x, y - 8, 3.2, 0, 7); ctx.fill(); }
+ctx.restore();
+
+// --- castle in flat colored stone and timber, ink outlined
+function stone(x, y, w, h) {
+  ctx.beginPath(); ctx.rect(x, y, w, h); ctx.fillStyle = ROSE; ctx.fill();
+  ctx.save(); ctx.clip();
+  const ch = 18, cw = 30;
+  for (let yy = y, row = 0; yy < y + h; yy += ch, row++) for (let xx = x - (row % 2 ? cw / 2 : 0); xx < x + w; xx += cw) {
+    ctx.fillStyle = (row + Math.round(xx / cw)) % 3 === 0 ? "#f1d4cb" : (row + Math.round(xx / cw)) % 3 === 1 ? "#dba69c" : ROSE;
+    ctx.fillRect(xx + 1.5, yy + 1.5, cw - 3, ch - 3);
+  }
+  ctx.strokeStyle = "rgba(43,26,16,.75)"; ctx.lineWidth = 1.4;
+  for (let yy = y, row = 0; yy < y + h; yy += ch, row++) { ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + w, yy); ctx.stroke(); for (let xx = x - (row % 2 ? cw / 2 : 0); xx < x + w; xx += cw) { ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx, yy + ch); ctx.stroke(); } }
+  ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fillRect(x + w - 5, y + 2, 2.5, h - 4);
+  ctx.restore();
+  ctx.beginPath(); ctx.rect(x, y, w, h); outline(2.6);
+}
+function timber(x1, y1, x2, y2, t, col = "#8a5528") {
+  const len = Math.hypot(x2 - x1, y2 - y1), a = Math.atan2(y2 - y1, x2 - x1);
+  ctx.save(); ctx.translate(x1, y1); ctx.rotate(a);
+  ctx.beginPath(); ctx.rect(0, -t / 2, len, t); ctx.fillStyle = col; ctx.fill();
+  ctx.fillStyle = "rgba(255,230,180,.45)"; ctx.fillRect(2, -t / 2 + 2, len - 4, 2);
+  ctx.strokeStyle = "rgba(43,26,16,.5)"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(6, 1); ctx.lineTo(len - 6, 1); ctx.stroke();
+  ctx.beginPath(); ctx.rect(0, -t / 2, len, t); outline(2.2);
+  ctx.restore();
+}
+function iron(x1, y1, x2, y2, t) {
+  timber(x1, y1, x2, y2, t, "#7d8ea8");
+}
+// rope
+for (const [x1, y1, x2, y2] of ROPES) { ctx.strokeStyle = INK; ctx.lineWidth = 4.5; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo((x1 + x2) / 2 + 10, (y1 + y2) / 2 + 24, x2, y2); ctx.stroke(); ctx.strokeStyle = "#e3c67e"; ctx.lineWidth = 2; ctx.stroke(); }
+// roof: vermilion tiles
+poly(ROOF); ctx.fillStyle = VERM; ctx.fill(); outline(2.6);
+ctx.save(); poly(ROOF); ctx.clip(); ctx.strokeStyle = VERM_D; ctx.lineWidth = 1.5; for (let i = 1; i < 6; i++) { const t = i / 6; ctx.beginPath(); ctx.moveTo(1279 - 43 * t, 196 + 66 * t); ctx.lineTo(1279 + 43 * t, 196 + 66 * t); ctx.stroke(); } ctx.restore();
+ctx.fillStyle = gold(1272, 180, 14, 16); ctx.beginPath(); ctx.arc(1279, 190, 7, 0, 7); ctx.fill(); outline(1.8);
+for (const [x, y, w, h, m] of BLOCKS) { if (m === "stone") stone(x, y, w, h); else if (w > h) timber(x, y + h / 2, x + w, y + h / 2, h); else timber(x + w / 2, y, x + w / 2, y + h, w); }
+for (const [x1, y1, x2, y2, m, t] of BRACES) (m === "metal" ? iron : timber)(x1, y1, x2, y2, t + 2);
+for (const [x, y, w, n] of CRENELS) { const mw = w / (n * 2 - 1); for (let i = 0; i < n; i++) stone(x + i * 2 * mw, y - 22, mw, 22); }
+// pennon: vermilion with a gold lion-ish roundel
+const fx = FLAG.x, fy = FLAG.y - 22 - FLAG.h;
+ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(fx, FLAG.y - 22); ctx.lineTo(fx, fy - 6); ctx.stroke();
+ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx + 120, fy + 14); ctx.lineTo(fx + 96, fy + 22); ctx.lineTo(fx + 120, fy + 34); ctx.lineTo(fx, fy + 44); ctx.closePath(); ctx.fillStyle = VERM; ctx.fill(); outline(2.4);
+ctx.fillStyle = gold(fx + 20, fy + 10, 26, 26); ctx.beginPath(); ctx.arc(fx + 34, fy + 22, 11, 0, 7); ctx.fill(); outline(1.8);
+
+// --- royals: swaying gothic figures, flat robes, gold crowns
+const ROBE = { king: [VERM, "#f6f0e2"], queen: [ULTRA, "#f6f0e2"], prince: ["#3f7a45", OCHRE], princess: ["#d98aa6", WHITE], squire: ["#9a6b3a", OCHRE] };
+function royal(x, foot, kind) {
+  const [robe, trim] = ROBE[kind], s = kind === "king" ? 1.2 : kind === "squire" ? .9 : 1.05;
+  ctx.save(); ctx.translate(x, foot); ctx.scale(s, s);
+  // S-curve robe with deep folds
+  ctx.beginPath(); ctx.moveTo(-18, 0); ctx.bezierCurveTo(-20, -18, -6, -30, -10, -46); ctx.lineTo(8, -46); ctx.bezierCurveTo(12, -30, 22, -16, 18, 0); ctx.closePath();
+  ctx.fillStyle = robe; ctx.fill(); outline(2.2);
+  ctx.strokeStyle = "rgba(43,26,16,.6)"; ctx.lineWidth = 1.5; for (const dx of [-8, 0, 8]) { ctx.beginPath(); ctx.moveTo(dx * .4, -40); ctx.quadraticCurveTo(dx, -20, dx * 1.3, 0); ctx.stroke(); }
+  ctx.fillStyle = trim; ctx.fillRect(-18, -5, 36, 5); ctx.strokeStyle = INK; ctx.lineWidth = 1.5; ctx.strokeRect(-18, -5, 36, 5);
+  // head and hair
+  ctx.beginPath(); ctx.arc(-1, -55, 10, 0, 7); ctx.fillStyle = "#f4dcc4"; ctx.fill(); outline(2);
+  ctx.fillStyle = kind === "king" ? "#e8e2d2" : "#c48a3a";
+  if (kind === "king") { ctx.beginPath(); ctx.moveTo(-9, -51); ctx.quadraticCurveTo(-1, -28, 7, -51); ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 1.5; ctx.stroke(); }
+  if (kind === "queen" || kind === "princess") { ctx.beginPath(); ctx.moveTo(-10, -58); ctx.quadraticCurveTo(-14, -40, -8, -36); ctx.lineTo(-6, -52); ctx.fill(); ctx.beginPath(); ctx.moveTo(8, -58); ctx.quadraticCurveTo(12, -40, 6, -36); ctx.lineTo(4, -52); ctx.fill(); }
+  ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(3, -56, 1.3, 0, 7); ctx.fill();
+  ctx.strokeStyle = VERM_D; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(1, -50); ctx.lineTo(5, -50); ctx.stroke();
+  // crown in gold leaf with three fleurons
+  ctx.beginPath(); ctx.moveTo(-11, -62);
+  if (kind === "squire") { ctx.lineTo(-11, -67); ctx.lineTo(9, -67); }
+  else { ctx.lineTo(-12, -74); ctx.lineTo(-6, -68); ctx.lineTo(-1, -78); ctx.lineTo(4, -68); ctx.lineTo(10, -74); }
+  ctx.lineTo(9, -62); ctx.closePath(); ctx.fillStyle = gold(-12, -78, 22, 16); ctx.fill(); outline(1.8);
+  // the king carries a scepter, the queen a lily
+  if (kind === "king") { ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(14, -30); ctx.lineTo(22, -66); ctx.stroke(); ctx.fillStyle = gold(18, -74, 10, 10); ctx.beginPath(); ctx.arc(22, -69, 5, 0, 7); ctx.fill(); outline(1.5); }
+  if (kind === "queen") { ctx.strokeStyle = GREEN_D; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-14, -30); ctx.lineTo(-20, -62); ctx.stroke(); ctx.fillStyle = WHITE; ctx.beginPath(); ctx.ellipse(-20, -65, 4, 6, 0, 0, 7); ctx.fill(); outline(1.4); }
+  ctx.restore();
+}
+for (const [x, y, k] of ROYALS) royal(x, y, k);
+
+// --- trebuchet
+const T = trebParts();
+timber(290, TREB.baseY - 22, T.px + 8, T.py + 4, 12, "#6b3f1c"); timber(430, TREB.baseY - 22, T.px + 8, T.py + 4, 12, "#6b3f1c");
+timber(200, TREB.baseY - 14, 500, TREB.baseY - 14, 20);
+timber(268, TREB.baseY - 22, T.px, T.py, 18); timber(436, TREB.baseY - 22, T.px, T.py, 18);
+timber(296, TREB.baseY - 110, 408, TREB.baseY - 110, 12);
+for (const wx of [236, 466]) { ctx.beginPath(); ctx.arc(wx, TREB.baseY - 4, 20, 0, 7); ctx.fillStyle = OCHRE; ctx.fill(); outline(2.6); ctx.beginPath(); for (let k = 0; k < 4; k++) { const a = k * Math.PI / 4; ctx.moveTo(wx - Math.cos(a) * 18, TREB.baseY - 4 - Math.sin(a) * 18); ctx.lineTo(wx + Math.cos(a) * 18, TREB.baseY - 4 + Math.sin(a) * 18); } outline(2); }
+const cwx = T.shortEnd[0], cwy = T.shortEnd[1];
+ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cwx, cwy); ctx.lineTo(cwx - 22, cwy + 32); ctx.moveTo(cwx, cwy); ctx.lineTo(cwx + 22, cwy + 32); ctx.stroke();
+ctx.beginPath(); ctx.moveTo(cwx - 40, cwy + 32); ctx.lineTo(cwx + 40, cwy + 32); ctx.lineTo(cwx + 32, cwy + 86); ctx.lineTo(cwx - 32, cwy + 86); ctx.closePath(); ctx.fillStyle = "#8a5528"; ctx.fill(); outline(2.6);
+ctx.fillStyle = "#c9c2b2"; for (let k = 0; k < 6; k++) { ctx.beginPath(); ctx.arc(cwx - 24 + (k % 3) * 24, cwy + 34 - (k < 3 ? 6 : -2), 9, 0, 7); ctx.fill(); outline(1.6); }
+timber(T.shortEnd[0], T.shortEnd[1], T.longEnd[0], T.longEnd[1], 22, "#5e3415");
+ctx.beginPath(); ctx.arc(T.px, T.py, 8, 0, 7); ctx.fillStyle = gold(T.px - 8, T.py - 8, 16, 16); ctx.fill(); outline(2);
+ctx.strokeStyle = INK; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(...T.longEnd); ctx.quadraticCurveTo(T.longEnd[0] + 50, T.longEnd[1] - 6, T.pouch[0], T.pouch[1]); ctx.stroke();
+// motion lines in ink
+ctx.strokeStyle = INK; ctx.lineWidth = 2; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(T.px, T.py, TREB.long - 12 - i * 16, -0.4, -0.85, true); ctx.stroke(); }
+
+// ghost path: a dotted rubric line
+ctx.fillStyle = "rgba(246,240,226,.85)";
+for (let t = 0.03; t <= 1; t += 0.022) { const [x, y] = ghostArc(t); ctx.beginPath(); ctx.arc(x, y, 3.2, 0, 7); ctx.fill(); }
+// the shot in flight with ink speed lines
+const [sx, sy] = arc(SHOT_T), [bx, by] = arc(SHOT_T - .05), ang = Math.atan2(sy - by, sx - bx);
+ctx.strokeStyle = WHITE; ctx.lineWidth = 3;
+for (const o of [-10, 0, 10]) { ctx.beginPath(); ctx.moveTo(sx - Math.cos(ang) * 26 - Math.sin(ang) * o, sy - Math.sin(ang) * 26 + Math.cos(ang) * o); ctx.lineTo(sx - Math.cos(ang) * 70 - Math.sin(ang) * o, sy - Math.sin(ang) * 70 + Math.cos(ang) * o); ctx.stroke(); }
+ctx.beginPath(); ctx.arc(sx, sy, SHOT.r + 2, 0, 7); ctx.fillStyle = "#b8b1a2"; ctx.fill(); outline(2.6);
+ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.beginPath(); ctx.arc(sx - 5, sy - 5, 4, 0, 7); ctx.fill();
+// wind pennant
+ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(120, 768); ctx.lineTo(120, 650); ctx.stroke();
+ctx.beginPath(); ctx.moveTo(120, 652); ctx.lineTo(186, 664); ctx.lineTo(120, 680); ctx.closePath(); ctx.fillStyle = WHITE; ctx.fill(); outline(2);
+ctx.restore();
+
+// --- frame: gold bar between ink and colored rules
+ctx.lineWidth = 16; ctx.strokeStyle = gold(FX - 10, FY - 10, FW + 20, FH + 20); ctx.strokeRect(FX - 8, FY - 8, FW + 16, FH + 16);
+ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.strokeRect(FX - 16, FY - 16, FW + 32, FH + 32); ctx.strokeRect(FX, FY, FW, FH);
+ctx.lineWidth = 4; ctx.strokeStyle = VERM; ctx.strokeRect(FX - 21, FY - 21, FW + 42, FH + 42);
+ctx.lineWidth = 1.5; ctx.strokeStyle = INK; ctx.strokeRect(FX - 23, FY - 23, FW + 46, FH + 46);
+// punched dots in the gold
+ctx.fillStyle = "rgba(110,75,10,.55)";
+for (let x = FX - 4; x < FX + FW + 4; x += 10) { ctx.beginPath(); ctx.arc(x, FY - 8, 1.4, 0, 7); ctx.arc(x, FY + FH + 8, 1.4, 0, 7); ctx.fill(); }
+for (let y = FY - 4; y < FY + FH + 4; y += 10) { ctx.beginPath(); ctx.arc(FX - 8, y, 1.4, 0, 7); ctx.arc(FX + FW + 8, y, 1.4, 0, 7); ctx.fill(); }
+
+// --- ivy vine in the margins
+function leaf(x, y, a, col) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(6, -8, 14, -8, 18, 0); ctx.bezierCurveTo(14, 2, 12, 8, 9, 12); ctx.bezierCurveTo(6, 8, 4, 2, 0, 0);
+  ctx.fillStyle = col; ctx.fill(); outline(1.4);
+  ctx.restore();
+}
+function vine(pts, seed) {
+  const r = rng(seed);
+  ctx.strokeStyle = INK; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(...pts[0]);
+  for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; const mx = (x0 + x1) / 2 + (i % 2 ? 22 : -22) * (Math.abs(y1 - y0) > Math.abs(x1 - x0) ? 1 : 0), my = (y0 + y1) / 2 + (i % 2 ? 22 : -22) * (Math.abs(x1 - x0) >= Math.abs(y1 - y0) ? 1 : 0); ctx.quadraticCurveTo(mx, my, x1, y1); }
+  ctx.stroke();
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+    for (let k = 0; k < 2; k++) {
+      const t = .3 + k * .4, x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t;
+      const col = [gold(x, y - 10, 18, 18), ULTRA, VERM][(i + k) % 3];
+      ctx.strokeStyle = INK; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x, y); const ex = x + (k ? 16 : -16), ey = y + (r() - .5) * 20; ctx.quadraticCurveTo((x + ex) / 2, y - 10, ex, ey); ctx.stroke();
+      leaf(ex, ey, r() * 6, col);
+    }
+  }
+}
+const vx = 52, vxr = W - 52;
+const left = []; for (let y = 210; y <= 1030; y += 70) left.push([vx, y]);
+const right = []; for (let y = 40; y <= 1030; y += 70) right.push([vxr, y]);
+const topRow = []; for (let x = 420; x <= W - 60; x += 80) topRow.push([x, 34]);
+vine(left, 4); vine(right, 5); vine(topRow, 6);
+
+// --- decorated initial R
+(function initial() {
+  const x = 22, y = 18, s = 168;
+  ctx.fillStyle = gold(x, y, s, s); ctx.fillRect(x, y, s, s); ctx.strokeStyle = INK; ctx.lineWidth = 2.5; ctx.strokeRect(x, y, s, s);
+  ctx.fillStyle = "rgba(110,75,10,.5)"; for (let i = 0; i < 70; i++) { ctx.beginPath(); ctx.arc(x + 8 + R() * (s - 16), y + 8 + R() * (s - 16), 1.2, 0, 7); ctx.fill(); }
+  ctx.fillStyle = VERM; ctx.fillRect(x + 12, y + 12, s - 24, s - 24); ctx.strokeRect(x + 12, y + 12, s - 24, s - 24);
+  // white filigree on the vermilion ground
+  ctx.strokeStyle = "rgba(250,240,220,.85)"; ctx.lineWidth = 1.4;
+  for (let i = 0; i < 9; i++) { const cx = x + 30 + (i % 3) * 54, cy = y + 30 + Math.floor(i / 3) * 54; ctx.beginPath(); ctx.arc(cx, cy, 10, 0, 5); ctx.stroke(); ctx.beginPath(); ctx.arc(cx + 4, cy + 4, 4, 0, 7); ctx.stroke(); }
+  ctx.font = `700 ${s * .84}px ${SERIF}`; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.lineWidth = 7; ctx.strokeStyle = INK; ctx.strokeText("R", x + s / 2, y + s * .84);
+  ctx.fillStyle = ULTRA; ctx.fillText("R", x + s / 2, y + s * .84);
+  ctx.lineWidth = 2; ctx.strokeStyle = "rgba(220,230,255,.8)"; ctx.strokeText("R", x + s / 2 - 2, y + s * .84 - 2);
+})();
+// rubric title in the top margin
+
+// --- HUD sliver: a ruled band in the bottom margin, with roundels
+(function hud() {
+  const y = 934, h = 108, x0 = 560, w = 800;
+  ctx.fillStyle = "rgba(246,238,216,.9)"; ctx.fillRect(x0, y, w, h);
+  ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.strokeRect(x0, y, w, h);
+  ctx.lineWidth = 3; ctx.strokeStyle = VERM; ctx.strokeRect(x0 + 6, y + 6, w - 12, h - 12);
+  const fill = { Wood: "#8a5528", Stone: ROSE, Metal: "#7d8ea8" };
+  HUD.mats.forEach(([name, cost, have], i) => {
+    const cx = x0 + 70 + i * 210, cy = y + h / 2;
+    ctx.beginPath(); ctx.arc(cx, cy, 30, 0, 7); ctx.fillStyle = gold(cx - 30, cy - 30, 60, 60); ctx.fill(); outline(2);
+    ctx.beginPath(); ctx.arc(cx, cy, 21, 0, 7); ctx.fillStyle = fill[name]; ctx.fill(); outline(1.6);
+    if (i === 0) { ctx.beginPath(); ctx.arc(cx, cy, 36, 0, 7); ctx.strokeStyle = ULTRA; ctx.lineWidth = 4; ctx.stroke(); }
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.font = `600 25px ${SERIF}`; ctx.fillStyle = INK; ctx.fillText(name, cx + 42, cy - 13);
+    ctx.font = `italic 20px ${SERIF}`; ctx.fillStyle = VERM; ctx.fillText(cost + " gold · " + have, cx + 42, cy + 15);
+  });
+  const gx = x0 + 680, gy = y + h / 2;
+  ctx.beginPath(); ctx.arc(gx, gy - 14, 13, 0, 7); ctx.fillStyle = gold(gx - 13, gy - 27, 26, 26); ctx.fill(); outline(1.6);
+  ctx.font = `700 26px ${SERIF}`; ctx.fillStyle = INK; ctx.fillText(String(HUD.gold), gx + 22, gy - 13);
+  ctx.font = `italic 21px ${SERIF}`; ctx.fillStyle = VERM; ctx.fillText(HUD.phase + " " + HUD.time, gx - 12, gy + 22);
+})();
+// a snail in the corner margin, as scribes drew them
+(function snail() {
+  const x = 1720, y = 1010;
+  ctx.beginPath(); ctx.moveTo(x - 50, y + 12); ctx.quadraticCurveTo(x, y + 18, x + 40, y + 10); ctx.quadraticCurveTo(x + 52, y - 4, x + 58, y - 22); ctx.lineTo(x + 50, y - 8); ctx.lineTo(x + 44, y - 26); ctx.quadraticCurveTo(x + 40, y, x - 50, y + 4); ctx.closePath(); ctx.fillStyle = "#e4caa0"; ctx.fill(); outline(1.8);
+  ctx.beginPath(); ctx.arc(x - 6, y - 10, 24, 0, 7); ctx.fillStyle = OCHRE; ctx.fill(); outline(2);
+  ctx.strokeStyle = INK; ctx.lineWidth = 1.6; ctx.beginPath(); for (let a = 0; a < 14; a += .2) { const r = 22 - a * 1.5; ctx.lineTo(x - 6 + Math.cos(a) * r, y - 10 + Math.sin(a) * r); } ctx.stroke();
+  // a tiny crown on its shell
+  ctx.beginPath(); ctx.moveTo(x - 16, y - 32); ctx.lineTo(x - 16, y - 42); ctx.lineTo(x - 10, y - 36); ctx.lineTo(x - 5, y - 46); ctx.lineTo(x, y - 36); ctx.lineTo(x + 6, y - 42); ctx.lineTo(x + 6, y - 32); ctx.closePath(); ctx.fillStyle = gold(x - 16, y - 46, 22, 14); ctx.fill(); outline(1.4);
+})();
+</script></body></html>

@@ -10,7 +10,7 @@ use super::ledger::{Ledger, Material, Piece};
 use super::pairing::{self, History, Pairing};
 use super::royals::{self, Plot, Royal, RoyalKind, Spot};
 use super::tune;
-use super::upgrades::{self, AirKind, AmmoKind, Modifiers, Offer, Tier, UPGRADES};
+use super::upgrades::{self, AirKind, AmmoKind, Modifiers, Offer, Tier};
 use super::{sites, PlayerId, Refusal};
 use crate::terrain::{self, Segment};
 
@@ -20,6 +20,7 @@ const SALT_TIER: u32 = 2;
 const SALT_WIND: u32 = 3;
 const SALT_ROYALS: u32 = 0x100;
 const SALT_CARDS: u32 = 0x200;
+const SALT_LUCK: u32 = 0x400;
 const SALT_REROLL: u32 = 0x1000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -88,6 +89,8 @@ pub struct Loadout {
     pub normal: u32,
     pub ammo: Vec<(AmmoKind, u32)>,
     pub air: Vec<AirKind>,
+    /// Uses this round of each entry in `air`.
+    pub air_uses: Vec<u32>,
     pub power_pct: u32,
 }
 
@@ -116,6 +119,11 @@ pub struct Player {
     /// A building on the watchtower hill stood last siege: this player sees
     /// next round's wind.
     pub sees_next_wind: bool,
+    /// Extra normal shots this round from upgrades that roll or count.
+    pub round_shots: u32,
+    /// Royals this player killed, and lost, in the last siege.
+    pub kills_last_round: u32,
+    pub losses_last_round: u32,
 }
 
 impl Player {
@@ -144,6 +152,9 @@ impl Player {
             terrain,
             ruin_pieces,
             sees_next_wind: false,
+            round_shots: 0,
+            kills_last_round: 0,
+            losses_last_round: 0,
         }
     }
 
@@ -152,20 +163,25 @@ impl Player {
     }
 
     pub fn plot(&self) -> Plot {
-        let row = economy::level_row(self.purse.level);
+        let level = self.purse.level;
         Plot {
-            width: row.plot_width,
-            height: row.plot_height,
+            width: self.terrain.buildable(level).len() as i32,
+            height: terrain::Plot::build_height(level) / terrain::CELL,
         }
     }
 
     pub fn loadout(&self) -> Loadout {
         let row = economy::level_row(self.purse.level);
         Loadout {
-            normal: row.normal_shots + self.ledger.shots_bought + self.armory_shots + self.mods.extra_shots,
+            normal: row.normal_shots
+                + self.ledger.shots_bought
+                + self.armory_shots
+                + self.mods.extra_shots
+                + self.round_shots,
             ammo: self.mods.ammo.clone(),
             air: self.mods.air.clone(),
-            power_pct: row.shot_power_pct,
+            air_uses: self.mods.air_slots().iter().map(|(_, n)| *n).collect(),
+            power_pct: row.shot_power_pct + self.mods.power_pct,
         }
     }
 }
@@ -310,7 +326,14 @@ impl Match {
             p.offer = None;
             p.ledger.shots_bought = 0;
             p.purse.collect_income();
-            p.purse.add_xp(tune::FREE_XP_PER_ROUND);
+            p.purse.gold += p.mods.gold_per_round;
+            p.purse.add_xp(tune::FREE_XP_PER_ROUND + p.mods.xp_per_round);
+            for m in [Material::Wood, Material::Stone, Material::Metal] {
+                *p.ledger.stock.get_mut(m) += p.mods.stock_per_round(m);
+            }
+            let mut luck = Dice::derive(seed, self.round, SALT_LUCK + p.id as u32);
+            p.round_shots =
+                p.mods.lucky_shots(&mut luck) + p.mods.revenge_shots(p.kills_last_round, p.losses_last_round);
             p.royals
                 .extend(arriving.iter().map(|k| Royal { kind: *k, spot: None }));
         }
@@ -400,11 +423,21 @@ impl Match {
         for p in &mut self.players {
             p.armory_shots = 0;
             p.sees_next_wind = false;
+            p.kills_last_round = 0;
+            p.losses_last_round = 0;
         }
         for c in &result.castles {
+            // Secret Passage: the owner's first deaths are spared, ghost or not.
+            let spared = self
+                .players
+                .get(c.owner as usize)
+                .map_or(0, |o| o.mods.deaths_spared as usize)
+                .min(c.royals_killed.len());
+            let killed = &c.royals_killed[spared..];
             if self.target_of(c.attacker) == Some((c.owner, c.ghost)) {
                 if let Some(a) = self.players.get_mut(c.attacker as usize) {
-                    a.purse.gold += economy::kill_gold(&c.royals_killed);
+                    a.purse.gold += a.mods.kill_gold(economy::kill_gold(killed));
+                    a.kills_last_round += killed.len() as u32;
                 }
             }
             if c.ghost {
@@ -416,8 +449,9 @@ impl Match {
             if !o.alive() {
                 continue;
             }
-            o.health -= royals::damage(&c.royals_killed, round) as i32;
-            let pay = o.ledger.collect_yields(&c.buildings_survived);
+            o.health -= o.mods.royal_damage(royals::damage(killed, round)) as i32;
+            o.losses_last_round += killed.len() as u32;
+            let pay = o.ledger.collect_yields_with(&c.buildings_survived, &o.mods);
             o.armory_shots += pay.shots;
             o.purse.gold += pay.gold;
             o.sees_next_wind |= pay.sees_wind;
@@ -464,7 +498,8 @@ impl Match {
     pub fn buy_shot(&mut self, p: PlayerId) -> Result<(), Refusal> {
         self.need(Phase::Build)?;
         let pl = self.player_mut(p)?;
-        pl.ledger.buy_shot(&mut pl.purse.gold)
+        let cost = pl.mods.shot_price();
+        pl.ledger.buy_shot_at(&mut pl.purse.gold, cost)
     }
 
     /// Place a segment or rope; returns its ledger id for the physics world.
@@ -533,12 +568,7 @@ impl Match {
         let pl = self.player_mut(p)?;
         let offer = pl.offer.as_mut().ok_or(Refusal::WrongPhase)?;
         let i = offer.pick(slot)?;
-        upgrades::apply(
-            UPGRADES[i].effect,
-            &mut pl.purse,
-            &mut pl.ledger.stock,
-            &mut pl.mods,
-        );
+        upgrades::apply_upgrade(i, &mut pl.purse, &mut pl.ledger.stock, &mut pl.mods);
         pl.upgrades.push(i);
         Ok(())
     }
@@ -775,6 +805,99 @@ mod tests {
         // player 1 never picked: the first card is taken for them at phase end
         run_out(&mut m);
         assert_eq!(m.players[1].upgrades.len(), 1);
+    }
+
+    fn give(m: &mut Match, p: PlayerId, key: &str) {
+        let i = upgrades::index_of(key).unwrap();
+        let pl = &mut m.players[p as usize];
+        upgrades::apply_upgrade(i, &mut pl.purse, &mut pl.ledger.stock, &mut pl.mods);
+        pl.upgrades.push(i);
+    }
+
+    fn kill(owner: PlayerId, attacker: PlayerId, royals_killed: Vec<RoyalKind>) -> SiegeResult {
+        SiegeResult {
+            castles: vec![CastleOutcome {
+                owner,
+                attacker,
+                ghost: false,
+                royals_killed,
+                buildings_survived: vec![],
+            }],
+        }
+    }
+
+    #[test]
+    fn round_upgrades_pay_at_build_start() {
+        let mut m = humans(2);
+        give(&mut m, 0, "tithe");
+        give(&mut m, 0, "scholar");
+        give(&mut m, 0, "lumber_deal");
+        run_out(&mut m);
+        m.apply_siege(&SiegeResult::default()).unwrap();
+        run_out(&mut m); // round 2 upgrade phase ends; build pays
+        let (a, b) = (&m.players[0], &m.players[1]);
+        // both got base income on the same bank; player 0 got 1 more
+        assert_eq!(a.purse.gold - b.purse.gold, 1);
+        assert_eq!(a.ledger.stock.wood, 6);
+        // level 2 to 3 takes 2 XP: 4 free XP leaves 2, against 0
+        assert_eq!((a.purse.level, a.purse.xp, b.purse.xp), (3, 2, 0));
+    }
+
+    #[test]
+    fn secret_passage_spares_the_first_death_and_pardon_cuts_the_rest() {
+        let mut m = humans(2);
+        give(&mut m, 1, "secret_passage");
+        give(&mut m, 1, "royal_pardon");
+        give(&mut m, 0, "bounty");
+        run_out(&mut m);
+        let gold = m.players[0].purse.gold;
+        m.apply_siege(&kill(
+            1,
+            0,
+            vec![RoyalKind::King, RoyalKind::Prince, RoyalKind::Princess],
+        ))
+        .unwrap();
+        // King spared; Prince 4 + Princess 3 = 7, 40% off rounded down = 4
+        assert_eq!(m.players[1].health, 96);
+        // 2 kills at 1 gold, doubled
+        assert_eq!(m.players[0].purse.gold, gold + 4);
+        assert_eq!(
+            (m.players[0].kills_last_round, m.players[1].losses_last_round),
+            (2, 2)
+        );
+    }
+
+    #[test]
+    fn vengeance_and_scavenger_add_shots_next_round() {
+        let mut m = humans(2);
+        give(&mut m, 0, "scavenger");
+        give(&mut m, 1, "vengeance");
+        run_out(&mut m);
+        let k = vec![RoyalKind::Squire; 5];
+        m.apply_siege(&kill(1, 0, k)).unwrap();
+        run_out(&mut m);
+        assert_eq!((m.players[0].round_shots, m.players[1].round_shots), (3, 3));
+    }
+
+    #[test]
+    fn long_arm_and_spare_stones_change_the_loadout() {
+        let mut m = humans(2);
+        let before = m.players[0].loadout();
+        give(&mut m, 0, "long_arm_1");
+        give(&mut m, 0, "long_arm_2");
+        give(&mut m, 0, "siege_train");
+        let after = m.players[0].loadout();
+        assert_eq!(after.power_pct, before.power_pct + 30);
+        assert_eq!(after.normal, before.normal + 3);
+    }
+
+    #[test]
+    fn quartermaster_makes_bought_shots_cost_one() {
+        let mut m = humans(2);
+        give(&mut m, 0, "quartermaster");
+        let gold = m.players[0].purse.gold;
+        m.buy_shot(0).unwrap();
+        assert_eq!(m.players[0].purse.gold, gold - 1);
     }
 
     #[test]

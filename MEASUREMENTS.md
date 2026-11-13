@@ -15,6 +15,8 @@ The state measured rather than recalled, so later changes can be compared with i
 | Cantilever strain (wood, off a braced wood tower) | `cargo test --release --test physics_probe probe_cantilever_strain -- --ignored --nocapture` | root strain 12% (1 unit), 71% (2), 147% breaks (3), 426% breaks (4) | 2026-11-12 |
 | Physics breaks caught | `python3 scripts/break_tests.py physics` | 22 of 22 | 2026-11-12 |
 | AI aiming decision time (201-segment castle, 3 royals, release) | `cargo test --release --test ai_probe -- --ignored --nocapture` | plain shots: easy 9.9 ms, normal 9.9, hard 19.1 mean (19.5 worst); with drop: 10.6, 11.3, 22.8 (23.5); with drop and split: 12.7, 16.0, 33.9 (38.7) | 2026-11-12, WSL2 |
+| Siege tick time (2 castles of 148 segments, 2 trebuchets, every shot, release) | `cargo test --release --test play_probe -- --ignored --nocapture` | 293 µs mean tick, 500 µs worst over 991 ticks; strain static test of one castle 34 ms; both castles built by input 22 ms; siege start 0.2 ms | 2026-11-12, WSL2 |
+| Match glue breaks caught | `python3 scripts/break_tests.py play:` | 11 of 11 | 2026-11-12 |
 
 ## Not measured
 

@@ -17,6 +17,7 @@ pub mod lobby;
 pub mod online;
 pub mod patch_notes;
 pub mod physics;
+pub mod play;
 pub mod rng;
 pub mod save;
 pub mod strings;
