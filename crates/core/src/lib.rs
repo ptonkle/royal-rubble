@@ -14,7 +14,6 @@ pub mod glossary;
 pub mod icon;
 pub mod lobby;
 pub mod online;
-pub mod page;
 pub mod patch_notes;
 pub mod rng;
 pub mod save;
