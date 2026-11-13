@@ -482,6 +482,19 @@ impl Arena {
         (l, r, ground, top)
     }
 
+    /// The corner window's view of your own field `f` (R1.3202): your
+    /// castle's box, whole, with a margin, the ground a sixth up; with
+    /// nothing built, the royals and the plot's front.
+    fn inset_camera(&self, f: &Field) -> Camera {
+        let (cl, cr, ground, top) = self.castle_box(f);
+        let m = Fx::from_int(CAM_MARGIN);
+        let tall = (top - ground + m) * 6 / 5;
+        let width = (cr - cl + m * 2).max(tall * Fx::from_int(INSET_W as i64) / Fx::from_int(INSET_H as i64));
+        let mut cam = Camera::spanning((cl + cr) / 2 - width / 2, width, Fx::ZERO, INSET_W, INSET_H);
+        cam.bottom = ground - cam.height() / 6;
+        cam.kept_in(world_right(&f.plot))
+    }
+
     /// Where the siege view of field `f` wants to be (R1.1454): aiming, the
     /// trebuchet with the castle's front at the right edge; in flight, the
     /// shot followed and the castle brought in as it nears; settled, the
@@ -922,6 +935,9 @@ impl Arena {
         self.drag = None;
         match phase {
             Phase::Siege => {
+                // a replay still running from the last siege would hold the
+                // view on its castle and eat the first Space (R1.3200)
+                self.replay = None;
                 self.scout = None;
                 self.trail.clear();
                 self.path.clear();
@@ -1346,7 +1362,7 @@ impl Arena {
             f.flag = Some(self.flag());
             f.cues = self.cues.clone();
             if let Some(own) = self.own_field() {
-                let icam = self.build_camera(self.me, INSET_W, INSET_H);
+                let icam = self.inset_camera(own);
                 let mut inner = self.field_frame(own, now, icam, false);
                 inner.loops.clear();
                 f.inset = Some(Box::new(Inset {

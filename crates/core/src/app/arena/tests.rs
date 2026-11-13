@@ -335,3 +335,52 @@ fn arena_the_siege_view_never_shows_past_the_world_edges() {
         }
     }
 }
+
+#[test]
+fn arena_an_eight_seat_second_siege_aims_from_your_trebuchet() {
+    // R1.3200: the last siege's replay ran on into the next siege, so the
+    // aim view sat over the replayed castle and the first Space only
+    // skipped it
+    let mut a = arena(7);
+    a.set_size("1920,1080").unwrap();
+    to_siege(&mut a);
+    let mut n = 0;
+    while a.phase() == Phase::Siege && n < 100_000 {
+        a.queue(Input::Ready);
+        a.tick();
+        n += 1;
+    }
+    to_siege(&mut a);
+    assert_eq!(a.play.rules.round, 2);
+    let base = a.my_field().unwrap().base;
+    let [bx, _] = a.camera().px(base);
+    assert!((0..1920 / 3).contains(&bx), "trebuchet at x {bx}");
+    a.space(crate::play::ON_TICK);
+    a.tick();
+    assert!(
+        a.my_field().unwrap().shooter.swing_from.is_some(),
+        "the first Space swings"
+    );
+}
+
+#[test]
+fn arena_the_corner_window_frames_your_castle_box_not_the_whole_zone() {
+    // R1.3202: it showed the whole build zone, the castle a few pixels wide
+    let mut a = arena(7);
+    a.set_size("1920,1080").unwrap();
+    to_siege(&mut a);
+    let own = a.own_field().unwrap();
+    let (cl, cr, ground, top) = a.castle_box(own);
+    let cam = a.inset_camera(own);
+    let [l, t] = cam.px(Vec2::new(cl, top));
+    let [r, g] = cam.px(Vec2::new(cr, ground));
+    assert!(
+        l >= 0 && r <= INSET_W && t >= 0 && g <= INSET_H,
+        "box {l},{t}..{r},{g}"
+    );
+    // the castle spans a good share of the window one way or the other
+    assert!(
+        (r - l) * 2 >= INSET_W || (g - t) * 2 >= INSET_H,
+        "box {l},{t}..{r},{g}"
+    );
+}

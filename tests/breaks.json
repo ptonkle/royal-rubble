@@ -1216,5 +1216,26 @@
     "find": "p.attacker == attacker && p.key == key)",
     "replace": "p.attacker == attacker)",
     "test": "botplan_build_planning_starts_again_when_the_castle_changed"
+  },
+  {
+    "name": "r3200 replay kept into the next siege",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                self.replay = None;\n                self.scout = None;",
+    "replace": "                self.scout = None;",
+    "test": "arena_an_eight_seat_second_siege_aims_from_your_trebuchet"
+  },
+  {
+    "name": "r3201 version label shown over the field",
+    "file": "crates/core/src/app.rs",
+    "find": "version_shown: arena.is_none() && !matches!(self.screen, Screen::Play | Screen::Sandbox),",
+    "replace": "version_shown: true,",
+    "test": "play_vs_bots_opens_a_lobby_with_a_bot_and_start_shows_the_match"
+  },
+  {
+    "name": "r3202 inset frames the whole zone",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "let width = (cr - cl + m * 2).max(",
+    "replace": "let width = (cr - cl + m * 40).max(",
+    "test": "arena_the_corner_window_frames_your_castle_box_not_the_whole_zone"
   }
 ]

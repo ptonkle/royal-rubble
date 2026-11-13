@@ -594,6 +594,7 @@ impl App {
             title: self.strings.get("title"),
             version: VERSION.into(),
             version_opens: !matches!(self.screen, Screen::Notes | Screen::Play | Screen::Sandbox),
+            version_shown: arena.is_none() && !matches!(self.screen, Screen::Play | Screen::Sandbox),
             panels,
             hints: self.hints.clone(),
             icon: icon::data_url(),
