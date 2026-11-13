@@ -257,11 +257,15 @@ impl Field {
     }
 
     pub fn swing(&mut self, now: u32) -> Result<(), Refusal> {
-        let s = &mut self.shooter;
+        // nothing left to bring down (R1.3206)
+        if self.cleared() {
+            return Err(Refusal::Limit);
+        }
+        let s = &self.shooter;
         if s.swing_from.is_some() || s.ammo.get(s.selected as usize).is_none_or(|a| a.1 == 0) {
             return Err(Refusal::Limit);
         }
-        s.swing_from = Some(now);
+        self.shooter.swing_from = Some(now);
         Ok(())
     }
 
@@ -421,6 +425,12 @@ impl Field {
     pub fn active(&self) -> bool {
         let w = &self.castle.world;
         !self.fuses.is_empty() || w.projectiles.iter().chain(w.debris.iter()).any(|b| b.alive)
+    }
+
+    /// Every royal and building of the castle is destroyed (R1.3206).
+    pub fn cleared(&self) -> bool {
+        let b = &self.castle.world.bodies;
+        !b.is_empty() && b.iter().all(|b| !b.alive)
     }
 
     /// A player's swing is under way or their shot is still in the air.

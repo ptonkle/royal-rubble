@@ -120,6 +120,10 @@ Air that pushes every shot the same way. It changes each round and can be turned
 
 A spot on the map. While a building on it survives, you see the forecast.
 
+### Cleared
+
+A castle with every royal and building destroyed. You can't shoot at it again that siege.
+
 ### Chain shot
 
 Special ammo that cuts ropes and wood.

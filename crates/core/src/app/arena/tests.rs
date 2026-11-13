@@ -512,3 +512,80 @@ fn arena_the_next_swing_waits_for_the_view_to_come_back_to_the_trebuchet() {
         "the swing begins once home"
     );
 }
+
+/// The button ids and the text lines of the match HUD.
+fn hud(a: &Arena) -> (Vec<String>, Vec<String>) {
+    let s = Strings::parse(&sample()).unwrap();
+    let mut ids = Vec::new();
+    let mut lines = Vec::new();
+    for i in a
+        .panels(&s, &CardText::default())
+        .iter()
+        .flat_map(|p| p.items.clone())
+    {
+        match i {
+            Item::Button { id, .. } => ids.push(id),
+            Item::Lines { lines: l, .. } => lines.extend(l),
+            _ => {}
+        }
+    }
+    (ids, lines)
+}
+
+#[test]
+fn arena_the_siege_hud_has_leave_and_no_ready() {
+    // R1.3207
+    let mut a = arena(1);
+    to_siege(&mut a);
+    let (ids, _) = hud(&a);
+    assert!(!ids.contains(&"match.ready".to_string()), "{ids:?}");
+    assert!(ids.contains(&"play.leave".to_string()), "{ids:?}");
+}
+
+#[test]
+fn arena_a_cleared_castle_says_so_takes_no_more_shots_and_readies_you() {
+    // R1.3206, R1.3207
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    to_siege(&mut a);
+    let me = a.me;
+    let s = a.play.siege.as_mut().unwrap();
+    let f = s.fields.iter_mut().find(|f| f.attacker == me).unwrap();
+    for b in f.castle.world.bodies.iter_mut() {
+        b.alive = false;
+    }
+    let (_, lines) = hud(&a);
+    assert!(lines.contains(&"hud.cleared".to_string()), "{lines:?}");
+    a.space(crate::play::ON_TICK);
+    a.tick();
+    assert!(
+        a.my_field().is_none_or(|f| f.shooter.swing_from.is_none()),
+        "a swing began"
+    );
+    assert!(
+        a.play.rules.player(me).unwrap().ready || a.phase() != Phase::Siege,
+        "you were not readied"
+    );
+}
+
+#[test]
+fn arena_a_hit_on_your_castle_flashes_the_labeled_corner_window() {
+    // R1.3208: the corner window read as an opponent's
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    to_siege(&mut a);
+    a.tick();
+    let (_, lines) = hud(&a);
+    assert!(lines.contains(&"hud.replay".to_string()), "{lines:?}");
+    assert!(!a.frame().inset.unwrap().hit);
+    let me = a.me;
+    let s = a.play.siege.as_mut().unwrap();
+    let f = s.fields.iter_mut().find(|f| f.owner == me).unwrap();
+    f.castle.world.bodies[0].alive = false;
+    a.tick();
+    assert!(a.frame().inset.unwrap().hit, "no flash");
+    for _ in 0..INSET_FLASH_TICKS {
+        a.tick();
+    }
+    assert!(!a.frame().inset.unwrap().hit, "the flash stays");
+}

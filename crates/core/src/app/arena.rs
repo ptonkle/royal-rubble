@@ -79,6 +79,11 @@ const INSET_W: i32 = 480;
 const INSET_H: i32 = 270;
 const INSET_GAP: i32 = 24;
 const INSET_TOP: i32 = 180;
+/// After a hit on your castle the corner window shakes this many pixels
+/// for this many ticks, and its frame flashes this long (R1.3208).
+const INSET_SHAKE: i32 = 4;
+const INSET_SHAKE_TICKS: u32 = 12;
+const INSET_FLASH_TICKS: u32 = 40;
 /// Cues kept for the page.
 const CUES_KEPT: usize = 24;
 /// Breaks in one tick that sound as a collapse.
@@ -281,6 +286,10 @@ pub struct Arena {
     flight: Option<Flight>,
     /// The siege tick your last shot landed.
     landed_at: Option<u32>,
+    /// Your own castle's broken segments and dead bodies, and the siege
+    /// tick that count last rose (R1.3208).
+    own_counts: (u32, u32),
+    own_hit_at: Option<u32>,
 }
 
 /// Your shot in the air: its ball, the view's width for the flight,
@@ -354,6 +363,8 @@ impl Arena {
             eye: None,
             flight: None,
             landed_at: None,
+            own_counts: (0, 0),
+            own_hit_at: None,
         };
         a.rebuild();
         Ok(a)
@@ -789,6 +800,7 @@ impl Arena {
             return;
         }
         self.release_held_swing();
+        self.ready_when_done();
         let inputs: Vec<(PlayerId, Input)> = self.pending.drain(..).map(|i| (self.me, i)).collect();
         let before = Arena::counts(self.my_field());
         let results = online::step(&mut self.play, &mut self.log, &inputs);
@@ -838,6 +850,22 @@ impl Arena {
         }
     }
 
+    /// Ready by yourself in a siege once you can throw nothing more (no
+    /// ammo, or the castle cleared), your last shot has stopped and the
+    /// view is back (R1.3207).
+    fn ready_when_done(&mut self) {
+        if self.phase() != Phase::Siege || self.pending.contains(&Input::Ready) {
+            return;
+        }
+        let Some(f) = self.my_field() else { return };
+        let spent = f.shooter.ammo.iter().all(|a| a.1 == 0) || f.cleared();
+        let still = !f.shot_moving();
+        let ready = self.play.rules.player(self.me).is_some_and(|p| p.ready);
+        if spent && !ready && still && self.camera_home() {
+            self.pending.push(Input::Ready);
+        }
+    }
+
     /// Online: this browser's inputs for the room to send, in order.
     pub fn take_inputs(&mut self) -> Vec<Input> {
         if self.over() {
@@ -845,6 +873,7 @@ impl Arena {
             return Vec::new();
         }
         self.release_held_swing();
+        self.ready_when_done();
         std::mem::take(&mut self.pending)
     }
 
@@ -892,6 +921,11 @@ impl Arena {
     /// What follows `ran` match ticks: cues, the trail, the replay, a new
     /// phase, and your castle rebuilt if it `changed`.
     fn after_ticks(&mut self, before: (u32, u32), mut changed: bool, ran: u32) {
+        let own = Arena::counts(self.own_field());
+        if own.0 + own.1 > self.own_counts.0 + self.own_counts.1 {
+            self.own_hit_at = self.play.siege.as_ref().map(|s| s.tick);
+        }
+        self.own_counts = own;
         let after = Arena::counts(self.my_field());
         let breaks = after.0.saturating_sub(before.0);
         if breaks >= COLLAPSE_MIN {
@@ -1004,6 +1038,8 @@ impl Arena {
                 self.replay = None;
                 self.flight = None;
                 self.landed_at = None;
+                self.own_counts = (0, 0);
+                self.own_hit_at = None;
                 self.scout = None;
                 self.trail.clear();
                 self.path.clear();
@@ -1431,9 +1467,17 @@ impl Arena {
                 let icam = self.inset_camera(own);
                 let mut inner = self.field_frame(own, now, icam, false);
                 inner.loops.clear();
+                // a hit on your castle flashes the frame and shakes it
+                let since = self.own_hit_at.map_or(u32::MAX, |t| now.saturating_sub(t));
+                let shake = if since < INSET_SHAKE_TICKS {
+                    [-INSET_SHAKE, INSET_SHAKE][(since % 2) as usize]
+                } else {
+                    0
+                };
                 f.inset = Some(Box::new(Inset {
-                    at: [w - INSET_W - INSET_GAP, INSET_TOP],
+                    at: [w - INSET_W - INSET_GAP + shake, INSET_TOP],
                     frame: inner,
+                    hit: since < INSET_FLASH_TICKS,
                 }));
             }
             return f;
@@ -1718,7 +1762,9 @@ impl Arena {
                             lines: vec![s.fill("hud.target", &[("name", self.names[t as usize].clone())])],
                         });
                     }
-                    let key = if f.shooter.swing_from.is_some() {
+                    let key = if f.cleared() {
+                        "hud.cleared"
+                    } else if f.shooter.swing_from.is_some() {
                         "sandbox.throw"
                     } else {
                         "sandbox.swing"
@@ -1727,7 +1773,19 @@ impl Arena {
                         id: "match.hint".into(),
                         lines: vec![s.get(key)],
                     });
-                    top.push(button("match.ready", ready_text, me.ready));
+                    if self.own_field().is_some() {
+                        // the corner window's label: it is yours (R1.3208)
+                        extra.push(Panel::new(
+                            "field-inset",
+                            String::new(),
+                            vec![Item::Lines {
+                                id: "match.inset".into(),
+                                lines: vec![s.get("hud.replay")],
+                            }],
+                        ));
+                    }
+                    // no Ready in the siege: you are done when your shots
+                    // are (R1.3207)
                     bar.extend(self.siege_bars(f, s));
                 }
             }

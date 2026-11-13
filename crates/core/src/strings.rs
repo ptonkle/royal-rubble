@@ -125,6 +125,7 @@ pub const KEYS: &[&str] = &[
     "hud.health",
     "hud.out",
     "hud.knocked_out",
+    "hud.cleared",
     "hud.ammo",
     "hud.reroll",
     "hud.reroll_free",
