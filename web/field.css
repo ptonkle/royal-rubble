@@ -66,10 +66,9 @@
   --royal-armory: #6d4a3a;
 
   /* the field's bars */
-  /* linen panels with the brick rule and stitched edge of the menus (theme.css) */
-  --bar-bg: var(--linen) var(--look-linen) repeat;
-  --bar-chosen: var(--brick);
-  --hud-ink: var(--navy);
+  /* the menus' slate panels (theme.css) */
+  --bar-bg: var(--slate-bg);
+  --bar-chosen: var(--slate-gold);
   /* upgrade cards' edges by tier, in wool */
   --card-silver: #8494a8;
   --card-gold: #9a8052;
