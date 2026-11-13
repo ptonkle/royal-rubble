@@ -21,7 +21,7 @@ pub fn svg() -> String {
 }
 
 /// Percent-encodes everything but the characters a URL keeps as they are.
-fn encode(text: &str) -> String {
+pub(crate) fn encode(text: &str) -> String {
     let mut out = String::with_capacity(text.len() * 3 / 2);
     for b in text.bytes() {
         if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) {

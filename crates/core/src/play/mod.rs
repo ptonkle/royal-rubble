@@ -274,6 +274,14 @@ impl Play {
         if dup {
             return Err(Refusal::BadSpot);
         }
+        let cw = self.castles[p as usize].world(pl, false);
+        let through = self.castles[p as usize]
+            .royal_feet(&cw.world, pl)
+            .into_iter()
+            .any(|(_, f)| castle::beam_hits_royal(a.to_fx(), b.to_fx(), f));
+        if through {
+            return Err(Refusal::BadSpot);
+        }
         let id = self.rules.place(p, piece)?;
         self.castles[p as usize].geo.insert(id, Geo::Beam { a, b });
         self.refresh(p);
@@ -303,6 +311,9 @@ impl Play {
         if castle::surface_at(&cw.world, at.to_fx()).is_none() {
             return Err(Refusal::BadSpot);
         }
+        if !self.royal_spaced(p, index, at) {
+            return Err(Refusal::BadSpot);
+        }
         let spot = castle::rule_spot(&pl.terrain, pl.purse.level, at);
         self.rules.place_royal(p, index, spot)?;
         let c = &mut self.castles[p as usize];
@@ -311,6 +322,35 @@ impl Play {
         }
         c.royal_at[index] = Some(at);
         Ok(())
+    }
+
+    /// Is `at` at least the royal spacing from every other royal of `p`'s,
+    /// measured between their feet as the build view draws it (R1.3303)?
+    pub fn royal_spaced(&self, p: PlayerId, index: usize, at: GridPt) -> bool {
+        let Some(pl) = self.rules.player(p) else {
+            return false;
+        };
+        let min = crate::physics::Fx::from_int(crate::game::royals::spacing_cells() as i64);
+        let c = &self.castles[p as usize];
+        let cw = c.world(pl, false);
+        c.royal_feet(&cw.world, pl)
+            .into_iter()
+            .all(|(i, f)| i == index || (f - at.to_fx()).len() >= min)
+    }
+
+    /// The newest piece `p` placed this build phase, still standing: what
+    /// Undo sells back for a full refund (R1.3301).
+    pub fn last_placed(&self, p: PlayerId) -> Option<u32> {
+        let pl = self.rules.player(p)?;
+        if self.rules.phase != Phase::Build {
+            return None;
+        }
+        pl.ledger
+            .entries
+            .iter()
+            .filter(|e| e.round == self.rules.round && !pl.ruin_pieces.iter().any(|(id, _)| *id == e.id))
+            .map(|e| e.id)
+            .max()
     }
 
     /// Tell the rules where `p`'s royals may stand, from the castle as built.

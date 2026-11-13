@@ -14,9 +14,10 @@
 use std::collections::BTreeMap;
 
 use super::field::{
-    cloth_at, ground_line, material_name, tree_marks, world_parts, world_right, Camera, Cue, Engine, Figure,
-    Flag, Frame, Inset, Preview, Ring, SpotMark,
+    cloth_at, ground_line, material_name, tree_marks, world_parts, world_right, BuildMarks, Camera, Cue,
+    Engine, Figure, Flag, Frame, Inset, Preview, Ring, SpotMark,
 };
+use super::hud_icon;
 use super::sandbox::{num, pair, reach_end};
 use crate::game::flow::Phase;
 use crate::game::ledger::{self, BuildingKind, Piece};
@@ -34,7 +35,7 @@ use crate::play::units::GridPt;
 use crate::play::{Input, Play};
 use crate::strings::Strings;
 use crate::terrain::{Plot, SpotKind};
-use crate::view::{BarOption, Item, Panel};
+use crate::view::{BarOption, HealthRow, Item, Panel};
 
 /// Input bits, by key code (the page reads them from `Ui::keys`).
 const KEY_SPACE: u32 = 1;
@@ -51,11 +52,16 @@ const KEY_AIR: [(&str, u32); 4] = [
     ("KeyE", 1 << 8),
     ("KeyR", 1 << 9),
 ];
+/// Esc lets go of a segment's start; Z takes back the last piece placed.
+const KEY_CANCEL: u32 = 1 << 10;
+const KEY_UNDO: u32 = 1 << 11;
 
 /// The keys the match listens to.
 pub fn keys() -> BTreeMap<String, u32> {
     let mut k = BTreeMap::new();
     k.insert("Space".to_string(), KEY_SPACE);
+    k.insert("Escape".to_string(), KEY_CANCEL);
+    k.insert("KeyZ".to_string(), KEY_UNDO);
     for (code, bit) in KEY_DIGITS.iter().chain(KEY_AIR.iter()) {
         k.insert(code.to_string(), *bit);
     }
@@ -88,6 +94,11 @@ const INSET_FLASH_TICKS: u32 = 40;
 const CUES_KEPT: usize = 24;
 /// Breaks in one tick that sound as a collapse.
 const COLLAPSE_MIN: u32 = 3;
+/// The countdown drum beats each second from this many seconds left
+/// (R1.3800).
+const DRUM_FROM: u32 = 10;
+/// ...and beats harder from this many (R1.3800).
+const DRUM_HARD: u32 = 3;
 /// Siege camera (R1.1454), in world units: margin round the castle, how far
 /// behind a shot or the trebuchet the view starts, widest flight view, the
 /// aim view's width range, and an empty castle's stand-in size.
@@ -130,6 +141,47 @@ const BUILDINGS: [(BuildingKind, &str); 4] = [
     (BuildingKind::Armory, "armory"),
     (BuildingKind::Mine, "mine"),
 ];
+
+/// The countdown drum's beat when a timed phase's seconds left went from
+/// `was` to `now`: one beat for each new second in the last ten, a harder one
+/// in the last three; none otherwise (R1.3800).
+pub(crate) fn drum_beat(was: u32, now: u32) -> Option<&'static str> {
+    if now == was || now == 0 || now > DRUM_FROM {
+        return None;
+    }
+    Some(if now <= DRUM_HARD {
+        "drum_close"
+    } else {
+        "drum_count"
+    })
+}
+
+/// The building songs, one a round in turn through the upgrade and build
+/// phases; the siege keeps its own (R1.3802).
+pub(crate) const BUILD_SONGS: [&str; 5] = [
+    "music_build",
+    "music_jig",
+    "music_pastoral",
+    "music_ballad",
+    "music_mandolins",
+];
+
+/// Round `round`'s building song (rounds count from 1).
+pub(crate) fn build_song_for(round: u32) -> &'static str {
+    BUILD_SONGS[round.saturating_sub(1) as usize % BUILD_SONGS.len()]
+}
+
+/// A royal's cry as it dies, by rank (R1.3801).
+pub(crate) fn death_cry(k: RoyalKind) -> &'static str {
+    match k {
+        RoyalKind::Squire => "royal_squire",
+        RoyalKind::Knight => "royal_knight",
+        RoyalKind::Princess => "royal_princess",
+        RoyalKind::Prince => "royal_prince",
+        RoyalKind::Queen => "royal_queen",
+        RoyalKind::King => "royal_king",
+    }
+}
 
 fn rank_name(k: RoyalKind) -> &'static str {
     match k {
@@ -183,6 +235,67 @@ fn air_name(a: AirKind) -> &'static str {
         AirKind::Dive => "dive",
         AirKind::Boost => "boost",
         AirKind::Bounce => "bounce",
+    }
+}
+
+/// The phase clock turns urgent at this many seconds left.
+const TIMER_URGENT_SECONDS: u32 = 10;
+
+/// A top-bar value with its icon.
+fn stat(id: &str, icon: &str, text: String, tip: String) -> Item {
+    Item::Stat {
+        id: id.into(),
+        icon: hud_icon::url(icon),
+        icon_name: icon.into(),
+        text,
+        tip,
+    }
+}
+
+/// An upgrade card's icon, by its first effect.
+fn card_icon(effects: &[crate::game::upgrades::Effect]) -> &'static str {
+    use crate::game::upgrades::Effect as E;
+    match effects.first() {
+        Some(E::Ammo(k, _)) => ammo_name(Ammo::Special(*k)),
+        Some(E::Air(k, _)) => air_name(*k),
+        Some(E::AirUses(_)) => "boost",
+        Some(
+            E::Gold(_)
+            | E::Stock(..)
+            | E::GoldPerRound(_)
+            | E::XpPerRound(_)
+            | E::StockPerRound(..)
+            | E::InterestCap(_)
+            | E::InterestStep(_)
+            | E::KillGold(_)
+            | E::Discount(..),
+        ) => "economy",
+        Some(E::GainBuilding(_) | E::ProducerOutput(_) | E::ArmoryShots(_)) => "carpenter",
+        Some(
+            E::Strength(..)
+            | E::JointStrength(_)
+            | E::GroundedStrength(_)
+            | E::RopeStrength(_)
+            | E::RopesUncuttable
+            | E::SlowBurn(_)
+            | E::HitImmunity(_),
+        ) => "defense",
+        Some(
+            E::RoyalSave(..)
+            | E::FallLimit(_)
+            | E::Decoys(_)
+            | E::RoyalSpacing(_)
+            | E::FirstDeathSpared(_)
+            | E::RoyalDamageCut(_),
+        ) => "royal",
+        Some(
+            E::ShotsPerRound(_)
+            | E::ShotDiscount(_)
+            | E::LuckyShots { .. }
+            | E::ShotsPerKill { .. }
+            | E::ShotsPerLoss { .. },
+        ) => "buy_shot",
+        _ => "siege",
     }
 }
 
@@ -295,6 +408,10 @@ pub struct Arena {
     auto_released: Option<u32>,
     seen_phase: Phase,
     seen_round: u32,
+    /// Seconds left in the phase when last looked, for the countdown drum.
+    seen_secs: u32,
+    /// Royals killed so far in each field you hear, by (owner, attacker).
+    seen_kills: Vec<((PlayerId, PlayerId), usize)>,
     /// The siege view as shown, easing toward `camera_target` each tick.
     eye: Option<Camera>,
     /// Your shot in the air and its view (R1.3204).
@@ -375,6 +492,8 @@ impl Arena {
             auto_released: None,
             seen_phase,
             seen_round,
+            seen_secs: 0,
+            seen_kills: Vec::new(),
             eye: None,
             flight: None,
             landed_at: None,
@@ -748,6 +867,12 @@ impl Arena {
                 self.queue(Input::Air(k as u8));
             }
         }
+        if pressed & KEY_CANCEL != 0 {
+            self.drag = None;
+        }
+        if pressed & KEY_UNDO != 0 {
+            self.undo();
+        }
         if self.driven.is_some() {
             return;
         }
@@ -863,6 +988,9 @@ impl Arena {
                 ) => {
                     self.cue("place_segment", 0);
                     changed = true;
+                    if self.tool == Tool::Royal && self.unplaced_royal().is_none() {
+                        self.tool = Tool::Beam(BEAMS[0].0);
+                    }
                 }
                 (Input::Sell(_), Ok(())) => {
                     self.cue("sell_segment", 0);
@@ -974,9 +1102,7 @@ impl Arena {
         } else if breaks > 0 {
             self.cue("impact_wood", 0);
         }
-        if after.1 > before.1 {
-            self.cue("royal_knight", 0);
-        }
+        self.cry_kills();
         self.follow_shot();
         if let Some(r) = &mut self.replay {
             for _ in 0..REPLAY_SPEED * ran {
@@ -997,6 +1123,13 @@ impl Arena {
         let phase = self.view_phase();
         let round = self.play.rules.round;
         let moved = phase != self.seen_phase || round != self.seen_round;
+        let secs = self.seconds_left();
+        if !moved && matches!(phase, Phase::Upgrade | Phase::Build | Phase::Siege) {
+            if let Some(beat) = drum_beat(self.seen_secs, secs) {
+                self.cue(beat, 0);
+            }
+        }
+        self.seen_secs = secs;
         if moved {
             self.entered(phase);
             changed = true;
@@ -1005,6 +1138,48 @@ impl Arena {
             self.rebuild();
         }
         self.move_eye(moved, ran);
+    }
+
+    /// Royals killed in the fields you hear (the castle you attack and your
+    /// own), each new one counted once.
+    fn kills_heard(&self) -> Vec<((PlayerId, PlayerId), Vec<RoyalKind>)> {
+        let Some(s) = self.play.siege.as_ref() else {
+            return Vec::new();
+        };
+        s.fields
+            .iter()
+            .filter(|f| (f.attacker == self.me && !f.shooter.bot) || (f.owner == self.me && !f.ghost))
+            .map(|f| {
+                let royals = &self.play.rules.players[f.owner as usize].royals;
+                let kinds = f
+                    .killed
+                    .iter()
+                    .filter_map(|&b| match f.castle.bodies.get(b) {
+                        Some(BodyOwner::Royal(i)) => royals.get(*i).map(|r| r.kind),
+                        _ => None,
+                    })
+                    .collect();
+                ((f.owner, f.attacker), kinds)
+            })
+            .collect()
+    }
+
+    /// A death cry for each royal killed since last looked (R1.3801).
+    fn cry_kills(&mut self) {
+        let now = self.kills_heard();
+        let mut cries = Vec::new();
+        for (key, kinds) in &now {
+            let seen = self
+                .seen_kills
+                .iter()
+                .find(|(k, _)| k == key)
+                .map_or(0, |(_, n)| *n);
+            cries.extend(kinds.iter().skip(seen).map(|&k| death_cry(k)));
+        }
+        self.seen_kills = now.iter().map(|(k, v)| (*k, v.len())).collect();
+        for c in cries {
+            self.cue(c, 0);
+        }
     }
 
     /// The shown view after `ran` ticks: eased toward `camera_target`, and
@@ -1109,6 +1284,11 @@ impl Arena {
         }
     }
 
+    /// This round's building song.
+    fn build_song(&self) -> &'static str {
+        build_song_for(self.play.rules.round)
+    }
+
     /// The first royal of yours not yet placed.
     fn unplaced_royal(&self) -> Option<usize> {
         let pl = self.play.rules.player(self.me)?;
@@ -1156,11 +1336,18 @@ impl Arena {
     fn stand_point(&self, c: Vec2) -> Option<GridPt> {
         let w = self.built_world()?;
         let x = snap(c.x);
-        let mut best: Option<(Fx, Fx)> = None;
+        let (l, r, _) = self.zone(self.me);
+        if x < l || x > r {
+            return None;
+        }
+        // the nearest surface at or under the cursor (a little above counts),
+        // else the nearest above it, so a royal always lands on something
+        let mut best: Option<(bool, Fx, Fx)> = None;
         let mut consider = |y: Fx| {
+            let above = y > c.y + Fx::ONE;
             let d = (y - c.y).abs();
-            if d <= Fx::ONE && best.is_none_or(|(bd, _)| d < bd) {
-                best = Some((d, y));
+            if best.is_none_or(|(ba, bd, _)| (above, d) < (ba, bd)) {
+                best = Some((above, d, y));
             }
         };
         consider(self.ground(self.me, x));
@@ -1179,7 +1366,7 @@ impl Arena {
             }
             consider(pa.y + d.y * u);
         }
-        best.map(|(_, y)| grid_of(Vec2::new(x, y)))
+        best.map(|(_, _, y)| grid_of(Vec2::new(x, y)))
     }
 
     /// Whether royal `index` may stand at `at` (the rules' spacing check).
@@ -1193,6 +1380,7 @@ impl Arena {
         }
         let spot = castle::rule_spot(&pl.terrain, level, at);
         crate::game::royals::valid_spot(&pl.royals, index, spot, castle::rule_plot(&pl.terrain, level))
+            && self.play.royal_spaced(self.me, index, at)
     }
 
     /// The ledger id of the piece under `p`: a building, else the nearest
@@ -1224,7 +1412,9 @@ impl Arena {
         best.map(|(id, _)| id)
     }
 
-    /// A press on the field: `x,y,button` in pixels (button 2 sells).
+    /// A press on the field: `x,y,button` in pixels. A segment takes two
+    /// presses, its start then its end, and the next starts where it ended;
+    /// button 2 lets go of a start, else sells the piece under it.
     pub fn down(&mut self, value: &str) -> Result<(), String> {
         let mut parts = value.split(',');
         let x = num(parts.next())?;
@@ -1236,18 +1426,35 @@ impl Arena {
         let p = self.camera().world(x, y);
         self.cursor = Some(p);
         if button == 2 {
-            if let Some(id) = self.piece_near(p) {
-                self.queue(Input::Sell(id));
+            if self.drag.take().is_none() {
+                if let Some(id) = self.piece_near(p) {
+                    self.queue(Input::Sell(id));
+                }
             }
             return Ok(());
         }
         match self.tool {
-            Tool::Beam(_) => {
-                let s = Vec2::new(snap(p.x), snap(p.y));
-                if self.can_start(s) {
-                    self.drag = Some(s);
+            Tool::Beam(piece) => match self.drag {
+                None => {
+                    let s = Vec2::new(snap(p.x), snap(p.y));
+                    if self.can_start(s) {
+                        self.drag = Some(s);
+                    }
                 }
-            }
+                Some(a) => {
+                    let b = reach_end(a, p, self.max_len());
+                    if a == b {
+                        self.drag = None;
+                    } else if self.segment_ok(a, b) {
+                        self.queue(Input::PlaceSegment {
+                            piece,
+                            a: grid_of(a),
+                            b: grid_of(b),
+                        });
+                        self.drag = Some(b);
+                    }
+                }
+            },
             Tool::Royal => {
                 if let (Some(index), Some(at)) = (self.unplaced_royal(), self.stand_point(p)) {
                     self.queue(Input::PlaceRoyal {
@@ -1265,6 +1472,39 @@ impl Arena {
         Ok(())
     }
 
+    /// Whether a segment from `a` to `b` may be placed: both ends in the
+    /// zone and not through a royal.
+    fn segment_ok(&self, a: Vec2, b: Vec2) -> bool {
+        if a == b || !self.in_zone(a) || !self.in_zone(b) {
+            return false;
+        }
+        let (Some(w), Some(pl)) = (self.built_world(), self.play.rules.player(self.me)) else {
+            return false;
+        };
+        !self.play.castles[self.me as usize]
+            .royal_feet(w, pl)
+            .into_iter()
+            .any(|(_, f)| castle::beam_hits_royal(a, b, f))
+    }
+
+    /// Ready as sent, past the button's wait for every royal (tests of
+    /// the online wire).
+    #[cfg(test)]
+    pub(crate) fn ready_now(&mut self) {
+        self.queue(Input::Ready);
+    }
+
+    /// Takes back the newest piece placed this build, for a full refund.
+    fn undo(&mut self) {
+        if !self.building_now() {
+            return;
+        }
+        if let Some(id) = self.play.last_placed(self.me) {
+            self.drag = None;
+            self.queue(Input::Sell(id));
+        }
+    }
+
     pub fn moved(&mut self, value: &str) -> Result<(), String> {
         let (x, y) = pair(value)?;
         self.cursor = Some(self.camera().world(x, y));
@@ -1273,22 +1513,7 @@ impl Arena {
 
     pub fn up(&mut self, value: &str) -> Result<(), String> {
         let (x, y) = pair(value)?;
-        let p = self.camera().world(x, y);
-        self.cursor = Some(p);
-        let Some(a) = self.drag.take() else {
-            return Ok(());
-        };
-        let Tool::Beam(piece) = self.tool else {
-            return Ok(());
-        };
-        let b = reach_end(a, p, self.max_len());
-        if a != b && self.in_zone(b) {
-            self.queue(Input::PlaceSegment {
-                piece,
-                a: grid_of(a),
-                b: grid_of(b),
-            });
-        }
+        self.cursor = Some(self.camera().world(x, y));
         Ok(())
     }
 
@@ -1317,7 +1542,12 @@ impl Arena {
                 let k: u8 = value.parse().map_err(|_| format!("\"{value}\" is not a slot."))?;
                 self.queue(Input::Air(k));
             }
-            "match.ready" => self.queue(Input::Ready),
+            "match.ready" => {
+                if !(self.phase() == Phase::Build && self.unplaced_royal().is_some()) {
+                    self.queue(Input::Ready);
+                }
+            }
+            "match.undo" => self.undo(),
             "match.buy_xp" => self.queue(Input::BuyXp),
             "match.buy_shot" => self.queue(Input::BuyShot),
             "match.reroll" => self.queue(Input::Reroll),
@@ -1486,6 +1716,7 @@ impl Arena {
             cues: Vec::new(),
             music: "music_siege",
             loops,
+            build: None,
         }
     }
 
@@ -1495,7 +1726,7 @@ impl Arena {
         if let Some(r) = &self.replay {
             let mut f = self.field_frame(&r.field, r.tick, cam, false);
             f.cues = self.cues.clone();
-            f.music = "music_build";
+            f.music = self.build_song();
             f.flag = Some(self.flag());
             return f;
         }
@@ -1580,9 +1811,61 @@ impl Arena {
             spots: self.spot_marks(p, &cam),
             inset: None,
             cues: self.cues.clone(),
-            music: "music_build",
+            music: self.build_song(),
             loops: Vec::new(),
+            build: building.then(|| self.marks_over(&cam)),
         }
+    }
+
+    /// The zone's outline, the royal spacing circles and the royal about to
+    /// be placed.
+    fn marks_over(&self, cam: &Camera) -> BuildMarks {
+        let (l, r, top) = self.zone(self.me);
+        let mut edge = vec![cam.px(Vec2::new(l, top)), cam.px(Vec2::new(r, top))];
+        let (c0, c1) = (l.floor_int(), r.floor_int());
+        let mut c = c1;
+        while c >= c0 {
+            let x = Fx::from_int(c);
+            edge.push(cam.px(Vec2::new(x, self.ground(self.me, x))));
+            c -= 1;
+        }
+        edge.push(cam.px(Vec2::new(l, top)));
+        let mut marks = BuildMarks {
+            zone_edge: edge,
+            ..BuildMarks::default()
+        };
+        if self.tool != Tool::Royal {
+            return marks;
+        }
+        let Some(index) = self.unplaced_royal() else {
+            return marks;
+        };
+        let (Some(w), Some(pl)) = (self.built_world(), self.play.rules.player(self.me)) else {
+            return marks;
+        };
+        let spacing = Fx::from_int(crate::game::royals::spacing_cells() as i64);
+        for (_, f) in self.play.castles[self.me as usize].royal_feet(w, pl) {
+            let p = cam.px(f);
+            marks.keep_out.push(Ring {
+                x: p[0],
+                y: p[1],
+                r: cam.len(spacing, 4),
+                ok: false,
+            });
+        }
+        if let Some(at) = self.cursor.and_then(|c| self.stand_point(c)) {
+            let radius = crate::play::tune::ROYAL_RADIUS;
+            let p = cam.px(at.to_fx() + Vec2::new(Fx::ZERO, radius));
+            marks.ghost = Some(Figure {
+                x: p[0],
+                y: p[1],
+                r: cam.len(radius, 3),
+                tall: cam.figure_tall(),
+                rank: pl.royals.get(index).map_or("squire", |r| rank_name(r.kind)),
+                dead: false,
+            });
+        }
+        marks
     }
 
     fn empty_frame(&self) -> Frame {
@@ -1610,8 +1893,9 @@ impl Arena {
             spots: Vec::new(),
             inset: None,
             cues: self.cues.clone(),
-            music: "music_build",
+            music: self.build_song(),
             loops: Vec::new(),
+            build: None,
         }
     }
 
@@ -1655,17 +1939,19 @@ impl Arena {
                 (Some(preview), Some(ring))
             }
             Tool::Royal => {
-                let index = self.unplaced_royal();
+                // a ring at the ghost's feet: whether a press places it there
+                let Some(index) = self.unplaced_royal() else {
+                    return (None, None);
+                };
                 let at = self.stand_point(c);
                 let p = cam.px(at.map_or(c, |g| g.to_fx()));
-                let spacing = Fx::from_int(crate::game::royals::spacing_cells() as i64);
-                let ok = matches!((index, at), (Some(i), Some(g)) if self.royal_ok(i, g));
+                let ok = at.is_some_and(|g| self.royal_ok(index, g));
                 (
                     None,
                     Some(Ring {
                         x: p[0],
                         y: p[1],
-                        r: cam.len(spacing, 4),
+                        r: cam.len(crate::play::tune::ROYAL_RADIUS, 3),
                         ok,
                     }),
                 )
@@ -1697,19 +1983,13 @@ impl Arena {
         if self.over() {
             return self.results_panels(s);
         }
-        let button = |id: &str, text: String, disabled: bool| Item::Button {
-            tip: String::new(),
+        let button = |id: &str, text: String, icon: &str, disabled: bool| Item::Button {
             id: id.into(),
             text,
             quiet: false,
             disabled,
-        };
-        let quiet = |id: &str, text: String| Item::Button {
             tip: String::new(),
-            id: id.into(),
-            text,
-            quiet: true,
-            disabled: false,
+            icon: hud_icon::url(icon),
         };
         let rules = &self.play.rules;
         let Some(me) = rules.player(self.me) else {
@@ -1721,19 +2001,22 @@ impl Arena {
             Phase::Build => "phase.build",
             _ => "phase.siege",
         };
-        let mut top = vec![Item::Lines {
-            id: "match.phase".into(),
-            lines: vec![
+        let left = self.seconds_left();
+        let mut top = vec![
+            Item::Timer {
+                id: "match.phase".into(),
+                icon: hud_icon::url("timer"),
+                phase: s.get(phase_key),
+                text: left.to_string(),
+                urgent: left <= TIMER_URGENT_SECONDS && left > 0,
+            },
+            stat(
+                "match.round",
+                "timer",
                 s.fill("hud.round", &[("n", rules.round.to_string())]),
-                s.fill(
-                    "hud.phase",
-                    &[
-                        ("phase", s.get(phase_key)),
-                        ("n", self.seconds_left().to_string()),
-                    ],
-                ),
-            ],
-        }];
+                String::new(),
+            ),
+        ];
         let alive = me.alive();
         let ready_text = if me.ready {
             s.get("hud.waiting")
@@ -1747,70 +2030,95 @@ impl Arena {
                 id: "match.replay".into(),
                 lines: vec![s.get("hud.replay")],
             });
-            top.push(button("match.skip", s.get("hud.skip"), false));
+            bar.push(button("match.skip", s.get("hud.skip"), "skip", false));
+        }
+        if alive {
+            top.push(stat(
+                "match.gold",
+                "gold",
+                me.purse.gold.to_string(),
+                s.get("tip.gold"),
+            ));
+            let (value, max, xp) = match me.purse.xp_needed() {
+                Some(n) => (
+                    me.purse.xp,
+                    n,
+                    s.fill("hud.xp", &[("n", me.purse.xp.to_string()), ("m", n.to_string())]),
+                ),
+                None => (1, 1, s.get("hud.xp_max")),
+            };
+            top.push(Item::Meter {
+                id: "match.purse".into(),
+                icon: hud_icon::url("level"),
+                icon_name: "level".into(),
+                label: me.purse.level.to_string(),
+                value,
+                max,
+                text: xp,
+                tip: s.get("tip.level"),
+            });
+            if let Some((t, _)) = rules.target_of(self.me) {
+                top.push(stat(
+                    "match.target",
+                    "target",
+                    self.names[t as usize].clone(),
+                    s.get("tip.target"),
+                ));
+            }
         }
         match phase {
             Phase::Build if alive => {
-                let xp = match me.purse.xp_needed() {
-                    Some(n) => s.fill("hud.xp", &[("n", me.purse.xp.to_string()), ("m", n.to_string())]),
-                    None => s.get("hud.xp_max"),
-                };
-                top.push(Item::Lines {
-                    id: "match.purse".into(),
-                    lines: vec![
-                        s.fill("hud.gold", &[("n", me.purse.gold.to_string())]),
-                        s.fill("hud.level", &[("n", me.purse.level.to_string())]),
-                        xp,
-                    ],
-                });
-                top.push(button(
+                if let Some(p) = self.scout {
+                    top.push(stat(
+                        "match.scouting",
+                        "scout",
+                        self.names[p as usize].clone(),
+                        s.get("tip.scouting"),
+                    ));
+                }
+                bar.push(self.tool_bar(s));
+                let xp_cost = crate::game::tune::XP_BUY_COST;
+                bar.push(button(
                     "match.buy_xp",
                     s.fill(
                         "hud.buy_xp",
                         &[
                             ("x", crate::game::tune::XP_BUY_AMOUNT.to_string()),
-                            ("n", crate::game::tune::XP_BUY_COST.to_string()),
+                            ("n", xp_cost.to_string()),
                         ],
                     ),
-                    me.purse.xp_needed().is_none() || me.purse.gold < crate::game::tune::XP_BUY_COST,
+                    "xp",
+                    me.purse.xp_needed().is_none() || me.purse.gold < xp_cost,
                 ));
                 let shot = me.mods.shot_price();
-                top.push(button(
+                bar.push(button(
                     "match.buy_shot",
                     s.fill("hud.buy_shot", &[("n", shot.to_string())]),
+                    "buy_shot",
                     me.purse.gold < shot || self.phase() != Phase::Build,
                 ));
-                if let Some((t, _)) = rules.target_of(self.me) {
-                    top.push(Item::Lines {
-                        id: "match.target".into(),
-                        lines: vec![s.fill("hud.target", &[("name", self.names[t as usize].clone())])],
-                    });
+                bar.push(button("match.test", s.get("sandbox.test"), "test", false));
+                bar.push(button(
+                    "match.undo",
+                    s.get("hud.undo"),
+                    "undo",
+                    !self.building_now() || self.play.last_placed(self.me).is_none(),
+                ));
+                bar.push(button("match.scout", s.get("hud.scout"), "scout", false));
+                // every royal stands before Ready (R1.3305)
+                if self.unplaced_royal().is_some() {
+                    bar.push(button("match.ready", s.get("hud.place_royals"), "ready", true));
+                } else {
+                    bar.push(button("match.ready", ready_text, "ready", me.ready));
                 }
-                top.push(button("match.test", s.get("sandbox.test"), false));
-                top.push(quiet("match.scout", s.get("hud.scout")));
-                if let Some(p) = self.scout {
-                    top.push(Item::Lines {
-                        id: "match.scouting".into(),
-                        lines: vec![s.fill("hud.scouting", &[("name", self.names[p as usize].clone())])],
-                    });
-                }
-                top.push(button("match.ready", ready_text, me.ready));
-                bar.push(self.tool_bar(s));
             }
             Phase::Upgrade if alive => {
                 if self.replay.is_none() {
                     extra.push(self.cards_panel(s, cards));
                 }
-                top.push(button("match.ready", ready_text, me.ready));
             }
             Phase::Siege | Phase::SiegeOver if alive => {
                 if let Some(f) = self.my_field() {
-                    if let Some((t, _)) = rules.target_of(self.me) {
-                        top.push(Item::Lines {
-                            id: "match.target".into(),
-                            lines: vec![s.fill("hud.target", &[("name", self.names[t as usize].clone())])],
-                        });
-                    }
                     let key = if f.cleared() {
                         "hud.cleared"
                     } else if f.shooter.swing_from.is_some() {
@@ -1845,10 +2153,14 @@ impl Arena {
                 });
             }
         }
-        top.push(quiet("play.leave", s.get("play.leave")));
+        let mut leave = button("play.leave", s.get("play.leave"), "leave", false);
+        if let Item::Button { quiet, .. } = &mut leave {
+            *quiet = true;
+        }
+        top.push(leave);
         let mut panels = vec![
             Panel::new("field-top", String::new(), top),
-            Panel::new("field-side", String::new(), vec![self.health_list(s)]),
+            Panel::new("field-side", String::new(), vec![self.health_list()]),
             Panel::new("field-bar", String::new(), bar),
         ];
         panels.extend(extra);
@@ -1864,25 +2176,33 @@ impl Arena {
         panels
     }
 
-    fn health_list(&self, s: &Strings) -> Item {
+    fn health_list(&self) -> Item {
         let rules = &self.play.rules;
         let mut order: Vec<PlayerId> = rules.alive();
         order.sort_by_key(|&p| std::cmp::Reverse(rules.players[p as usize].health));
         order.extend(rules.knocked_out.iter().rev());
-        Item::Lines {
+        let target = rules.target_of(self.me).map(|(t, _)| t);
+        let max = crate::game::tune::START_HEALTH.max(1) as u32;
+        Item::Health {
             id: "match.health".into(),
-            lines: order
+            icon: hud_icon::url("heart"),
+            rows: order
                 .iter()
                 .map(|&p| {
                     let pl = &rules.players[p as usize];
-                    let name = self.names[p as usize].clone();
-                    if pl.alive() {
-                        s.fill(
-                            "hud.health",
-                            &[("name", name), ("n", pl.health.max(0).to_string())],
-                        )
-                    } else {
-                        s.fill("hud.out", &[("name", name)])
+                    let value = pl.health.max(0) as u32;
+                    HealthRow {
+                        name: self.names[p as usize].clone(),
+                        value: value.min(max),
+                        max,
+                        text: value.to_string(),
+                        me: p == self.me,
+                        out: !pl.alive(),
+                        look: if target == Some(p) {
+                            "target".into()
+                        } else {
+                            String::new()
+                        },
                     }
                 })
                 .collect(),
@@ -1901,25 +2221,38 @@ impl Arena {
                 _ => 0,
             };
             let cost = ledger::price(*piece, &me.mods);
-            let tool = s.get(&format!("tool.{name}"));
-            let text = if stock > 0 {
-                s.fill("tool.stocked", &[("name", tool), ("n", stock.to_string())])
-            } else {
-                s.fill("tool.priced", &[("name", tool), ("n", cost.to_string())])
-            };
             let unlock = ledger::unlock_level(*piece);
+            let tool = s.get(&format!("tool.{name}"));
             let tip = if level < unlock {
                 s.fill("tip.locked", &[("n", unlock.to_string())])
+            } else if stock > 0 {
+                s.fill(
+                    "tool.stocked",
+                    &[("name", tool.clone()), ("n", stock.to_string())],
+                )
             } else {
-                s.fill("tip.segment", &[("n", cost.to_string())])
+                s.fill("tool.priced", &[("name", tool.clone()), ("n", cost.to_string())])
             };
             options.push(BarOption {
                 tip,
+                icon: hud_icon::url(name),
+                icon_name: name.to_string(),
+                count: if stock > 0 {
+                    stock.to_string()
+                } else {
+                    String::new()
+                },
+                cost: if stock > 0 {
+                    String::new()
+                } else {
+                    cost.to_string()
+                },
+                group: "beam".into(),
                 value: name.to_string(),
-                text,
+                text: tool,
                 key: (k + 1).to_string(),
                 selected: self.tool == Tool::Beam(*piece),
-                disabled: level < ledger::unlock_level(*piece) && stock == 0,
+                disabled: level < unlock && stock == 0,
             });
         }
         let unplaced = (0..me.royals.len())
@@ -1933,38 +2266,43 @@ impl Arena {
                         .is_none()
             })
             .count();
-        if unplaced > 0 {
-            options.push(BarOption {
-                tip: s.get("tip.royal"),
-                value: "royal".into(),
-                text: s.fill("tool.royals", &[("n", unplaced.to_string())]),
-                key: (BEAMS.len() + 1).to_string(),
-                selected: self.tool == Tool::Royal,
-                disabled: false,
-            });
-        }
+        options.push(BarOption {
+            tip: s.get("tip.royal"),
+            icon: hud_icon::url("royal"),
+            icon_name: "royal".into(),
+            count: unplaced.to_string(),
+            cost: String::new(),
+            group: "royal".into(),
+            value: "royal".into(),
+            text: s.get("tool.royal"),
+            key: (BEAMS.len() + 1).to_string(),
+            selected: self.tool == Tool::Royal,
+            disabled: unplaced == 0,
+        });
         for (kind, name) in BUILDINGS.iter() {
             let piece = Piece::Building(*kind);
-            if level < ledger::unlock_level(piece) {
-                continue;
-            }
+            let unlock = ledger::unlock_level(piece);
             let made = match ledger::building_row(*kind).yields {
                 crate::game::tune::Yield::Stock(_, n) => n + me.mods.producer_bonus,
                 crate::game::tune::Yield::Shots(n) => me.mods.armory_shots.unwrap_or(n),
             };
+            let tip = if level < unlock {
+                s.fill("tip.locked", &[("n", unlock.to_string())])
+            } else {
+                s.fill(&format!("tip.{name}"), &[("n", made.to_string())])
+            };
             options.push(BarOption {
-                tip: s.fill(&format!("tip.{name}"), &[("n", made.to_string())]),
+                tip,
+                icon: hud_icon::url(name),
+                icon_name: name.to_string(),
+                count: String::new(),
+                cost: ledger::price(piece, &me.mods).to_string(),
+                group: "make".into(),
                 value: name.to_string(),
-                text: s.fill(
-                    "tool.priced",
-                    &[
-                        ("name", s.get(&format!("tool.{name}"))),
-                        ("n", ledger::price(piece, &me.mods).to_string()),
-                    ],
-                ),
+                text: s.get(&format!("tool.{name}")),
                 key: String::new(),
                 selected: self.tool == Tool::Building(*kind),
-                disabled: false,
+                disabled: level < unlock,
             });
         }
         Item::Bar {
@@ -1985,14 +2323,13 @@ impl Arena {
                 .take(KEY_DIGITS.len())
                 .map(|(k, (a, n))| BarOption {
                     tip: s.get(&format!("tip.ammo.{}", ammo_name(*a))),
+                    icon: hud_icon::url(ammo_name(*a)),
+                    icon_name: ammo_name(*a).to_string(),
+                    count: n.to_string(),
+                    cost: String::new(),
+                    group: String::new(),
                     value: k.to_string(),
-                    text: s.fill(
-                        "hud.ammo",
-                        &[
-                            ("name", s.get(&format!("ammo.{}", ammo_name(*a)))),
-                            ("n", n.to_string()),
-                        ],
-                    ),
+                    text: s.get(&format!("ammo.{}", ammo_name(*a))),
                     key: (k + 1).to_string(),
                     selected: k == sh.selected as usize,
                     disabled: *n == 0 || (busy && k != sh.selected as usize),
@@ -2015,6 +2352,11 @@ impl Arena {
                     .enumerate()
                     .map(|(k, (a, (code, _)))| BarOption {
                         tip: s.get(&format!("tip.air.{}", air_name(*a))),
+                        icon: hud_icon::url(air_name(*a)),
+                        icon_name: air_name(*a).to_string(),
+                        count: String::new(),
+                        cost: String::new(),
+                        group: String::new(),
                         value: k.to_string(),
                         text: s.get(&format!("air.{}", air_name(*a))),
                         key: code.trim_start_matches("Key").to_string(),
@@ -2041,6 +2383,7 @@ impl Arena {
                     tier: s.get(&format!("tier.{}", tier_name(row.tier))),
                     look: tier_name(row.tier).to_string(),
                     text,
+                    icon: hud_icon::url(card_icon(row.effects)),
                     picked: offer.picked == Some(i),
                     disabled: offer.picked.is_some(),
                 });
@@ -2052,11 +2395,12 @@ impl Arena {
                 s.fill("hud.reroll", &[("n", cost.to_string())])
             };
             items.push(Item::Button {
-                tip: String::new(),
                 id: "match.reroll".into(),
                 text,
                 quiet: true,
                 disabled: offer.picked.is_some() || me.purse.gold < cost,
+                tip: s.get("tip.reroll"),
+                icon: hud_icon::url("reroll"),
             });
         }
         Panel::new("cards", s.get("phase.upgrade"), items)
@@ -2089,6 +2433,7 @@ impl Arena {
                 if self.is_online() {
                     Item::Button {
                         tip: String::new(),
+                        icon: String::new(),
                         id: "play.lobby".into(),
                         text: s.get("results.lobby"),
                         quiet: false,
@@ -2097,6 +2442,7 @@ impl Arena {
                 } else {
                     Item::Button {
                         tip: String::new(),
+                        icon: String::new(),
                         id: "match.again".into(),
                         text: s.get("results.again"),
                         quiet: false,
@@ -2105,6 +2451,7 @@ impl Arena {
                 },
                 Item::Button {
                     tip: String::new(),
+                    icon: String::new(),
                     id: "play.leave".into(),
                     text: s.get("results.menu"),
                     quiet: true,

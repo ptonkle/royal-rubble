@@ -59,8 +59,22 @@ function send(name, value) {
 
 // ---- items, one builder per type ----
 
+// An icon from the core's set (app/hud_icon.rs): its shape is a mask and
+// the stylesheet colors it by name.
+function icon(url, name) {
+  const i = make("span", "icon");
+  i.style.setProperty("--icon", "url(\"" + url + "\")");
+  if (name) i.dataset.icon = name;
+  return i;
+}
+
 function button(item) {
-  const b = make("button", item.quiet ? "button quiet" : "button", item.text);
+  const b = make("button", item.quiet ? "button quiet" : "button");
+  if (item.icon) {
+    b.classList.add("with-icon");
+    b.append(icon(item.icon, ""));
+  }
+  b.append(make("span", "button-text", item.text));
   b.type = "button";
   b.id = item.id;
   b.disabled = item.disabled === true;
@@ -243,6 +257,7 @@ function copy(item) {
 function bar(item) {
   const row = make("div", "bar");
   row.id = item.id;
+  let group = "";
   item.options.forEach((o) => {
     const b = make("button", "bar-option");
     b.type = "button";
@@ -250,7 +265,17 @@ function bar(item) {
     b.disabled = o.disabled === true;
     if (o.selected) b.dataset.selected = "on";
     if (o.tip) b.title = o.tip;
-    b.append(make("span", "bar-key", o.key), make("span", "bar-text", o.text));
+    if (o.group) {
+      if (group && o.group !== group) row.append(make("span", "bar-gap"));
+      group = o.group;
+    }
+    b.append(make("span", "bar-key", o.key));
+    if (o.icon) b.append(icon(o.icon, o.icon_name));
+    if (o.count) b.append(make("span", "bar-count", o.count));
+    b.append(make("span", "bar-text", o.text));
+    const cost = make("span", "bar-cost");
+    if (o.cost) cost.append(make("span", "coin"), make("span", "", o.cost));
+    b.append(cost);
     on(b.id, "click", () => send(item.id, o.value));
     row.append(b);
   });
@@ -265,12 +290,63 @@ function card(item) {
   b.disabled = item.disabled === true;
   b.dataset.tier = item.look;
   if (item.picked) b.dataset.picked = "on";
+  if (item.icon) b.append(icon(item.icon, item.look));
   b.append(make("span", "card-name", item.name), make("span", "card-tier", item.tier), make("span", "card-text", item.text));
   on(item.id, "click", () => send("match.pick", item.value));
   return b;
 }
 
-const builders = { button, slider, toggle, select, text, number, lines, notes, copy, code_box: codeBox, bar, card };
+// A top-bar value: icon and text.
+function stat(item) {
+  const box = make("div", "stat");
+  box.id = item.id;
+  if (item.tip) box.title = item.tip;
+  box.append(icon(item.icon, item.icon_name), make("span", "stat-text", item.text));
+  return box;
+}
+
+// The phase clock, big; the stylesheet pulses it in its last seconds.
+function timer(item) {
+  const box = make("div", "timer");
+  box.id = item.id;
+  if (item.urgent) box.dataset.urgent = "on";
+  box.append(icon(item.icon, "timer"), make("span", "timer-phase", item.phase), make("span", "timer-text", item.text));
+  return box;
+}
+
+// A filled bar with an icon, a label on the icon and a text (level and XP).
+function meter(item) {
+  const box = make("div", "meter");
+  box.id = item.id;
+  if (item.tip) box.title = item.tip;
+  const badge = make("span", "meter-badge");
+  badge.append(icon(item.icon, item.icon_name), make("span", "meter-label", item.label));
+  const fill = make("progress");
+  fill.max = item.max;
+  fill.value = item.value;
+  box.append(badge, fill, make("span", "meter-text", item.text));
+  return box;
+}
+
+// Every player's health: a heart, the number, a bar and the name.
+function health(item) {
+  const box = make("ol", "health");
+  box.id = item.id;
+  item.rows.forEach((r) => {
+    const row = make("li", "health-row");
+    if (r.me) row.dataset.me = "on";
+    if (r.out) row.dataset.out = "on";
+    if (r.look) row.dataset.look = r.look;
+    const fill = make("progress");
+    fill.max = r.max;
+    fill.value = r.value;
+    row.append(icon(item.icon, "heart"), make("span", "health-value", r.text), make("span", "health-name", r.name), fill);
+    box.append(row);
+  });
+  return box;
+}
+
+const builders = { stat, timer, meter, health, button, slider, toggle, select, text, number, lines, notes, copy, code_box: codeBox, bar, card };
 
 // One lobby seat: who sits there and the controls this browser may use.
 function seat(item) {

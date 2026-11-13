@@ -120,6 +120,8 @@ pub const KEYS: &[&str] = &[
     "hud.scouting",
     "hud.ready",
     "hud.waiting",
+    "hud.undo",
+    "hud.place_royals",
     "hud.replay",
     "hud.skip",
     "hud.health",
@@ -176,6 +178,10 @@ pub const KEYS: &[&str] = &[
     "pause.heading",
     "pause.resume",
     "pause.leave",
+    "tip.gold",
+    "tip.level",
+    "tip.target",
+    "tip.scouting",
 ];
 
 /// The strings file, checked.

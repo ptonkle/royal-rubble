@@ -109,6 +109,8 @@
   "hud.scout": "Scout",
   "hud.scouting": "Scouting: {name}",
   "hud.ready": "Ready",
+  "hud.undo": "Undo",
+  "hud.place_royals": "Place royals",
   "hud.waiting": "Waiting",
   "hud.replay": "Your castle",
   "hud.skip": "Skip",
@@ -165,5 +167,9 @@
   "tip.air.bounce": "Bounce off",
   "pause.heading": "Paused",
   "pause.resume": "Resume",
-  "pause.leave": "Leave match"
+  "pause.leave": "Leave match",
+  "tip.gold": "Gold",
+  "tip.level": "Level and XP",
+  "tip.target": "You attack",
+  "tip.scouting": "Scouting"
 }

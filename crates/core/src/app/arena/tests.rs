@@ -83,10 +83,62 @@ fn arena_a_press_and_release_in_build_places_a_wood_segment_through_play() {
     let p0 = cam.px(Vec2::new(x, g + Fx::ratio(1, 16)));
     let p1 = cam.px(Vec2::new(x, g + Fx::from_int(2)));
     let before = a.play.castles[0].geo.len();
+    // a press and release at the start places nothing
     a.down(&format!("{},{},0", p0[0], p0[1])).unwrap();
-    a.up(&format!("{},{}", p1[0], p1[1])).unwrap();
+    a.up(&format!("{},{}", p0[0], p0[1])).unwrap();
+    a.tick();
+    assert_eq!(a.play.castles[0].geo.len(), before);
+    // the second press places it, and the next segment starts at its end
+    a.down(&format!("{},{},0", p1[0], p1[1])).unwrap();
     a.tick();
     assert_eq!(a.play.castles[0].geo.len(), before + 1);
+    assert_eq!(a.drag, Some(Vec2::new(x, g + Fx::from_int(2))));
+    // a right press lets go of the start and sells nothing
+    a.down(&format!("{},{},2", p1[0], p1[1])).unwrap();
+    a.tick();
+    assert_eq!(a.drag, None);
+    assert_eq!(a.play.castles[0].geo.len(), before + 1);
+}
+
+#[test]
+fn arena_undo_sells_the_last_piece_back_for_all_it_cost() {
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    let (l, _, _) = a.zone(0);
+    let x = l + Fx::from_int(30);
+    let g = snap(a.ground(0, x));
+    let cam = a.camera();
+    let gold = a.play.rules.players[0].purse.gold;
+    for y in [g, g + Fx::from_int(2)] {
+        let p = cam.px(Vec2::new(x, y));
+        a.down(&format!("{},{},0", p[0], p[1])).unwrap();
+    }
+    a.tick();
+    assert_eq!(a.play.castles[0].geo.len(), 1);
+    a.pump(0, KEY_UNDO, None, None);
+    a.tick();
+    assert!(a.play.castles[0].geo.is_empty());
+    assert_eq!(a.play.rules.players[0].purse.gold, gold);
+}
+
+#[test]
+fn arena_ready_waits_for_every_royal_then_the_royal_tool_is_put_away() {
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    assert!(a.unplaced_royal().is_some());
+    a.act("match.ready", "").unwrap();
+    assert!(a.pending.is_empty());
+    // place the royal: the tool goes back to wood and Ready works
+    a.tool = Tool::Royal;
+    let (l, _, _) = a.zone(0);
+    let x = l + Fx::from_int(20);
+    let p = a.camera().px(Vec2::new(x, a.ground(0, x)));
+    a.down(&format!("{},{},0", p[0], p[1])).unwrap();
+    a.tick();
+    assert_eq!(a.unplaced_royal(), None);
+    assert_eq!(a.tool, Tool::Beam(BEAMS[0].0));
+    a.act("match.ready", "").unwrap();
+    assert_eq!(a.pending, vec![Input::Ready]);
 }
 
 /// Plays a whole match: Ready in every phase, and in the siege two taps of
@@ -357,6 +409,114 @@ fn arena_the_siege_view_never_shows_past_the_world_edges() {
         if let Err(e) = view_in_world(&a) {
             panic!("tick {k}: {e}");
         }
+    }
+}
+
+fn timer_urgent(a: &Arena) -> Option<bool> {
+    let s = Strings::parse(&sample()).unwrap();
+    a.panels(&s, &CardText::default())
+        .iter()
+        .flat_map(|p| p.items.iter())
+        .find_map(|i| match i {
+            Item::Timer { urgent, .. } => Some(*urgent),
+            _ => None,
+        })
+}
+
+#[test]
+fn arena_the_timer_turns_urgent_in_its_last_ten_seconds() {
+    let mut a = arena(1);
+    let tps = crate::game::tune::TICKS_PER_SECOND;
+    a.play.rules.ticks_left = 11 * tps;
+    assert_eq!(timer_urgent(&a), Some(false));
+    a.play.rules.ticks_left = 10 * tps;
+    assert_eq!(timer_urgent(&a), Some(true));
+}
+
+#[test]
+fn arena_drum_beats_each_new_second_of_the_last_ten_harder_in_the_last_three() {
+    assert_eq!(drum_beat(11, 10), Some("drum_count"));
+    assert_eq!(drum_beat(5, 4), Some("drum_count"));
+    assert_eq!(drum_beat(4, 3), Some("drum_close"));
+    assert_eq!(drum_beat(2, 1), Some("drum_close"));
+    assert_eq!(drum_beat(12, 11), None);
+    assert_eq!(drum_beat(10, 10), None);
+    assert_eq!(drum_beat(1, 0), None);
+}
+
+#[test]
+fn arena_the_build_timer_reaching_ten_seconds_cues_the_drum() {
+    let mut a = arena(1);
+    let tps = crate::game::tune::TICKS_PER_SECOND;
+    a.play.rules.ticks_left = 10 * tps + 2;
+    a.tick();
+    assert!(a.cues.iter().all(|c| c.name != "drum_count"));
+    a.play.rules.ticks_left = 10 * tps + 1;
+    a.tick();
+    assert_eq!(a.phase(), Phase::Build);
+    assert_eq!(a.cues.last().map(|c| c.name), Some("drum_count"));
+}
+
+#[test]
+fn arena_a_royal_killed_in_your_siege_cries_by_its_rank() {
+    let mut a = arena(1);
+    to_siege(&mut a);
+    let me = a.me;
+    let s = a.play.siege.as_mut().unwrap();
+    let f = s
+        .fields
+        .iter_mut()
+        .find(|f| f.attacker == me && !f.shooter.bot)
+        .unwrap();
+    let i = f
+        .castle
+        .bodies
+        .iter()
+        .position(|b| matches!(b, BodyOwner::Royal(_)))
+        .unwrap();
+    let BodyOwner::Royal(r) = f.castle.bodies[i] else {
+        unreachable!()
+    };
+    let owner = f.owner as usize;
+    f.castle.world.bodies[i].alive = false;
+    let kind = a.play.rules.players[owner].royals[r].kind;
+    a.tick();
+    let cries: Vec<&str> = a
+        .cues
+        .iter()
+        .map(|c| c.name)
+        .filter(|n| n.starts_with("royal_"))
+        .collect();
+    assert_eq!(cries, vec![death_cry(kind)]);
+}
+
+#[test]
+fn arena_songs_building_songs_take_turns_round_by_round() {
+    assert_eq!(build_song_for(1), "music_build");
+    assert_eq!(build_song_for(2), "music_jig");
+    assert_eq!(build_song_for(5), "music_mandolins");
+    assert_eq!(build_song_for(6), "music_build");
+    let mut a = arena(1);
+    a.play.rules.round = 3;
+    assert_eq!(a.frame().music, "music_pastoral");
+}
+
+/// Every track the core names is in the compiled sounds.
+#[test]
+fn arena_songs_every_track_the_core_names_is_compiled() {
+    let v: serde_json::Value =
+        serde_json::from_str(include_str!("../../../../../data/sound-programs.json")).unwrap();
+    let ids: Vec<&str> = v["programs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|p| p["id"].as_str())
+        .collect();
+    for name in BUILD_SONGS
+        .iter()
+        .chain(["music_siege", "music_menu", "drum_count", "drum_close"].iter())
+    {
+        assert!(ids.contains(name), "{name} is not compiled");
     }
 }
 
