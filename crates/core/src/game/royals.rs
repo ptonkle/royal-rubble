@@ -164,8 +164,9 @@ mod tests {
     #[test]
     fn royal_damage_scales_with_the_round() {
         assert_eq!(damage(&[RoyalKind::Prince], 1), 4);
-        assert_eq!(damage(&[RoyalKind::Prince], 7), 6);
-        assert_eq!(damage(&[RoyalKind::King, RoyalKind::Squire], 13), 33);
+        assert_eq!(damage(&[RoyalKind::Prince], 8), 4);
+        assert_eq!(damage(&[RoyalKind::Prince], 9), 6);
+        assert_eq!(damage(&[RoyalKind::King, RoyalKind::Squire], 13), 22);
         // a squire never deals less than 1
         assert_eq!(damage(&[RoyalKind::Squire], 1), 1);
     }

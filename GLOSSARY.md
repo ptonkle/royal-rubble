@@ -13,3 +13,31 @@ Where slush comes out. Each line has up to {line.spouts} spouts.
 
 Not: tap, dispenser, nozzle
 -->
+
+### Ghost
+
+A copy of another player's castle, attacked when the player count is odd. Royals killed in a ghost cost its owner no health.
+
+Not: clone, mirror
+
+### Interest
+
+Extra gold each round for gold you have banked.
+
+### Royal
+
+A noble you place in your castle. Each royal killed in a siege costs you health.
+
+Not: VIP, unit
+
+### Stockpile
+
+Wood, stone and metal you have banked. Building spends it before gold.
+
+Not: inventory, storage
+
+### Upgrade
+
+A card you pick in the upgrade phase. It lasts for the rest of the match.
+
+Not: augment, perk
