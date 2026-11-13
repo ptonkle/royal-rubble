@@ -1,5 +1,5 @@
 //! Boundary tests: they read the repository's own files and fail when the
-//! architecture is broken. Each constant below is labelled with the category
+//! architecture is broken. Each constant below is labeled with the category
 //! it belongs to in BUILDER-SPEC.md.
 //!
 //! - Builder requirement: the core performs no input or output; its
@@ -713,8 +713,14 @@ fn page_keeps_no_rule_and_names_no_other_origin() {
     let mut js_files = 0;
     for path in web_files() {
         let text = fs::read_to_string(&path).expect("read page file");
+        // Online kit: online_fence.rs owns the relay addresses. config.js
+        // holds them with the transport's timings, each page's CSP line
+        // lists them, and the fence matches the two exactly.
+        let online_config = path.ends_with("web/net/config.js");
+        let transport = path.ends_with("web/net/rtc.js");
         for (n, line) in text.lines().enumerate() {
-            if without_allowed_urls(line).contains("://") {
+            let csp_line = line.contains("http-equiv=\"Content-Security-Policy\"");
+            if !online_config && !csp_line && without_allowed_urls(line).contains("://") {
                 problems.push(format!(
                     "{}:{}: absolute URL (another origin?)",
                     path.display(),
@@ -724,7 +730,14 @@ fn page_keeps_no_rule_and_names_no_other_origin() {
         }
         if path.extension().map(|x| x == "js").unwrap_or(false) {
             js_files += 1;
-            problems.extend(report(&path, &scan_page_js(&text)));
+            let mut found = scan_page_js(&text);
+            if online_config {
+                found.retain(|v| v.why != "number in the page");
+            }
+            if transport {
+                found.retain(|v| v.why != "no network requests beyond the page's own files");
+            }
+            problems.extend(report(&path, &found));
             problems.extend(report(&path, &scan_page_navigation(&text)));
         }
     }
@@ -876,7 +889,7 @@ fn shader_scanner_catches_tuning_numbers() {
     assert!(!scan_shader("float leaf = base.g > base.r * 1.15 ? 1.0 : 0.0;").is_empty());
     assert!(!scan_shader("vec3 c = mix(a, b, 0.82);").is_empty());
     assert!(!scan_shader("float h = .5;").is_empty());
-    assert!(scan_shader("#version 300 es\nprecision highp float;\nout vec4 o; // 0.5 here\nvoid main() { o = vec4(u_colour, 1.0); }").is_empty());
+    assert!(scan_shader("#version 300 es\nprecision highp float;\nout vec4 o; // 0.5 here\nvoid main() { o = vec4(u_color, 1.0); }").is_empty());
 }
 
 #[test]

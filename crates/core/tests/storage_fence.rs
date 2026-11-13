@@ -1,10 +1,7 @@
-//! Reference default (D17): the page keeps nothing between visits. This reads
-//! every file under web/ (vendor/ aside) and fails if one names a browser
-//! storage API. From Feedback Drafts and Status Trends.
-//!
-//! When the brief allows storage, delete this file and record the change in
-//! BUILDER-SPEC.md. Then let the core write and read what is stored, and test
-//! that an unreadable save is treated as a new one.
+//! Saves kit: D17 changed. Only web/save/store.js may name browser storage,
+//! and only the save the core writes goes through it. This reads
+//! every other file under web/ (vendor/ aside) and fails if one names a browser
+//! storage API. Replaces the template's no_storage.rs.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -53,10 +50,13 @@ fn files_under(dir: &Path) -> Vec<PathBuf> {
 }
 
 #[test]
-fn the_page_names_no_browser_storage() {
+fn only_the_save_store_names_browser_storage() {
     let web = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../web");
     let mut found = Vec::new();
     for path in files_under(&web) {
+        if path.ends_with("save/store.js") {
+            continue;
+        }
         let Ok(text) = fs::read_to_string(&path) else {
             continue;
         };
@@ -66,9 +66,16 @@ fn the_page_names_no_browser_storage() {
     }
     assert!(
         found.is_empty(),
-        "browser storage in the page (D17; the brief must allow it):\n{}",
+        "browser storage outside web/save/store.js (saves kit, D17):\n{}",
         found.join("\n")
     );
+}
+
+#[test]
+fn the_store_uses_local_storage_and_nothing_else() {
+    let store = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../web/save/store.js");
+    let text = fs::read_to_string(store).expect("web/save/store.js, from kits/saves");
+    assert_eq!(storage_names_in(&text), vec!["localStorage"]);
 }
 
 #[test]

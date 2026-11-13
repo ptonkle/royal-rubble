@@ -1,13 +1,21 @@
-//! tool_core: every application rule of the tool.
+//! tool_core: every application rule of Royal Rubble.
 //!
 //! Builder requirement: this crate performs no input or output. It takes
 //! values and returns values, so `cargo test` reaches every rule without a
 //! browser. `tests/boundary.rs` enforces that, along with the dependency
 //! allowlist and the reference ban on floats, hash maps and clocks.
 //!
-//! Replace the placeholder rule in `page.rs` with the rules your brief
-//! describes. Keep `api.rs` as the one door the shim calls through.
+//! Keep `api.rs` as the one door the shim calls through.
 
 pub mod api;
+pub mod app;
 pub mod glossary;
-pub mod page;
+pub mod icon;
+pub mod lobby;
+pub mod online;
+pub mod patch_notes;
+pub mod rng;
+pub mod save;
+pub mod strings;
+pub mod ticks;
+pub mod view;
