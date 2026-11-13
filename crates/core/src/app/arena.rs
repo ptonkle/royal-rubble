@@ -14,8 +14,8 @@
 use std::collections::BTreeMap;
 
 use super::field::{
-    cloth_at, ground_line, material_name, tree_marks, world_parts, world_right, BuildMarks, Camera, Cue,
-    Engine, Figure, Flag, Frame, Inset, Preview, Ring, SpotMark,
+    body_turn, cloth_at, facing, ground_line, impact_marks, material_name, tree_marks, world_parts,
+    world_right, BuildMarks, Camera, Cue, Engine, Figure, Flag, Frame, Inset, Preview, Ring, SpotMark,
 };
 use super::hud_icon;
 use super::sandbox::{num, pair, reach_end};
@@ -1583,7 +1583,15 @@ impl Arena {
     // ---- what the page draws ----
 
     /// The figures of a castle world: royals by rank, buildings by kind.
-    fn figures(&self, world: &World, bodies: &[BodyOwner], owner: PlayerId, cam: &Camera) -> Vec<Figure> {
+    fn figures(
+        &self,
+        world: &World,
+        bodies: &[BodyOwner],
+        owner: PlayerId,
+        cam: &Camera,
+        treb: Vec2,
+    ) -> Vec<Figure> {
+        let treb_x = cam.px(treb)[0];
         let pl = &self.play.rules.players[owner as usize];
         world
             .bodies
@@ -1611,6 +1619,8 @@ impl Arena {
                     tall: cam.figure_tall(),
                     rank,
                     dead: !b.alive,
+                    face: facing(p[0], treb_x),
+                    turn: body_turn(b, world.tick, facing(p[0], treb_x)),
                 }
             })
             .collect()
@@ -1661,7 +1671,8 @@ impl Arena {
         let (ground, water) = ground_line(plot, &cam);
         let world = &f.castle.world;
         let (beams, nodes, shots, debris) = world_parts(world, &cam, None, false);
-        let royals = self.figures(world, &f.castle.bodies, f.owner, &cam);
+        let royals = self.figures(world, &f.castle.bodies, f.owner, &cam, f.base);
+        let (puffs, shake) = impact_marks(world, &cam);
         let s = &f.shooter;
         let phase = match (s.swing_from, s.thrown) {
             (Some(t), _) => Arm::Swing(now.saturating_sub(t)),
@@ -1716,6 +1727,8 @@ impl Arena {
             cues: Vec::new(),
             music: "music_siege",
             loops,
+            puffs,
+            shake: if mine { shake } else { None },
             build: None,
         }
     }
@@ -1776,7 +1789,8 @@ impl Arena {
             None
         };
         let (beams, nodes, shots, debris) = world_parts(world, &cam, strain, building);
-        let royals = self.figures(world, bodies, p, &cam);
+        let base = crate::play::units::trebuchet_base(plot);
+        let royals = self.figures(world, bodies, p, &cam, base);
         let zone = building.then(|| {
             let (l, r, top) = self.zone(p);
             let lt = cam.px(Vec2::new(l, top));
@@ -1788,7 +1802,6 @@ impl Arena {
         } else {
             (None, None)
         };
-        let base = crate::play::units::trebuchet_base(plot);
         Frame {
             mode: "build",
             size: [w, h],
@@ -1813,6 +1826,8 @@ impl Arena {
             cues: self.cues.clone(),
             music: self.build_song(),
             loops: Vec::new(),
+            puffs: Vec::new(),
+            shake: None,
             build: building.then(|| self.marks_over(&cam)),
         }
     }
@@ -1863,6 +1878,11 @@ impl Arena {
                 tall: cam.figure_tall(),
                 rank: pl.royals.get(index).map_or("squire", |r| rank_name(r.kind)),
                 dead: false,
+                face: facing(
+                    p[0],
+                    cam.px(crate::play::units::trebuchet_base(self.plot(self.me)))[0],
+                ),
+                turn: None,
             });
         }
         marks
@@ -1895,6 +1915,8 @@ impl Arena {
             cues: self.cues.clone(),
             music: self.build_song(),
             loops: Vec::new(),
+            puffs: Vec::new(),
+            shake: None,
             build: None,
         }
     }

@@ -1218,6 +1218,41 @@
     "test": "botplan_build_planning_starts_again_when_the_castle_changed"
   },
   {
+    "name": "paintlook royals face the trebuchet",
+    "file": "crates/core/src/app/field.rs",
+    "find": "    if treb_x < x {",
+    "replace": "    if treb_x > x {",
+    "test": "royals_face_the_trebuchet_on_either_side"
+  },
+  {
+    "name": "paintlook dead royal falls on its back",
+    "file": "crates/core/src/app/field.rs",
+    "find": "    [c, -s * face as i32]",
+    "replace": "    [c, s * face as i32]",
+    "test": "a_dead_royal_tumbles_onto_its_back_then_lies_flat"
+  },
+  {
+    "name": "paintlook dead royal keeps falling",
+    "file": "crates/core/src/physics/bodies.rs",
+    "find": "            if b.alive && b.died.is_some() {\n                b.died = None;\n            }",
+    "replace": "            if !b.alive {\n                continue;\n            }",
+    "test": "a_royal_killed_up_high_is_knocked_back_and_falls_to_the_ground"
+  },
+  {
+    "name": "paintfx a big hit shakes only past three breaks",
+    "file": "crates/core/src/app/field.rs",
+    "find": "const SHAKE_BREAKS: u32 = 3;",
+    "replace": "const SHAKE_BREAKS: u32 = 2;",
+    "test": "impacts_make_fading_puffs_and_only_a_big_hit_shakes"
+  },
+  {
+    "name": "paintfx a puff fades with age",
+    "file": "crates/core/src/app/field.rs",
+    "find": "            fade: 1000 - (age as i32 * 1000) / IMPACT_LIFE as i32,",
+    "replace": "            fade: 1000,",
+    "test": "impacts_make_fading_puffs_and_only_a_big_hit_shakes"
+  },
+  {
     "name": "wardrum countdown drum misses the hard beats",
     "file": "crates/core/src/app/arena.rs",
     "find": "Some(if now <= DRUM_HARD { \"drum_close\" } else { \"drum_count\" })",

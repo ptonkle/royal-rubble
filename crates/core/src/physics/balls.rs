@@ -204,6 +204,14 @@ impl World {
         let h = self.terrain.height_at(ball.pos.x);
         if ball.pos.y - ball.radius < h {
             ball.pos.y = h + ball.radius;
+            // a shot landing hard throws up dust
+            if !debris && ball.vel.y < -TUNE.gravity * 8 {
+                self.impacts.push(super::world::Impact {
+                    pos: Vec2::new(ball.pos.x, h),
+                    tick: self.tick,
+                    kind: super::world::ImpactKind::Dust,
+                });
+            }
             // bounce off the slope, not off level ground: the speed into the
             // ground reflects with `ground_bounce`, the speed along it keeps
             // `ground_friction`, so a ball never rides up a slope (R1.3705)
@@ -317,6 +325,7 @@ impl World {
     }
 
     fn collide_bodies(&mut self, ball: &mut Ball, index: usize, debris: bool, events: &mut Vec<Event>) {
+        let tick = self.tick;
         for (bi, body) in self.bodies.iter_mut().enumerate() {
             if !body.alive {
                 continue;
@@ -325,6 +334,11 @@ impl World {
                 continue;
             }
             if !debris {
+                self.impacts.push(super::world::Impact {
+                    pos: body.pos,
+                    tick,
+                    kind: super::world::ImpactKind::Dust,
+                });
                 if ball.bounce {
                     let d = ball.pos - body.nearest(ball.pos);
                     let n = if d.len2() == Fx::ZERO {
@@ -334,7 +348,7 @@ impl World {
                     };
                     ball.bounce_off(n, body.pos - body.prev);
                 }
-                body.alive = false;
+                body.kill(tick, knock_of(ball.vel));
                 events.push(Event::BodyHit {
                     body: bi,
                     projectile: index,
@@ -342,7 +356,7 @@ impl World {
             } else {
                 let impulse = ball.mass * (ball.vel - (body.pos - body.prev)).len();
                 if impulse >= TUNE.crush_impulse {
-                    body.alive = false;
+                    body.kill(tick, knock_of(ball.vel) * Fx::ratio(1, 2));
                     events.push(Event::BodyCrushed { body: bi });
                 }
             }
@@ -391,4 +405,10 @@ impl World {
             self.segments[o].burn_ticks = TUNE.burn_ticks;
         }
     }
+}
+
+/// The push a hit gives a royal: a third of the shot's speed, and a little
+/// lift, so it is thrown back and tumbles down (R1.3603).
+pub fn knock_of(vel: Vec2) -> Vec2 {
+    Vec2::new(vel.x / 3, vel.y / 3 + Fx::ratio(1, 20))
 }
