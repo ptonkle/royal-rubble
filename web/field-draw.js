@@ -186,6 +186,7 @@ function marks(g, f) {
 }
 
 function flag(g, f) {
+  if (!f.flag) return;
   g.strokeStyle = color("flag-pole");
   g.lineWidth = look.pole_width;
   line(g, f.flag.pole[0], f.flag.pole[1]);
@@ -198,6 +199,35 @@ function flag(g, f) {
   g.stroke();
 }
 
+// The map's spots: a band of wool laid along the ground.
+function spots(g, f) {
+  (f.spots || []).forEach((s) => {
+    g.strokeStyle = color("spot-" + s.kind);
+    g.lineWidth = s.w;
+    g.beginPath();
+    g.moveTo(s.a[0], s.a[1]);
+    g.lineTo(s.b[0], s.b[1]);
+    dashed(g, look.spot_dash);
+  });
+}
+
+// A second view in a framed box (your own castle during a siege).
+function inset(g, f) {
+  if (!f.inset) return;
+  const [x, y] = f.inset.at;
+  const [w, h] = f.inset.frame.size;
+  g.save();
+  g.translate(x, y);
+  g.beginPath();
+  g.rect(0, 0, w, h);
+  g.clip();
+  drawField(g, f.inset.frame);
+  g.restore();
+  g.strokeStyle = color("field-outline");
+  g.lineWidth = look.inset_edge;
+  g.strokeRect(x, y, w, h);
+}
+
 // Draws one frame on the canvas's 2D context.
 export function drawField(g, f) {
   if (!look) return;
@@ -206,10 +236,12 @@ export function drawField(g, f) {
   // the arm swings down past the ground line: the ground hides that part
   engine(g, f);
   land(g, f);
+  spots(g, f);
   trail(g, f);
   beams(g, f);
   royals(g, f);
   balls(g, f);
   marks(g, f);
   flag(g, f);
+  inset(g, f);
 }

@@ -215,12 +215,37 @@ pub struct Frame {
     pub preview: Option<Preview>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ring: Option<Ring>,
-    pub flag: Flag,
+    /// the wind flag; absent in a corner window
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub flag: Option<Flag>,
+    /// the map's spots along the ground, for placing buildings
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub spots: Vec<SpotMark>,
+    /// a small second view drawn over this one (your own castle in a siege)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub inset: Option<Box<Inset>>,
     pub cues: Vec<Cue>,
     /// the music to play: a track name
     pub music: &'static str,
     /// the looping effects running now
     pub loops: Vec<&'static str>,
+}
+
+/// A spot on the map, as a band along the ground from `a` to `b`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SpotMark {
+    pub a: [i32; 2],
+    pub b: [i32; 2],
+    pub w: i32,
+    /// "gold_vein", "forest", ... for the renderer's color
+    pub kind: &'static str,
+}
+
+/// A second frame drawn in a box at `at` (its top left, pixels).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Inset {
+    pub at: [i32; 2],
+    pub frame: Frame,
 }
 
 fn is_zero_i(v: &i32) -> bool {

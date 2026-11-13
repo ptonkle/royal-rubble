@@ -158,6 +158,19 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R1.1152 | divergence | Plot slopes were capped at half a cell per column everywhere but the one cliff | The plot front stands 6 to 15 cells above or below the pad (either way by seed, about half each over 100 seeds); the plot tilts -6 to +8 cells front to back, has a taller watchtower mound (5 to 8 cells, smoothstep flanks, centered 30 or more columns in), 1 in 3 a terrace ramp of 3 to 5 cells up or down, and 2 in 3 a cliff of 4 to 9 cells. Any plot column may rise up to 1 cell (`PLOT_STEEP`) away from the cliff; at least 60% of each level's columns stay within the buildable half cell (`BUILDABLE_PCT`). Every map has at least 15 cells between its highest and lowest ground | Spots still need flat dry ground and still fit on all 100 seeds | `tune::PLOT_STEEP`, `BUILDABLE_PCT`, tests `terrain_hundred_seeds_all_playable`, `terrain_relief_is_strong_and_varies_by_seed` | done |
 | R1.1153 | worklist | play's reach test against the new distance | `level_one_throw_reaches_the_plot_front` fails on this branch alone (seed 1 lands at column 84; the plot front is now about 140). It hard-codes no distance, only today's reach, so it is left as is for the reach agent's retune to turn green | Merge after, or with, the trebuchet reach retune | `play/tests.rs` | open |
 | R1.1154 | finding | Debug pictures | `notes/terrain/seeds.png` now draws 3 px a column with the lowest ground at the panel's foot and orange dots for the arc cap; a second ignored test draws one seed per gap kind at 7 px a column to `notes/terrain/large-{moat,river,valley}-seed-N.png` | Run `cargo test -p tool_core --test terrain_pictures -- --ignored` | `crates/core/tests/terrain_pictures.rs` | done |
+| R1.1200 | finding | Where the match screen lives | `app/arena.rs` (`Arena`): a solo room that starts builds a `play::Play` from the lobby's `MatchStart` and steps it at 60 ticks a second from `App::pump`, your inputs queued and sent through `Play::step`. It reuses `field.rs` (frame, camera, `world_parts`) and the sandbox's reach and pixel parsing. The screen reports `match` (not `play`), so the online placeholder keeps its layout | Online rooms keep the placeholder world until the match runs through the rollback session (the inputs are already one `play::Input` per tick, so it slots in there) | `app/arena.rs`; tests `arena_*` | open |
+| R1.1201 | finding | Bots | Bot trebuchets use `ai::planner::plan_siege` via `Play::set_shot_planner`; bot castles use `ai::build::plan_castle` + `to_inputs` at each build start, applied through `Play::apply` | Planning a siege costs about 100 to 165 ms per bot in one tick (R1.913), so siege start hitches with many bots; plan during the last seconds of build if it shows | `Arena::bots_build` | open |
+| R1.1202 | divergence | A bot would grow its castle every round | A bot plans a castle only while it has no beams; later rounds keep it (royals that arrive later are auto-placed by the rules at the timer's end). A Normal bot keeps 20 gold banked, so in round 1 it builds nothing | Grow-on-top plans would need the AI to plan from an existing castle | `Arena::bots_build` | open |
+| R1.1203 | finding | The rules' SimpleBot also spends a bot's gold at build start | `Match::run_bots` buys segments with no place (ledger only). The arena sells those back at once (full refund, same phase) before the AI plans; XP and buildings SimpleBot bought stay | When the AI's economy replaces SimpleBot in `game/`, drop the sell-back | `Arena::bots_build` | open |
+| R1.1204 | divergence | Bot build inputs would go through the tick | Bot castle inputs are applied with `Play::apply` at the phase change, outside `Play::step` | Fine solo; online, they must be sent as tick inputs like the human's | `Arena::bots_build` | open |
+| R1.1205 | finding | `?fast` in a match | The match runs 8 times faster (`FAST_SPEED`), countdowns already skip. A match vs one bot where you only press Ready ends in about 30 to 60 s of browser time | `tests/browser/interactions.py` `fast_match`; `scripts/play_match.py` plays one with shots and screenshots | `FAST_SPEED` in `app/arena.rs` | done |
+| R1.1206 | finding | The replay of hits on your castle | Your castle's field is cloned as the siege starts and re-run (the bot's plan is inside it) at 2 ticks a tick for at most 600 ticks (5 s) at the start of the next phase; Space or Skip ends it, and it hides the upgrade cards while it runs. The phase timer keeps running | A human attacker (online) needs their recorded inputs replayed too | `Replay` in `app/arena.rs` | open |
+| R1.1207 | finding | Upgrade card text | The page fetches data/upgrades.json and hands it to the core (`data.upgrades`), so names and texts stay in data (D5). A new `Card` view item draws name, tier and text; the tier's key goes to `data-tier` for the stylesheet | `Item::Card` in `view.rs`; `card` in `web/app.js` | | done |
+| R1.1208 | finding | HUD colors | The match HUD's text, card edges, spot bands and building figures use new variables in `web/field.css` (`--hud-ink`, `--card-*`, `--spot-*`, `--royal-<building>`) as neutral placeholders for the look agents | `web/field.css`, `web/style.css` | | open |
+| R1.1209 | finding | A held swing | `Field::release` never fires on its own; the arena queues a Release once the arm reaches the bottom (as the sandbox does) | `Arena::tick` | | done |
+| R1.1210 | finding | The browser check polls | `fast_match` presses Skip, the first card and Ready every 50 ms until the results show: a loop of short waits, not a fixed wait for an outcome, since the match has no single selector to wait on | `tests/browser/interactions.py` | | open |
+| R1.1211 | finding | Buttons in the HUD move every frame | The phase timer's text reflows the top row, so Playwright's click waits for a still element and times out; the scripts click by event (`dispatch_event`) | `press` in `scripts/play_match.py` and `interactions.py` | | done |
+| R1.1212 | finding | The old ruins under Test | On seed of the screenshot run, `Play::strain` reports the free stone ruin at the top bucket (red) on every piece: it would break under its own weight in the static test. Not from the arena's mapping (ledger id to physics segment, as `play.strain` gives it) | For the physics/terrain agents: ruins should stand at rest, or be braced by the generator | notes/shots/match-build.png | open |
 
 ## Strings written by the agent
 
@@ -217,3 +230,21 @@ Each reader-visible string the agent wrote, with its key, for the person to read
 | ammo.normal / heavy / fire / spread | Normal, Heavy, Fire, Spread |
 | air.drop / reverse / phase / split | Drop, Reverse, Phase, Split |
 | GLOSSARY.md | Build, Drop, Fire, Heavy, Metal, Normal, Phase, Reverse, Rope, Sandbox, Siege, Split, Spread, Stone, Test, Wood |
+| seat.bot_n | Bot {n} |
+| phase.upgrade / build / siege | Upgrade, Build, Siege |
+| hud.round / hud.phase | Round {n}; {phase} {n} |
+| hud.gold / level / xp / xp_max | Gold {n}; Level {n}; XP {n}/{m}; XP max |
+| hud.buy_xp / buy_shot | Buy XP ({n}); Buy shot ({n}) |
+| hud.target / scout / scouting | Target: {name}; Scout; Scouting: {name} |
+| hud.ready / waiting | Ready; Waiting |
+| hud.replay / skip | Your castle; Skip |
+| hud.health / out / knocked_out | {name} {n}; {name} out; Knocked out |
+| hud.ammo | {name} {n} |
+| hud.reroll / reroll_free | Reroll ({n}); Reroll (free) |
+| tool.priced / stocked / royals | {name} {n}; {name} {n} free; Royals {n} |
+| tool.carpenter / quarry / armory / mine | Carpenter, Quarry, Armory, Mine |
+| ammo.exploding / chain / meteor | Exploding, Chain, Meteor |
+| air.dive / boost / hover | Dive, Boost, Hover |
+| tier.silver / gold / prismatic | Silver, Gold, Prismatic |
+| results.heading / place / again / menu | Results; {n}. {name}; Play again; Menu |
+| GLOSSARY.md | Armory, Boost, Carpenter, Chain, Dive, Exploding, Gold, Hover, Level, Meteor, Mine, Prismatic, Quarry, Ready, Reroll, Results, Round, Scout, Silver, Target, XP |

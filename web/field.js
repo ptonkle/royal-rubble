@@ -72,6 +72,8 @@ export function showField(ui) {
   }
   showing = true;
   fit();
+  // where the buildable area is, for the browser checks to aim at
+  canvas.dataset.zone = f.zone ? f.zone.join(",") : "";
   // decimal strings from the core ("0.800"); Web Audio's arithmetic reads them
   sound.setVolume(ui.sound_share);
   sound.setMusicVolume(ui.music_share);

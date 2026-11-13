@@ -87,7 +87,7 @@ fn the_tab_icon_comes_from_the_core() {
 }
 
 #[test]
-fn play_vs_bots_opens_a_lobby_with_a_bot_and_start_shows_the_placeholder() {
+fn play_vs_bots_opens_a_lobby_with_a_bot_and_start_shows_the_match() {
     let mut a = app();
     a.act("menu.solo", "").unwrap();
     assert_eq!(a.ui().screen, "lobby");
@@ -98,8 +98,10 @@ fn play_vs_bots_opens_a_lobby_with_a_bot_and_start_shows_the_placeholder() {
     a.act("seat.3.level", "hard").unwrap();
     a.act("lobby.start", "").unwrap();
     a.pump(17, 0);
-    assert_eq!(a.ui().screen, "play");
-    assert_eq!(a.ui().panels[0].heading, "play.placeholder");
+    // the solo room's match is a real one: the match screen's HUD
+    assert_eq!(a.ui().screen, "match");
+    assert_eq!(a.ui().panels[0].kind, "field-top");
+    assert!(a.ui().field.is_some());
     a.act("play.leave", "").unwrap();
     assert_eq!(a.ui().screen, "title");
 }

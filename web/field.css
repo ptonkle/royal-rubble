@@ -45,7 +45,27 @@
   --flag-pole: #2e3a55;
   --flag-cloth: #a5503a;
 
+  /* the map's spots along the ground */
+  --spot-stone_deposit: #b9ae93;
+  --spot-ore_deposit: #5d6f8a;
+  --spot-gold_vein: #d4a83a;
+  --spot-holy_well: #7fa3b0;
+  --spot-forest: #4f6a3a;
+  --spot-ruins: #9a917c;
+  --spot-watchtower: #a5503a;
+  --spot-armory_ruin: #6d4a3a;
+  /* buildings, drawn like royals */
+  --royal-carpenter: #8a5a3a;
+  --royal-quarry: #9a917c;
+  --royal-mine: #4a4a5a;
+  --royal-armory: #6d4a3a;
+
   /* the field's bars */
   --bar-bg: rgba(46, 58, 85, 0.88);
   --bar-chosen: #f0e2b6;
+  --hud-ink: #f0e2b6;
+  /* upgrade cards' edges by tier */
+  --card-silver: #b9bcc2;
+  --card-gold: #d4a83a;
+  --card-prismatic: #9a7ac0;
 }

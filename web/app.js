@@ -255,7 +255,20 @@ function bar(item) {
   return row;
 }
 
-const builders = { button, slider, toggle, select, text, number, lines, notes, copy, code_box: codeBox, bar };
+// An upgrade card: name, tier and text; a press sends its value.
+function card(item) {
+  const b = make("button", "card");
+  b.type = "button";
+  b.id = item.id;
+  b.disabled = item.disabled === true;
+  b.dataset.tier = item.look;
+  if (item.picked) b.dataset.picked = "on";
+  b.append(make("span", "card-name", item.name), make("span", "card-tier", item.tier), make("span", "card-text", item.text));
+  on(item.id, "click", () => send("match.pick", item.value));
+  return b;
+}
+
+const builders = { button, slider, toggle, select, text, number, lines, notes, copy, code_box: codeBox, bar, card };
 
 // One lobby seat: who sits there and the controls this browser may use.
 function seat(item) {
@@ -535,6 +548,7 @@ async function main() {
   const notes = await (await fetch("data/patch-notes.json")).text();
   const glossary = await (await fetch("data/glossary.md")).text();
   game = new Game(strings, notes, glossary);
+  const upgrades = await (await fetch("data/upgrades.json")).text();
   bindInput();
   await initField(send);
   // read before the first draw, which writes the address's hash
@@ -544,6 +558,7 @@ async function main() {
   saved = store.read();
   send("save.load", saved);
   if (ui === null) return;
+  send("data.upgrades", upgrades);
   startNet(game, readKeys);
   sendFlags();
   if (invited) send("flag.room", invited);
