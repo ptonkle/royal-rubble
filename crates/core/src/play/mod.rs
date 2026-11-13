@@ -314,6 +314,18 @@ impl Play {
         if !self.royal_spaced(p, index, at) {
             return Err(Refusal::BadSpot);
         }
+        // one royal to a room, two with Close Quarters (R1.3706)
+        if let Some(room) = castle::room_at(&cw.world, at.to_fx()) {
+            let c = &self.castles[p as usize];
+            let mates = (0..pl.royals.len())
+                .filter(|&i| i != index)
+                .filter_map(|i| c.royal_at.get(i).copied().flatten())
+                .filter(|q| castle::room_at(&cw.world, q.to_fx()) == Some(room))
+                .count();
+            if mates as u32 >= pl.mods.royal_spacing.unwrap_or(1) {
+                return Err(Refusal::BadSpot);
+            }
+        }
         let spot = castle::rule_spot(&pl.terrain, pl.purse.level, at);
         self.rules.place_royal(p, index, spot)?;
         let c = &mut self.castles[p as usize];

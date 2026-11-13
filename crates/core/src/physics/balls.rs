@@ -204,11 +204,24 @@ impl World {
         let h = self.terrain.height_at(ball.pos.x);
         if ball.pos.y - ball.radius < h {
             ball.pos.y = h + ball.radius;
+            // bounce off the slope, not off level ground: the speed into the
+            // ground reflects with `ground_bounce`, the speed along it keeps
+            // `ground_friction`, so a ball never rides up a slope (R1.3705)
+            let n = self.terrain.normal_at(ball.pos.x);
+            let vn = ball.vel.dot(n);
             if ball.bounce {
-                ball.bounce_off(Vec2::new(Fx::ZERO, Fx::ONE), Vec2::new(Fx::ZERO, Fx::ZERO));
-            } else if ball.vel.y < Fx::ZERO {
-                ball.vel.y = -ball.vel.y * TUNE.ground_bounce;
-                ball.vel.x = ball.vel.x * TUNE.ground_friction;
+                // Bounce rebounds off the slope too (R1.3902)
+                ball.bounce_off(n, Vec2::new(Fx::ZERO, Fx::ZERO));
+            } else if vn < Fx::ZERO {
+                let along = ball.vel - n * vn;
+                let out = -(vn * TUNE.ground_bounce);
+                // too slight a bounce to leave the ground: the ball stops
+                // rather than creeping along (or up) the slope
+                ball.vel = if out < TUNE.gravity * 2 {
+                    Vec2::ZERO
+                } else {
+                    along * TUNE.ground_friction + n * out
+                };
             }
             if ball.vel.len2() < TUNE.rest_speed * TUNE.rest_speed {
                 ball.alive = false;

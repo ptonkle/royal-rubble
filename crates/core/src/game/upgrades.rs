@@ -126,6 +126,7 @@ pub enum Effect {
     RoyalSave(Option<RoyalKind>, u32),
     FallLimit(u32),
     Decoys(u32),
+    /// Royals that may share a room (R1.3706; the name is older).
     RoyalSpacing(u32),
     /// Royal deaths spared each round, first killed first.
     FirstDeathSpared(u32),
@@ -506,7 +507,7 @@ pub const UPGRADES: &[UpgradeRow] = &[
     UpgradeRow {
         key: "close_quarters",
         tier: Tier::Silver,
-        effects: &[Effect::RoyalSpacing(3)],
+        effects: &[Effect::RoyalSpacing(2)],
         dealable: false,
     },
     UpgradeRow {
@@ -1070,7 +1071,6 @@ mod tests {
         match key {
             "grapeshot" => vec![shot_tune(ShotKind::Spread).pieces.to_string()],
             "ghost_stone" => vec![format!("{}.{}", phase_tenths / 10, phase_tenths % 10)],
-            "close_quarters" => vec![tune::ROYAL_SPACING_SEGMENTS.to_string()],
             "arsenal" => vec![tune::BUILDINGS
                 .iter()
                 .find(|b| b.kind == super::super::ledger::BuildingKind::Armory)

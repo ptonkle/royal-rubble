@@ -77,8 +77,10 @@ pub const ROYAL_SCHEDULE: &[(u32, RoyalKind)] = &[
 /// Grid cells in one segment length: wood's longest, 2 physics units of
 /// one cell each (R1.206, R1.700).
 pub const GRID_PER_SEGMENT: i32 = 2;
-/// Royals stand at least this many segment lengths apart.
-pub const ROYAL_SPACING_SEGMENTS: i32 = 4;
+/// Royals stand at least this many grid cells apart, so two never overlap;
+/// the room rule keeps them from crowding one room (R1.3706: was 4 segment
+/// lengths, which "encourages building a bunch of little huts").
+pub const ROYAL_SPACING_CELLS: i32 = 2;
 
 // ---- Economy --------------------------------------------------------------
 

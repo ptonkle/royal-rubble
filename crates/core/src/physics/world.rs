@@ -51,6 +51,22 @@ impl Terrain {
     pub fn width(&self) -> Fx {
         self.col_width * (self.heights.len() as i64)
     }
+
+    /// The ground's unit normal at `x` (pointing up, out of the ground):
+    /// from the slope of the column `x` lies in, level past the ends.
+    pub fn normal_at(&self, x: Fx) -> Vec2 {
+        let n = self.heights.len();
+        if n < 2 || self.col_width <= Fx::ZERO {
+            return Vec2::new(Fx::ZERO, Fx::ONE);
+        }
+        let i = (x / self.col_width).floor_int();
+        if i < 0 || i as usize >= n - 1 {
+            return Vec2::new(Fx::ZERO, Fx::ONE);
+        }
+        let i = i as usize;
+        let rise = self.heights[i + 1] - self.heights[i];
+        Vec2::new(-rise, self.col_width).normalized()
+    }
 }
 
 #[derive(Clone, Debug)]

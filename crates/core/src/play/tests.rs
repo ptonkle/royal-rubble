@@ -63,8 +63,8 @@ fn units_one_cell_is_one_physics_unit_and_four_grid_steps() {
     assert_eq!(units::terrain_to_fx(CELL), Fx::ONE);
     assert_eq!(GridPt::new(4, 10).to_fx(), Vec2::new(Fx::ONE, Fx::ratio(5, 2)));
     assert_eq!(GridPt::new(7, 0).col(), 1);
-    // royals stand 4 segment lengths of 2 cells apart
-    assert_eq!(crate::game::royals::spacing_cells(), 8);
+    // royals stand at least 2 cells apart (R1.3706)
+    assert_eq!(crate::game::royals::spacing_cells(), 2);
 }
 
 #[test]
@@ -208,16 +208,16 @@ fn royal_spacing_is_measured_between_feet_as_drawn() {
     });
     let c = flat_col(&plot, 3) as i32;
     // the first at the right end of column c, the second at the left end of
-    // column c + 8: the columns are 8 apart, the feet 7 1/4 cells
+    // column c + 2: the columns are 2 apart, the feet 1 1/4 cells
     let first = ground_at(&plot, c * STEPS_PER_CELL + 3);
     play.apply(0, Input::PlaceRoyal { index: 0, at: first }).unwrap();
-    let close = ground_at(&plot, (c + 8) * STEPS_PER_CELL);
+    let close = ground_at(&plot, (c + 2) * STEPS_PER_CELL);
     assert_eq!(
         play.apply(0, Input::PlaceRoyal { index: 1, at: close }),
         Err(Refusal::BadSpot)
     );
-    // the right end of column c + 8 is 8 cells from the first: allowed
-    let far = ground_at(&plot, (c + 8) * STEPS_PER_CELL + 3);
+    // the right end of column c + 2 is 2 cells from the first: allowed
+    let far = ground_at(&plot, (c + 2) * STEPS_PER_CELL + 3);
     assert_eq!(play.apply(0, Input::PlaceRoyal { index: 1, at: far }), Ok(()));
 }
 
@@ -996,4 +996,40 @@ fn trebuchet_level_one_castle_box_window_is_at_least_24_ticks() {
         let (all, _) = castle_box_window(&Plot::generate(seed), 1);
         assert!(all >= 24, "seed {seed}: {all} ticks");
     }
+}
+
+#[test]
+fn royals_room_rule_allows_one_royal_under_a_roof_beam() {
+    // R1.3706, the person: "you can't just stick them in one tiny room", but
+    // the old 8-cell spacing "encourages building a bunch of little huts"
+    let mut play = duel(3);
+    let plot = play.rules.terrain.clone();
+    let pl = &mut play.rules.players[0];
+    pl.purse.level = 7;
+    pl.purse.gold = 50;
+    pl.royals.push(crate::game::royals::Royal {
+        kind: RoyalKind::Knight,
+        spot: None,
+    });
+    let (c2, c4, c7) = (
+        ground(&plot, flat_col(&plot, 2)),
+        ground(&plot, flat_col(&plot, 4)),
+        ground(&plot, flat_col(&plot, 7)),
+    );
+    // a metal roof beam three cells long, two cells up
+    let a = up(c2, 2);
+    let roof = Input::PlaceSegment {
+        piece: Piece::Segment(Material::Metal),
+        a,
+        b: right(a, 3),
+    };
+    play.apply(0, roof).unwrap();
+    play.apply(0, Input::PlaceRoyal { index: 0, at: c2 }).unwrap();
+    // two cells away but in the same room
+    assert_eq!(
+        play.apply(0, Input::PlaceRoyal { index: 1, at: c4 }),
+        Err(Refusal::BadSpot)
+    );
+    // out from under the roof
+    assert_eq!(play.apply(0, Input::PlaceRoyal { index: 1, at: c7 }), Ok(()));
 }

@@ -79,6 +79,29 @@ fn is_floor(w: &World, s: usize) -> bool {
     d.x != Fx::ZERO && d.x.abs() >= d.y.abs()
 }
 
+/// The room a royal standing at `p` is in: the lowest floor or roof beam
+/// over `p` (R1.3706). Royals under the same beam share a room; one on a
+/// floor above is in another. None when nothing covers `p`.
+pub fn room_at(w: &World, p: Vec2) -> Option<usize> {
+    let mut best: Option<(Fx, usize)> = None;
+    for s in 0..w.segments.len() {
+        if !is_floor(w, s) {
+            continue;
+        }
+        let seg = &w.segments[s];
+        let (pa, pb) = (w.nodes[seg.a].pos, w.nodes[seg.b].pos);
+        let u = (p.x - pa.x) / (pb.x - pa.x);
+        if u < Fx::ZERO || u > Fx::ONE {
+            continue;
+        }
+        let y = pa.y + (pb.y - pa.y) * u;
+        if y > p.y + tune::STAND_TOLERANCE && best.is_none_or(|(by, _)| y < by) {
+            best = Some((y, s));
+        }
+    }
+    best.map(|(_, s)| s)
+}
+
 /// The surface at physics point `p`: a floor whose top is within the
 /// tolerance, else the ground, else nothing.
 pub fn surface_at(w: &World, p: Vec2) -> Option<Surface> {
