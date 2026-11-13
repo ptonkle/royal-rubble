@@ -74,6 +74,11 @@ impl Camera {
             .max(FIGURE_MIN_PX.min(self.len(HEAD_ROOM, 0)))
     }
 
+    /// Pixels per world unit, in 256ths (R1.4201).
+    pub fn zoom(&self) -> i32 {
+        (self.ppu.0 >> 8) as i32
+    }
+
     /// A length in pixels, at least `min`.
     pub fn len(&self, l: Fx, min: i32) -> i32 {
         ((l * self.ppu).floor_int() as i32).max(min)
@@ -457,6 +462,9 @@ pub struct Frame {
     /// where the world's origin falls on screen, so the cloth and its
     /// border scroll with the view (R1.1405)
     pub cloth: [i32; 2],
+    /// pixels per world unit, in 256ths, so the ground's texture scales
+    /// with the view instead of sliding over it as it zooms (R1.4201)
+    pub zoom: i32,
     /// the ground's top edge, left to right; the page fills below it
     pub ground: Vec<[i32; 2]>,
     /// scenery trees standing on the ground
@@ -769,6 +777,16 @@ mod tests {
         // the view 10 units right and 5 up: the cloth slides 100 px left, 50 down
         let b = Camera::spanning(Fx::from_int(10), Fx::from_int(100), Fx::from_int(5), 1000, 500);
         assert_eq!(cloth_at(&b), [-100, 550]);
+    }
+
+    #[test]
+    fn camera_zoom_counts_pixels_per_unit_in_256ths() {
+        // R1.4201: 1000 px over 100 units is 10 px a unit, 2560 256ths;
+        // over 40 units, 25 px, 6400
+        let a = Camera::spanning(Fx::ZERO, Fx::from_int(100), Fx::ZERO, 1000, 500);
+        assert_eq!(a.zoom(), 2560);
+        let b = Camera::spanning(Fx::ZERO, Fx::from_int(40), Fx::ZERO, 1000, 500);
+        assert_eq!(b.zoom(), 6400);
     }
 
     #[test]
