@@ -44,6 +44,10 @@ pub const WIND_PER_STEP: i64 = 4;
 /// this many ticks before the outcome is counted.
 pub const DRAIN_TICKS: u32 = 240;
 
+/// After the siege timer, a player's swing or shot still moving holds the
+/// round open for at most this many ticks before the drain (R1.3203).
+pub const SHOT_WAIT_TICKS: u32 = 1200;
+
 /// Second Volley: each extra copy of the first shot leaves this many
 /// percent slower than the one before, so the copies land apart.
 pub const VOLLEY_SLOWER_PCT: i64 = 6;

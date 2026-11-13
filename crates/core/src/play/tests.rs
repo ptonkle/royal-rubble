@@ -17,6 +17,7 @@ fn duel(seed: u64) -> Play {
         seats: vec![Seat::Human, Seat::Human],
         wind: false,
         seed,
+        flat: false,
     })
     .unwrap();
     p.start().unwrap();
@@ -467,6 +468,7 @@ fn full_match_bot_trebuchet_throws_its_shots() {
         seats: vec![Seat::Human, Seat::Bot(crate::game::flow::Difficulty::Normal)],
         wind: true,
         seed: 9,
+        flat: false,
     })
     .unwrap();
     play.start().unwrap();
@@ -852,6 +854,7 @@ fn bot_duel_planning_in_the_build(ticks: u32) -> Play {
         seats: vec![Seat::Human, Seat::Bot(crate::game::flow::Difficulty::Hard)],
         wind: false,
         seed: 3,
+        flat: false,
     })
     .unwrap();
     play.start().unwrap();

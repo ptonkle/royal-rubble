@@ -38,6 +38,7 @@ game = "the rules: game/ (flow, economy, ledger, royals, pairing, bots, sites)"
 physics = "the physics: physics/ and its probe"
 terrain = "the terrain: terrain/ and its pictures"
 arena = "the match screen: crates/core/src/app/arena.rs"
+names = "the bots' names: app/bot_names.rs, data/bot-names.json"
 sound = "the sound data: crates/core/tests/sound.rs reads data/sound*.json"
 
 # A hit tag on the left also hits the tags on the right, transitively.
@@ -81,6 +82,7 @@ tags = ["boundary"]
 "lib:game::flow::tests::vengeance_and_scavenger_add_shots_next_round" = ["upgrades"]
 "lib:game::flow::tests::long_arm_and_spare_stones_change_the_loadout" = ["upgrades"]
 "lib:game::flow::tests::quartermaster_makes_bought_shots_cost_one" = ["upgrades"]
+"lib:game::flow::tests::early_build_opens_for_a_player_once_they_pick_while_the_clock_runs" = ["game", "upgrades"]
 "lib:play" = ["match"]
 "lib:play::tests::ruins_stand_under_the_static_test_on_every_seed" = ["match", "terrain"]
 "lib:play::tests::trebuchet_best_throw_lands_just_past_the_farthest_plot_back" = ["match", "terrain"]
@@ -92,6 +94,9 @@ tags = ["boundary"]
 "lib:play::online" = ["online"]
 "lib:app::tests::online" = ["online"]
 "lib:app::arena" = ["arena"]
+"lib:app::arena::tests::flat_map_option_levels_every_column_and_drains_the_water" = ["arena", "terrain"]
+"lib:app::arena::tests::bot_names_come_from_the_list_and_differ_by_seat" = ["arena", "names"]
+"lib:app::bot_names" = ["names"]
 "lib:app::arena::tests::arena_the_view_keeps_the_trebuchet_in_just_after_release" = ["arena", "physics"]
 "test:play_probe" = ["match"]
 "lib:game" = ["game"]
@@ -163,6 +168,12 @@ name = "tests of the app and its door"
 files = ["crates/core/src/api.rs", "crates/core/src/app.rs", "crates/core/src/app/**", "crates/core/src/icon.rs", "crates/core/src/view.rs", "crates/shim/**", "web/app.js", "web/index.html", "web/style.css", "web/theme.css", "web/settings.js"]
 steps = ["core"]
 tags = ["page"]
+
+[[rule]]
+name = "tests of the bots' names"
+files = ["crates/core/src/app/bot_names.rs", "data/bot-names.json"]
+steps = ["core"]
+tags = ["names"]
 
 [[rule]]
 name = "tests of the save"

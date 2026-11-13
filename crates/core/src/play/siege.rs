@@ -423,6 +423,20 @@ impl Field {
         !self.fuses.is_empty() || w.projectiles.iter().chain(w.debris.iter()).any(|b| b.alive)
     }
 
+    /// A player's swing is under way or their shot is still in the air.
+    pub fn shot_moving(&self) -> bool {
+        let w = &self.castle.world;
+        !self.shooter.bot
+            && (self.shooter.swing_from.is_some()
+                || !self.fuses.is_empty()
+                || self
+                    .shooter
+                    .live
+                    .iter()
+                    .filter_map(|&i| w.projectiles.get(i))
+                    .any(|b| b.alive))
+    }
+
     /// A bot is done when its plan is spent and nothing it threw still flies.
     pub fn bot_done(&self, now: u32) -> bool {
         self.shooter.bot
@@ -488,4 +502,6 @@ pub struct Siege {
     /// Ticks since the siege started.
     pub tick: u32,
     pub drain_left: u32,
+    /// Ticks a player's moving shot may still hold the round open.
+    pub wait_left: u32,
 }

@@ -13,7 +13,7 @@ pub const TICKS_PER_SECOND: u32 = 60;
 pub const MAX_SUBSTEPS: i64 = 8;
 
 /// Gravity: 10 units/s^2 at 60 Hz, as a raw Q16.16 per tick squared.
-const G_RAW: i64 = 182;
+pub const G_RAW: i64 = 182;
 
 /// The load of holding mass `m` (whole units) against gravity.
 pub const fn weight(m: i64) -> Fx {
