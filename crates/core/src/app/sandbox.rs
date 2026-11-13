@@ -587,7 +587,7 @@ impl Sandbox {
         if let Some(i) = self.shot {
             let b = self.world.projectiles[i];
             if b.alive {
-                if b.age % TRAIL_EVERY == 0 {
+                if b.age.is_multiple_of(TRAIL_EVERY) {
                     self.path.push(b.pos);
                 }
             } else if !self.world.projectiles.iter().any(|p| p.alive) {
