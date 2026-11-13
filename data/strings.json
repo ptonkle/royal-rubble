@@ -26,7 +26,7 @@
   "online.left": "The host left the room.",
   "online.full": "This room is full. Ask the host for a new code.",
   "online.started": "This match has started. Join when it ends.",
-  "online.desync": "The browsers disagree about the match. Leave and start again.",
+  "online.desync": "Out of sync",
   "online.timeout": "No host answered. Check the code and try again.",
   "online.no_bundle": "The online code did not load. Reload the page.",
   "online.no_relay": "Online play cannot connect. Check your connection and try again.",
@@ -131,5 +131,6 @@
   "results.heading": "Results",
   "results.place": "{n}. {name}",
   "results.again": "Play again",
+  "results.lobby": "Back to lobby",
   "results.menu": "Menu"
 }

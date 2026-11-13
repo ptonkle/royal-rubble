@@ -2,10 +2,7 @@
 
 use super::*;
 use crate::lobby::NEED_READY;
-use crate::online::{decode, encode, DESYNC, LEFT as KEY_LEFT, RIGHT as KEY_RIGHT};
-
-const KEY_LEFT_BITS: u32 = KEY_LEFT as u32;
-const KEY_RIGHT_BITS: u32 = KEY_RIGHT as u32;
+use crate::online::{decode, encode, DESYNC};
 
 fn how(client: &str, seed: u64) -> Opening {
     Opening {
@@ -47,12 +44,12 @@ impl Wire {
     }
 
     /// One frame on every browser, delivering everything sent.
-    fn frame(&mut self, keys: u32) {
+    fn frame(&mut self) {
         self.now += 17;
         let mut mail = Vec::new();
         for k in 0..self.rooms.len() {
             let from = format!("c{k}");
-            let pump = self.rooms[k].pump(self.now, keys);
+            let pump = self.rooms[k].pump(self.now);
             for m in pump.out {
                 mail.push((from.clone(), m.to, m.text));
             }
@@ -65,7 +62,7 @@ impl Wire {
 
     fn settle(&mut self) {
         for _ in 0..4 {
-            self.frame(0);
+            self.frame();
         }
     }
 }
@@ -110,7 +107,7 @@ fn eight_people_fill_the_room_and_a_ninth_is_told_it_is_full() {
     let mut late = Room::join(&how("c8", 3), &wire.rooms[0].code.clone(), 0);
     wire.rooms[0].event("connected", "c8", "", false, 0);
     late.event("connected", "c0", "", true, 0);
-    let out = wire.rooms[0].pump(wire.now, 0).out;
+    let out = wire.rooms[0].pump(wire.now).out;
     let to_late: Vec<&Outgoing> = out.iter().filter(|m| m.to == "c8").collect();
     assert_eq!(to_late.len(), 1);
     late.event("message", "c0", &to_late[0].text, false, 0);
@@ -237,20 +234,30 @@ fn a_start_reaches_every_browser_and_a_match_runs_the_same_on_each() {
     }
     assert_eq!(start.seats.len(), 8);
     assert_eq!(start.seats.iter().filter(|s| s.bot.is_some()).count(), 5);
+    // the people press Ready: the build ends early on every browser
     for t in 0..300 {
-        wire.frame(if t % 3 == 0 { KEY_RIGHT_BITS } else { KEY_LEFT_BITS });
+        if t == 30 {
+            for room in wire.rooms.iter_mut() {
+                room.queue(Input::Ready);
+            }
+        }
+        wire.frame();
     }
-    // every browser presses the same keys: seats 0, 1 and 2 walk alike
     for _ in 0..60 {
-        wire.frame(0);
+        wire.frame();
     }
     for k in 0..3 {
         assert_eq!(wire.rooms[k].stage, Stage::Playing, "browser {k}");
         assert!(wire.rooms[k].session.tick > 300, "browser {k} ran");
         assert_ne!(wire.rooms[k].status(), DESYNC, "browser {k}");
+        let phase = wire.rooms[k].game.as_ref().unwrap().play.rules.phase;
+        assert_ne!(phase, Phase::Build, "browser {k}: Ready reached the match");
     }
     let confirmed = wire.rooms.iter().map(|r| r.session.confirmed).min().unwrap();
     assert!(confirmed > 240, "inputs crossed the host: confirmed {confirmed}");
+    let sums: Vec<_> = wire.rooms.iter().map(|r| r.session.newest_sum()).collect();
+    assert!(sums[0].is_some());
+    assert!(sums.iter().all(|s| *s == sums[0]), "{sums:?}");
 }
 
 #[test]
@@ -272,7 +279,7 @@ fn a_browser_too_late_for_the_start_is_told_so() {
     wire.rooms[0].act("lobby.start", "").unwrap();
     wire.settle();
     wire.rooms[0].event("connected", "c9", "", false, 0);
-    let out = wire.rooms[0].pump(wire.now, 0).out;
+    let out = wire.rooms[0].pump(wire.now).out;
     let bye = out.iter().find(|m| m.to == "c9").expect("told");
     assert_eq!(decode(&bye.text), Some(Msg::Bye { why: STARTED.into() }));
 }
@@ -296,20 +303,19 @@ fn the_countdown_runs_unless_the_page_is_fast_and_then_the_ticks_start() {
     let mut room = Room::solo(&slow);
     room.act("lobby.start", "").unwrap();
     assert_eq!(room.counting(0), Some(3));
-    room.pump(1_000, 0);
+    room.pump(1_000);
     assert_eq!(room.counting(1_500), Some(3));
     assert_eq!(room.counting(2_500), Some(2));
     assert_eq!(room.counting(3_500), Some(1));
-    room.pump(3_999, 0);
+    room.pump(3_999);
     assert!(matches!(room.stage, Stage::Counting { .. }));
-    room.pump(4_000, 0);
+    room.pump(4_000);
     assert_eq!(room.stage, Stage::Playing);
     assert_eq!(room.counting(4_000), None);
-    assert!(room.session.tick > 0, "the frame that ended the count ran a tick");
 
     let mut room = Room::solo(&how("c0", 1));
     room.act("lobby.start", "").unwrap();
-    room.pump(10, 0);
+    room.pump(10);
     assert_eq!(room.stage, Stage::Playing, "?fast skips the wait");
 }
 
@@ -325,12 +331,9 @@ fn a_solo_room_opens_with_a_bot_and_can_start_at_once() {
     assert_eq!(room.lobby.start_problem(), None);
     assert_eq!(room.status(), "");
     room.act("lobby.start", "").unwrap();
-    for t in 1..=120 {
-        room.pump(t * 17, KEY_RIGHT_BITS);
-    }
-    assert!(room.session.tick > 60, "a solo match waits for nobody");
-    let game = room.game.as_ref().unwrap();
-    assert!(game.pos[0] > 0, "the player's keys reach the match");
+    room.pump(17);
+    assert_eq!(room.stage, Stage::Playing, "a solo match waits for nobody");
+    assert!(room.game.is_none(), "the arena runs a solo match");
 }
 
 #[test]
@@ -338,7 +341,7 @@ fn the_relays_decide_when_a_room_opens_and_a_dead_network_says_so() {
     let mut online = how("c0", 7);
     online.no_net = false;
     let mut room = Room::host(&online, 0);
-    let pump = room.pump(1, 0);
+    let pump = room.pump(1);
     let Request::ProbeRelays { id, .. } = pump.requests[0] else {
         panic!("a room starts with a probe: {:?}", pump.requests);
     };
@@ -349,7 +352,7 @@ fn the_relays_decide_when_a_room_opens_and_a_dead_network_says_so() {
         false,
         2,
     );
-    let pump = room.pump(3, 0);
+    let pump = room.pump(3);
     let wanted = Request::HostRoom {
         room: room_name("royal-rubble-p2p", &room.code),
         relays: vec!["wss://a".to_string()],
@@ -360,7 +363,7 @@ fn the_relays_decide_when_a_room_opens_and_a_dead_network_says_so() {
     let mut now = 0;
     for _ in 0..200 {
         now += 500;
-        let pump = room.pump(now, 0);
+        let pump = room.pump(now);
         for r in pump.requests {
             if let Request::ProbeRelays { id, .. } = r {
                 room.event("relays", "", &format!(r#"{{"id":{id},"live":[]}}"#), false, now);
@@ -401,8 +404,8 @@ fn netted(client: &str) -> Opening {
 #[test]
 fn a_host_by_code_asks_for_an_invite_and_no_relay_and_shows_it_when_it_comes() {
     let mut host = Room::host_by_code(&netted("h"));
-    assert_eq!(host.pump(0, 0).requests, [Request::HostByCode]);
-    assert_eq!(host.pump(1, 0).requests, []);
+    assert_eq!(host.pump(0).requests, [Request::HostByCode]);
+    assert_eq!(host.pump(1).requests, []);
     assert_eq!(host.pasted_code(), Some(""));
     assert_eq!(host.code, "");
     host.event("code", "", "Oinvite", false, 2);
@@ -412,20 +415,20 @@ fn a_host_by_code_asks_for_an_invite_and_no_relay_and_shows_it_when_it_comes() {
 #[test]
 fn an_invite_is_good_for_one_joiner_and_the_next_gets_a_fresh_one() {
     let mut host = Room::host_by_code(&netted("h"));
-    host.pump(0, 0);
+    host.pump(0);
     host.event("code", "", "Ofirst", false, 1);
     host.event("connected", "j", "", false, 2);
     assert_eq!(host.pasted_code(), Some(""));
-    assert_eq!(host.pump(3, 0).requests, [Request::InviteByCode]);
+    assert_eq!(host.pump(3).requests, [Request::InviteByCode]);
 }
 
 #[test]
 fn a_room_met_on_relays_never_asks_for_a_pasted_code() {
     let mut host = Room::host(&netted("h"), 0);
-    host.pump(0, 0);
+    host.pump(0);
     host.event("connected", "j", "", false, 2);
     assert_eq!(host.pasted_code(), None);
-    assert!(!host.pump(3, 0).requests.contains(&Request::InviteByCode));
+    assert!(!host.pump(3).requests.contains(&Request::InviteByCode));
 }
 
 #[test]
@@ -434,7 +437,7 @@ fn a_joiner_by_code_hands_on_the_invite_and_is_told_to_send_its_reply() {
     let asked = Request::JoinByCode {
         invite: "Oinvite".to_string(),
     };
-    assert_eq!(join.pump(0, 0).requests, [asked]);
+    assert_eq!(join.pump(0).requests, [asked]);
     assert_eq!(join.status(), "");
     assert!(join.making_code());
     join.event("code", "", "Areply", false, 1);
@@ -445,12 +448,12 @@ fn a_joiner_by_code_hands_on_the_invite_and_is_told_to_send_its_reply() {
 #[test]
 fn a_refused_reply_can_be_pasted_again_and_clears_the_refusal() {
     let mut host = Room::host_by_code(&netted("h"));
-    host.pump(0, 0);
+    host.pump(0);
     host.accept_reply("Onot_a_reply");
     let first = Request::AcceptReply {
         reply: "Onot_a_reply".to_string(),
     };
-    assert_eq!(host.pump(1, 0).requests, [first]);
+    assert_eq!(host.pump(1).requests, [first]);
     host.event("error", "", "online.wrong_code", false, 2);
     assert_eq!(host.status(), "online.wrong_code");
     host.event("error", "", "online.bad_paste", false, 3);
@@ -470,5 +473,5 @@ fn a_refused_invite_lets_the_joiner_press_again() {
 #[test]
 fn with_the_net_off_a_room_by_code_asks_the_transport_for_nothing() {
     let mut host = Room::host_by_code(&how("h", 1));
-    assert_eq!(host.pump(0, 0).requests, []);
+    assert_eq!(host.pump(0).requests, []);
 }

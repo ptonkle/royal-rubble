@@ -5,6 +5,11 @@
 //! HUD for the phase: Upgrade cards, Build with its tools, Siege with the
 //! trebuchet and a corner view of your own castle, a replay of the hits on
 //! your castle, and the results.
+//!
+//! Solo, the arena steps its own match through `play::online::step`. Online
+//! (`Arena::online`), the room's session steps the match on every browser;
+//! the arena hands the room this browser's inputs and follows the session's
+//! match each frame (R1.1502).
 
 use std::collections::BTreeMap;
 
@@ -13,7 +18,7 @@ use super::field::{
     Ring, SpotMark,
 };
 use super::sandbox::{num, pair, reach_end};
-use crate::game::flow::{Difficulty, Phase, Seat, Settings};
+use crate::game::flow::Phase;
 use crate::game::ledger::{self, BuildingKind, Piece};
 use crate::game::royals::RoyalKind;
 use crate::game::upgrades::{AirKind, AmmoKind, Tier, UPGRADES};
@@ -23,6 +28,7 @@ use crate::physics::fixed::{cos, sin, TURN};
 use crate::physics::world::snap;
 use crate::physics::{arm_at, Fx, Material, Vec2, World, TUNE};
 use crate::play::castle::{self, BodyOwner, CastleWorld};
+use crate::play::online::{self, Logged, NetMatch, SiegeLog};
 use crate::play::siege::{Ammo, Field};
 use crate::play::units::GridPt;
 use crate::play::{Input, Play};
@@ -168,10 +174,12 @@ fn grid_of(p: Vec2) -> GridPt {
     GridPt::new(r(p.x.0), r(p.y.0))
 }
 
-/// The hits on your castle, played back after a siege.
+/// The hits on your castle, played back after a siege, with the
+/// attacker's inputs when a person threw them (R1.1206).
 #[derive(Clone, Debug)]
 struct Replay {
     field: Field,
+    inputs: Vec<Logged>,
     tick: u32,
     end: u32,
 }
@@ -235,8 +243,14 @@ pub struct Arena {
     path: Vec<Vec2>,
     trail: Vec<Vec2>,
     replay: Option<Replay>,
-    /// Your castle's field as the siege began, for the replay.
-    own_start: Option<Field>,
+    /// The last siege as it began and the people's siege inputs, for the
+    /// replay.
+    log: SiegeLog,
+    /// Online: the room's session steps the match, and this is the session
+    /// tick last followed.
+    driven: Option<u32>,
+    /// Online: the swing a Release was sent for, so it is sent once.
+    auto_released: Option<u32>,
     seen_phase: Phase,
     seen_round: u32,
 }
@@ -244,18 +258,6 @@ pub struct Arena {
 impl Arena {
     /// A match from the lobby's start: bots in their seats, `client` is you.
     pub fn new(start: &MatchStart, client: &str, fast: bool, s: &Strings) -> Result<Arena, String> {
-        let seats: Vec<Seat> = start
-            .seats
-            .iter()
-            .map(|st| match st.bot {
-                Some(d) => Seat::Bot(match d {
-                    crate::lobby::Difficulty::Easy => Difficulty::Easy,
-                    crate::lobby::Difficulty::Normal => Difficulty::Normal,
-                    crate::lobby::Difficulty::Hard => Difficulty::Hard,
-                }),
-                None => Seat::Human,
-            })
-            .collect();
         let me = start.seats.iter().position(|st| st.person == client).unwrap_or(0) as PlayerId;
         let mut bot_n = 0;
         let names = start
@@ -273,15 +275,7 @@ impl Arena {
                 }
             })
             .collect();
-        let mut play = Play::new(Settings {
-            seats,
-            wind: start.options.wind,
-            seed: start.seed,
-        })
-        .map_err(|e| format!("The match cannot start: {e:?}."))?;
-        play.start()
-            .map_err(|e| format!("The match cannot start: {e:?}."))?;
-        play.set_shot_planner(crate::ai::planner::plan_siege);
+        let play = online::new_play(start).map_err(|e| format!("The match cannot start: {e:?}."))?;
         let seen_phase = play.rules.phase;
         let seen_round = play.rules.round;
         let mut a = Arena {
@@ -307,13 +301,36 @@ impl Arena {
             path: Vec::new(),
             trail: Vec::new(),
             replay: None,
-            own_start: None,
+            log: SiegeLog::default(),
+            driven: None,
+            auto_released: None,
             seen_phase,
             seen_round,
         };
-        a.bots_build();
         a.rebuild();
         Ok(a)
+    }
+
+    /// An online match: `game` is the room's, stepped by its session.
+    pub fn online(
+        start: &MatchStart,
+        client: &str,
+        s: &Strings,
+        game: &NetMatch,
+        tick: u32,
+    ) -> Result<Arena, String> {
+        let mut a = Arena::new(start, client, false, s)?;
+        a.play = game.play.clone();
+        a.log = game.log.clone();
+        a.driven = Some(tick);
+        a.seen_phase = a.play.rules.phase;
+        a.seen_round = a.play.rules.round;
+        a.rebuild();
+        Ok(a)
+    }
+
+    pub fn is_online(&self) -> bool {
+        self.driven.is_some()
     }
 
     /// The same seats again on a new seed.
@@ -526,6 +543,9 @@ impl Arena {
                 self.queue(Input::Air(k as u8));
             }
         }
+        if self.driven.is_some() {
+            return;
+        }
         let start = *self.clock.get_or_insert(now_ms);
         let speed = if self.fast { FAST_SPEED } else { 1 };
         let due = (now_ms - start) * TICKS * speed / 1000;
@@ -593,19 +613,10 @@ impl Arena {
         if self.over() {
             return;
         }
-        // a held swing throws by itself at the bottom of the arm
-        if let (Some(f), Some(s)) = (self.my_field(), self.play.siege.as_ref()) {
-            if f.shooter
-                .swing_from
-                .is_some_and(|t| s.tick - t >= Arena::swing_end())
-                && !self.pending.contains(&Input::Release)
-            {
-                self.pending.push(Input::Release);
-            }
-        }
+        self.release_held_swing();
         let inputs: Vec<(PlayerId, Input)> = self.pending.drain(..).map(|i| (self.me, i)).collect();
         let before = Arena::counts(self.my_field());
-        let results = self.play.step(&inputs);
+        let results = online::step(&mut self.play, &mut self.log, &inputs);
         let mut changed = false;
         for ((_, input), r) in inputs.iter().zip(results.iter()) {
             match (input, r) {
@@ -632,6 +643,80 @@ impl Arena {
                 _ => {}
             }
         }
+        self.after_ticks(before, changed, 1);
+    }
+
+    /// A held swing throws by itself at the bottom of the arm.
+    fn release_held_swing(&mut self) {
+        let (Some(f), Some(s)) = (self.my_field(), self.play.siege.as_ref()) else {
+            return;
+        };
+        let Some(from) = f.shooter.swing_from else { return };
+        if s.tick - from >= Arena::swing_end()
+            && !self.pending.contains(&Input::Release)
+            && self.auto_released != Some(from)
+        {
+            self.pending.push(Input::Release);
+            if self.driven.is_some() {
+                self.auto_released = Some(from);
+            }
+        }
+    }
+
+    /// Online: this browser's inputs for the room to send, in order.
+    pub fn take_inputs(&mut self) -> Vec<Input> {
+        if self.over() {
+            self.pending.clear();
+            return Vec::new();
+        }
+        self.release_held_swing();
+        std::mem::take(&mut self.pending)
+    }
+
+    /// Online: the room's match after its session ran up to `tick`.
+    pub fn follow(&mut self, game: &NetMatch, tick: u32) {
+        let Some(seen) = self.driven else { return };
+        if tick <= seen {
+            return;
+        }
+        self.driven = Some(tick);
+        let shot = |f: Option<&Field>| {
+            f.map(|f| {
+                (
+                    f.shooter.swing_from.is_some(),
+                    f.shooter.fired,
+                    f.shooter.air_used,
+                )
+            })
+        };
+        let before_shot = shot(self.my_field());
+        let before = Arena::counts(self.my_field());
+        let castle = self.play.castles[self.me as usize].clone();
+        let level = self.level(self.me);
+        self.play = game.play.clone();
+        self.log = game.log.clone();
+        if let (Some(b), Some(a)) = (before_shot, shot(self.my_field())) {
+            if !b.0 && a.0 {
+                self.cue("trebuchet_creak", 0);
+            }
+            if a.1 > b.1 {
+                self.cue("trebuchet_release", 0);
+                self.path.clear();
+            }
+            if !b.2 && a.2 {
+                self.cue("air_drop", 0);
+            }
+        }
+        let changed = castle != self.play.castles[self.me as usize] || level != self.level(self.me);
+        if changed {
+            self.cue("place_segment", 0);
+        }
+        self.after_ticks(before, changed, tick - seen);
+    }
+
+    /// What follows `ran` match ticks: cues, the trail, the replay, a new
+    /// phase, and your castle rebuilt if it `changed`.
+    fn after_ticks(&mut self, before: (u32, u32), mut changed: bool, ran: u32) {
         let after = Arena::counts(self.my_field());
         let breaks = after.0.saturating_sub(before.0);
         if breaks >= COLLAPSE_MIN {
@@ -644,7 +729,13 @@ impl Arena {
         }
         self.follow_shot();
         if let Some(r) = &mut self.replay {
-            for _ in 0..REPLAY_SPEED {
+            for _ in 0..REPLAY_SPEED * ran {
+                if r.tick >= r.end {
+                    break;
+                }
+                for l in r.inputs.iter().filter(|l| l.tick == r.tick) {
+                    online::replay_input(&mut r.field, l.input, r.tick);
+                }
                 r.field.run_plan(r.tick);
                 r.field.step();
                 r.tick += 1;
@@ -655,9 +746,6 @@ impl Arena {
         }
         let phase = self.phase();
         let round = self.play.rules.round;
-        if phase == Phase::Siege && self.own_start.is_none() {
-            self.own_start = self.own_field().cloned();
-        }
         if phase != self.seen_phase || round != self.seen_round {
             self.entered(phase);
             changed = true;
@@ -707,16 +795,16 @@ impl Arena {
             }
             Phase::Build | Phase::Upgrade | Phase::Results => {
                 if matches!(was, Phase::Siege | Phase::SiegeOver) {
-                    if let Some(field) = self.own_start.take() {
+                    if let Some((field, inputs)) = self.log.replay_of(self.me) {
                         self.replay = Some(Replay {
                             field,
+                            inputs,
                             tick: 0,
                             end: REPLAY_MAX_TICKS,
                         });
                     }
                 }
                 if phase == Phase::Build {
-                    self.bots_build();
                     self.cue("horn_build", 0);
                     let unplaced = self.unplaced_royal().is_some();
                     if unplaced {
@@ -725,67 +813,6 @@ impl Arena {
                 }
             }
             _ => {}
-        }
-    }
-
-    /// Bot castles for this build phase. The rules' SimpleBot buys pieces
-    /// with no place (R1.1203): those are sold back, and a bot with no
-    /// castle yet gets the AI's plan, placed through `play::Input`.
-    fn bots_build(&mut self) {
-        if self.phase() != Phase::Build {
-            return;
-        }
-        let bots: Vec<PlayerId> = self
-            .play
-            .rules
-            .players
-            .iter()
-            .filter(|p| p.alive() && matches!(p.seat, Seat::Bot(_)))
-            .map(|p| p.id)
-            .collect();
-        for b in bots {
-            let pl = &self.play.rules.players[b as usize];
-            let castle = &self.play.castles[b as usize];
-            let loose: Vec<u32> = pl
-                .ledger
-                .entries
-                .iter()
-                .filter(|e| matches!(e.piece, Piece::Segment(_) | Piece::Rope))
-                .filter(|e| !castle.geo.contains_key(&e.id))
-                .filter(|e| !pl.ruin_pieces.iter().any(|(id, _)| *id == e.id))
-                .map(|e| e.id)
-                .collect();
-            for id in loose {
-                let _ = self.play.apply(b, Input::Sell(id));
-            }
-            let pl = &self.play.rules.players[b as usize];
-            let castle = &self.play.castles[b as usize];
-            let has_beams = castle.geo.values().any(|g| matches!(g, castle::Geo::Beam { .. }));
-            if has_beams {
-                continue;
-            }
-            let unplaced: Vec<u8> = (0..pl.royals.len())
-                .filter(|&i| pl.royals[i].spot.is_none())
-                .map(|i| i as u8)
-                .collect();
-            let difficulty = match pl.seat {
-                Seat::Bot(d) => d,
-                Seat::Human => Difficulty::Normal,
-            };
-            let ask = crate::ai::build::BuildAsk {
-                plot: &pl.terrain,
-                level: pl.purse.level,
-                gold: pl.purse.gold,
-                stock: pl.ledger.stock,
-                royals: unplaced.len(),
-                buildings: &[],
-                difficulty,
-                seed: self.play.rules.settings.seed ^ (u64::from(b) << 32) ^ u64::from(self.play.rules.round),
-            };
-            let plan = crate::ai::build::plan_castle(&ask);
-            for input in crate::ai::build::to_inputs(&plan, &unplaced) {
-                let _ = self.play.apply(b, input);
-            }
         }
     }
 
@@ -1726,11 +1753,20 @@ impl Arena {
                     id: "match.results".into(),
                     lines,
                 },
-                Item::Button {
-                    id: "match.again".into(),
-                    text: s.get("results.again"),
-                    quiet: false,
-                    disabled: false,
+                if self.is_online() {
+                    Item::Button {
+                        id: "play.lobby".into(),
+                        text: s.get("results.lobby"),
+                        quiet: false,
+                        disabled: false,
+                    }
+                } else {
+                    Item::Button {
+                        id: "match.again".into(),
+                        text: s.get("results.again"),
+                        quiet: false,
+                        disabled: false,
+                    }
                 },
                 Item::Button {
                     id: "play.leave".into(),

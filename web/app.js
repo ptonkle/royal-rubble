@@ -457,6 +457,7 @@ function draw(result) {
   document.title = ui.title;
   mark("screen", ui.screen);
   mark("capture", ui.capture ? "on" : "");
+  mark("sync", ui.sync);
   takeGains(ui.master_gain, ui.music_gain);
   if (ui.hash !== location.hash) history.replaceState(null, "", ui.hash || location.pathname + location.search);
   const icon = el("tab-icon");

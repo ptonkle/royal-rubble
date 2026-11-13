@@ -13,22 +13,25 @@
 //! for the finder, and the host and joiner swap an invite code and a reply
 //! code by hand. From the channel down the two kinds of room are the same.
 //!
-//! `Room::begin` builds the match every browser runs from `MatchStart`, and
-//! `Room::pump` runs it through the session. Until the rules land the match
-//! is the online kit's toy `World` (R1.403): the lobby, the start and the
-//! inputs-only session are real, and the screen says "Match placeholder".
+//! `Room::begin` builds the match every browser runs from `MatchStart`
+//! (`play::online::NetMatch`), and `Room::pump` runs it through the session
+//! with this browser's queued inputs, one a tick (R1.403). A solo room
+//! leaves the match to `app::arena`, which steps it alone.
 //! Ported from Fleeced's `online/room.rs`.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 
 use serde::{Deserialize, Serialize};
 
 use super::relays::{Finder, RelayStatus, Side};
 use super::{
-    room_name, Ask, Msg, Peer, Session, World, FULL, GARBLED, LEFT_ROOM, PLAYING, RELOAD, SEATS, STARTED,
+    room_name, Ask, Msg, Peer, Session, DESYNC, FULL, GARBLED, LEFT_ROOM, PLAYING, RELOAD, SEATS, STARTED,
     WAITING,
 };
+use crate::game::flow::Phase;
 use crate::lobby::{clean_name, Difficulty, Lobby, MatchStart, Who, MAX_SEATS};
+use crate::play::online::{pack, NetMatch};
+use crate::play::Input;
 use crate::rng::Rng;
 use crate::ticks::Clock;
 
@@ -179,13 +182,17 @@ pub struct Room {
     pub code: String,
     pub client: String,
     pub stage: Stage,
-    pub session: Session<World>,
+    pub session: Session<NetMatch>,
     pub lobby: Lobby,
     /// A joiner has seen the host's lobby. A host and a solo room always have.
     pub heard: bool,
     pub start: Option<MatchStart>,
-    /// The match, from `begin` on: the placeholder world for now.
-    pub game: Option<World>,
+    /// The match, from `begin` on; none in a solo room.
+    pub game: Option<NetMatch>,
+    /// This browser's inputs, packed, waiting for a tick each.
+    queued: VecDeque<u64>,
+    /// The session tick whose input went out last.
+    sent_for: Option<u32>,
     name: String,
     finder: Option<Finder>,
     pasted: Option<Pasted>,
@@ -224,6 +231,8 @@ impl Room {
             heard: host,
             start: None,
             game: None,
+            queued: VecDeque::new(),
+            sent_for: None,
             name: how.name.clone(),
             finder,
             pasted: None,
@@ -511,8 +520,19 @@ impl Room {
             self.session.status = STARTED;
             return;
         };
+        self.game = None;
+        if self.kind != Kind::Solo {
+            match NetMatch::new(&start) {
+                Ok(game) => self.game = Some(game),
+                Err(_) => {
+                    self.session.status = GARBLED;
+                    return;
+                }
+            }
+        }
         self.session.begin(seat, active, &map);
-        self.game = Some(World::default());
+        self.queued.clear();
+        self.sent_for = None;
         self.clock = Clock::default();
         self.start = Some(start);
         self.stage = Stage::Counting { ends: None };
@@ -520,8 +540,24 @@ impl Room {
 
     /// The match here has ended.
     pub fn over(&self) -> bool {
-        // the placeholder match never ends; the rules will say when one does
-        false
+        self.out_of_sync()
+            || self
+                .game
+                .as_ref()
+                .is_some_and(|g| g.play.rules.phase == Phase::Results)
+    }
+
+    /// The browsers' matches disagree: this one stops, and says so.
+    pub fn out_of_sync(&self) -> bool {
+        self.session.status == DESYNC
+    }
+
+    /// One of this browser's inputs, for the session to send on a tick.
+    /// An input that cannot be packed is dropped: the match would refuse it.
+    pub fn queue(&mut self, input: Input) {
+        if let Some(k) = pack(input) {
+            self.queued.push_back(k);
+        }
     }
 
     /// From the winner's screen back to the lobby this match came from. A
@@ -650,7 +686,7 @@ impl Room {
 
     /// One display frame: the finder's timeouts, the countdown, the ticks,
     /// and what to send.
-    pub fn pump(&mut self, now_ms: i64, keys: u32) -> Pump {
+    pub fn pump(&mut self, now_ms: i64) -> Pump {
         let mut requests = Vec::new();
         if let Some(f) = &mut self.finder {
             f.update(now_ms);
@@ -668,10 +704,15 @@ impl Room {
                 Stage::Counting { ends: Some(ends) }
             };
         }
-        if let (Stage::Playing, Some(world)) = (self.stage, &mut self.game) {
-            for bits in self.clock.frame(now_ms * 1_000, keys) {
-                self.session.local(u64::from(bits));
-                self.session.step(world);
+        let over = self.over();
+        if let (Stage::Playing, Some(game), false) = (self.stage, &mut self.game, over) {
+            for _ in self.clock.frame(now_ms * 1_000, 0) {
+                // one input a tick; a tick still waiting has its input already
+                if self.sent_for != Some(self.session.tick) {
+                    self.sent_for = Some(self.session.tick);
+                    self.session.local(self.queued.pop_front().unwrap_or(0));
+                }
+                self.session.step(game);
             }
         }
         let mut out = Vec::new();

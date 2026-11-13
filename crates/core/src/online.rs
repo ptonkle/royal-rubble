@@ -29,7 +29,7 @@
 //! legs, which `MAX_AHEAD` covers.
 //!
 //! A session runs any `Rollback` world: `step`, `sum` and `Clone` are all this
-//! module asks of one. The match will be the real one (a placeholder for now); the kit's toy `World`
+//! module asks of one. The match is `play::online::NetMatch`; the kit's toy `World`
 //! stays as the small world the session's own tests play.
 //!
 //! Every status is a key for a string in `data/` (`online.reload`,
@@ -88,8 +88,9 @@ pub const MAX_AHEAD: u32 = 12;
 /// plus one).
 pub const WINDOW: u32 = 3 * DELAY + 2 * MAX_AHEAD + 2;
 
-/// Ticks between checksums.
-pub const SUM_EVERY: u32 = 30;
+/// Ticks between checksums: one a second. The match's checksum hashes debug
+/// text (R1.704), so it stays off the per-tick path.
+pub const SUM_EVERY: u32 = 60;
 
 /// How many of its own checksums a browser keeps for the others' to meet.
 const SUMS_KEPT: usize = 8;
@@ -195,6 +196,12 @@ pub trait Rollback: Clone {
     /// bot and from the agreed tick for a browser that left. It can't be
     /// anyone's real input.
     const NOBODY: u64;
+    /// The guess for a seat whose input for a tick has not come in, from
+    /// its last known one. Held keys hold (the default); a match whose
+    /// inputs are one-off presses guesses no input.
+    fn guess(last: u64) -> u64 {
+        last
+    }
     fn step(&mut self, keys: [u64; SEATS]);
     fn sum(&self) -> u64;
 }
@@ -581,11 +588,11 @@ impl<W: Rollback> Session<W> {
         if !self.active[seat] || self.gone[seat].is_some_and(|g| tick >= g) {
             return W::NOBODY;
         }
-        self.inputs[seat]
-            .range(..=tick)
-            .next_back()
-            .map(|(_, k)| *k)
-            .unwrap_or(0)
+        match self.inputs[seat].range(..=tick).next_back() {
+            Some((t, k)) if *t == tick => *k,
+            Some((_, k)) => W::guess(*k),
+            None => 0,
+        }
     }
 
     fn run(&mut self, world: &mut W, tick: u32) {
