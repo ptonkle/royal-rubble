@@ -223,7 +223,7 @@ body[data-screen="match"] .panel.field-bar > .button {
   margin: 0;
   padding: 0.3rem;
   font: var(--hud-font);
-  white-space: normal;
+  white-space: nowrap;
   text-align: center;
   overflow: hidden;
 }
@@ -236,3 +236,34 @@ body[data-screen="match"] .panel.cards h2 { color: var(--hud-ink); }
 .card .icon { width: 2.5rem; height: 2.5rem; background-color: var(--hud-ink); }
 .card[data-tier="gold"] .icon { background-color: var(--icon-gold); }
 .card[data-tier="prismatic"] .icon { background-color: var(--icon-trick); }
+
+/* every HUD button in the match: the slot look, not the tapestry patch */
+body[data-screen="match"] .panel.field-top .button,
+body[data-screen="match"] .panel.field-bar > .button,
+body[data-screen="match"] .panel.cards > .button {
+  color: var(--hud-ink);
+  background: var(--hud-slot);
+  border: 2px solid var(--hud-slot-edge);
+  border-radius: 0.4rem;
+  box-shadow: none;
+  text-shadow: none;
+  font: var(--hud-font);
+}
+body[data-screen="match"] .panel.field-top .button::before, body[data-screen="match"] .panel.field-top .button::after,
+body[data-screen="match"] .panel.field-bar > .button::before, body[data-screen="match"] .panel.field-bar > .button::after,
+body[data-screen="match"] .panel.cards > .button::before, body[data-screen="match"] .panel.cards > .button::after { display: none; }
+body[data-screen="match"] .panel.field-top .button,
+body[data-screen="match"] .panel.cards > .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+body[data-screen="match"] .panel.field-top .button .icon { width: 1.1rem; height: 1.1rem; }
+body[data-screen="match"] .panel.cards > .button { flex-basis: auto; width: 12rem; height: 2.75rem; }
+body[data-screen="match"] .button:hover:not(:disabled) { border-color: var(--hud-dim); filter: none; }
+body[data-screen="match"] .button:disabled { opacity: 0.35; }
+body[data-screen="match"] .panel.field-bar > #match\.ready:not(:disabled) { border-color: var(--hud-good); }
+body[data-screen="match"] .panel.field-bar > #match\.ready:not(:disabled) .icon { background-color: var(--hud-good); }
+body[data-screen="match"] .panel.field-bar > .button .icon { background-color: var(--hud-ink); }
+body[data-screen="match"] .panel.field-bar > #match\.buy_xp .icon { background-color: var(--icon-xp); }

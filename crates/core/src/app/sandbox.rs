@@ -1137,6 +1137,7 @@ impl Sandbox {
         let button = |id: &str, key: &str| Item::Button {
             tip: String::new(),
             icon: String::new(),
+            cost: String::new(),
             id: id.into(),
             text: s.get(key),
             quiet: false,
@@ -1152,6 +1153,7 @@ impl Sandbox {
         top.push(Item::Button {
             tip: String::new(),
             icon: String::new(),
+            cost: String::new(),
             id: "sandbox.leave".into(),
             text: s.get("play.leave"),
             quiet: true,

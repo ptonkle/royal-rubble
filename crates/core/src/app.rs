@@ -525,6 +525,7 @@ impl App {
         Item::Button {
             tip: String::new(),
             icon: String::new(),
+            cost: String::new(),
             id: id.into(),
             text: self.strings.get(key),
             quiet: false,
@@ -536,6 +537,7 @@ impl App {
         Item::Button {
             tip: String::new(),
             icon: String::new(),
+            cost: String::new(),
             id: id.into(),
             text: self.strings.get(key),
             quiet: true,
