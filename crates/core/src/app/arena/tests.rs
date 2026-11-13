@@ -63,16 +63,38 @@ fn arena_a_press_and_release_in_build_places_a_wood_segment_through_play() {
 /// Plays a whole match: Ready in every phase, and in the siege two taps of
 /// Space for each shot. Returns the ticks it took.
 fn play_out(a: &mut Arena) -> (u32, usize) {
+    // a release that finishes the bot on this seed: with the pivot 7/2 high
+    // only 120 of 100-190 (step 10) does inside 40,000 ticks (R1.1802)
+    play_out_at(a, 120, 200_000)
+}
+
+/// Swing ticks to release at for `play_out`: run with `--ignored` after a
+/// trebuchet change; it fails listing the releases that end the match.
+#[test]
+#[ignore]
+fn arena_whole_match_release_sweep() {
+    let mut ends = vec![];
+    for r in (40u32..=190).step_by(10) {
+        let mut a = arena(1);
+        let (t, _) = play_out_at(&mut a, r, 40_000);
+        if a.over() {
+            ends.push((r, t));
+        }
+    }
+    panic!("(release, ticks) that end the match: {ends:?}");
+}
+
+fn play_out_at(a: &mut Arena, release: u32, cap: u32) -> (u32, usize) {
     let mut ticks = 0;
     let mut bot_pieces = 0;
-    while !a.over() && ticks < 200_000 {
+    while !a.over() && ticks < cap {
         match a.phase() {
             Phase::Siege => {
                 let left = a.my_field().map_or(0, |f| f.shooter.shots_left());
                 let swinging = a.my_field().is_some_and(|f| f.shooter.swing_from.is_some());
                 if left == 0 {
                     a.queue(Input::Ready);
-                } else if (!swinging && ticks % 200 == 0) || (swinging && ticks % 200 == 150) {
+                } else if (!swinging && ticks % 200 == 0) || (swinging && ticks % 200 == release) {
                     a.space();
                 }
             }
