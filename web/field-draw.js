@@ -201,7 +201,14 @@ function flag(g, f) {
 
 // The map's spots: a band of wool laid along the ground.
 function spots(g, f) {
-  (f.spots || []).forEach((s) => stem(g, s.a, s.b, s.w, color("spot-" + s.kind)));
+  (f.spots || []).forEach((s) => {
+    g.strokeStyle = color("spot-" + s.kind);
+    g.lineWidth = s.w;
+    g.beginPath();
+    g.moveTo(s.a[0], s.a[1]);
+    g.lineTo(s.b[0], s.b[1]);
+    dashed(g, look.spot_dash);
+  });
 }
 
 // A second view in a framed box (your own castle during a siege).

@@ -16,5 +16,6 @@
   "fire_dash": [3, 5],
   "full_turn": 6.283185307179586,
   "pole_width": 4,
-  "inset_edge": 4
+  "inset_edge": 4,
+  "spot_dash": [14, 6]
 }

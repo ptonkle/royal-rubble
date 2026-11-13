@@ -1073,9 +1073,11 @@ impl Arena {
             .map(|s| {
                 let x0 = Fx::from_int(s.cols.start as i64);
                 let x1 = Fx::from_int(s.cols.end as i64);
+                // a band just under the ground line, so it never reads as a beam
+                let down = |q: [i32; 2]| [q[0], q[1] + w];
                 SpotMark {
-                    a: cam.px(Vec2::new(x0, self.ground(p, x0))),
-                    b: cam.px(Vec2::new(x1, self.ground(p, x1))),
+                    a: down(cam.px(Vec2::new(x0, self.ground(p, x0)))),
+                    b: down(cam.px(Vec2::new(x1, self.ground(p, x1)))),
                     w,
                     kind: spot_name(s.kind),
                 }

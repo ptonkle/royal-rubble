@@ -296,6 +296,7 @@ body[data-screen="match"] .panel.results {
   border-radius: var(--button-radius);
   cursor: pointer;
 }
+body[data-screen="match"] .bar-option { color: var(--hud-ink); }
 .bar-option[data-selected="on"] { border-color: var(--bar-chosen); color: var(--bar-chosen); }
 .bar-option:disabled { opacity: 0.4; cursor: not-allowed; }
 .bar-key { font-size: 0.75rem; font-weight: 400; color: var(--page-ink-dim); }
