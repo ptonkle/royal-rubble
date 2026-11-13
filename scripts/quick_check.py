@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 """Run only the check steps the changed files need, and log how long checks take.
 
-    ./scripts/quick-check.sh              the steps the changes since the last full pass need
+    ./scripts/quick-check.sh              the steps the changes need, since the newer of the
+                                          last full pass and the merge base with main
     ./scripts/quick-check.sh BASE         ... the changes since commit BASE
     ./scripts/quick-check.sh --dry-run    print the plan and run nothing
     ./scripts/quick-check.sh --full       run ./scripts/check.sh and log its time
     python3 scripts/quick_check.py --guard    fail if a file is covered by no rule
 
 tests/tags.toml maps files to the steps of ./scripts/check.sh. The changed
-files are those that differ from BASE (by default the commit of the newest
-passing full check in notes/check-times.md, so a quick check only ever skips
-relative to a full pass), plus uncommitted and untracked files. A changed file
-no rule covers runs the whole check. Every run adds a row to
-notes/check-times.md; a failing run names the step that failed.
+files are those that differ from BASE (by default the newer of the newest
+passing full check in notes/check-times.md and the merge base with main, so a
+quick check only ever skips relative to a full pass or to what main already
+holds), plus uncommitted and untracked files. A changed file no rule covers
+runs the whole check. Every run adds a row to notes/check-times.md; a failing
+run names the step that failed.
+
+The core step runs only the cargo tests the changes need (scripts/tags.py), and
+the browser step runs in Chromium alone; ./scripts/check.sh runs everything.
 
 What a pass establishes: the steps that ran passed. It says nothing about the
 steps it skipped. ./scripts/check.sh stays the check before a handoff, a
@@ -21,6 +26,7 @@ Crabble); this is written fresh for the template.
 """
 
 import fnmatch
+import importlib.util
 import os
 import subprocess
 import sys
@@ -56,6 +62,13 @@ COMMANDS = {
 
 def tags():
     return tomllib.loads((ROOT / "tests" / "tags.toml").read_text())
+
+
+def tag_tool():
+    spec = importlib.util.spec_from_file_location("tags", ROOT / "scripts" / "tags.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def matches(path, pattern):
@@ -96,6 +109,22 @@ def last_full_pass():
         if len(c) >= 6 and c[2] == "check" and c[-1] == "pass":
             return c[1].rstrip("+")
     return None
+
+
+def is_ancestor(a, b):
+    return git("merge-base", "--is-ancestor", a, b).returncode == 0
+
+
+def default_base():
+    """The newer of the last full pass and the merge base with main."""
+    last = last_full_pass()
+    found = [last] if last and is_ancestor(last, "HEAD") else []
+    merge_base = git("merge-base", "HEAD", "main").stdout.strip()
+    if merge_base:
+        found.append(merge_base)
+    if len(found) == 2 and is_ancestor(found[0], found[1]):
+        return found[1]
+    return found[0] if found else None
 
 
 def changed(base):
@@ -168,12 +197,34 @@ def log(kind, times, result):
         f.write(f"| {datetime.now():%Y-%m-%d %H:%M} | {head}{dirty} | {kind} | {steps} | {sum(times.values()):.1f} | {result} |\n")
 
 
-def run(kind, steps):
+def core_files(files, conf):
+    """The changed files whose rules reach the core tests."""
+    def reaches(f):
+        found = rules_for(f, conf)
+        return not found or any({"core", "all"} & set(r["steps"]) for r in found)
+
+    return [f for f in files if not ignored(f, conf) and reaches(f)]
+
+
+def picked_tests(base, files, conf):
+    """The cargo tests the change needs, by exact name, or None for all."""
+    try:
+        return tag_tool().pick(conf, base or "HEAD", core_files(files, conf))
+    except subprocess.CalledProcessError:
+        print("the tests do not compile: running them all, so the error shows")
+        return None
+
+
+def run(kind, steps, names=None):
     times = {}
+    env = {**os.environ, "BUILDER_ENGINES": os.environ.get("BUILDER_ENGINES", "chromium")}
     for s in steps:
         print(f"\n== quick: {s}", flush=True)
         t0 = time.monotonic()
-        code = subprocess.run(COMMANDS[s](), cwd=ROOT).returncode
+        command = COMMANDS[s]()
+        if s == "core" and names is not None:
+            command = ["cargo", "test", "--workspace", "--quiet", "--lib", "--tests", "--", "--exact", *names]
+        code = subprocess.run(command, cwd=ROOT, env=env).returncode
         times[s] = time.monotonic() - t0
         if code != 0:
             log(kind, times, f"FAIL at {s}")
@@ -194,16 +245,18 @@ def main(argv):
         log("check", {"all": time.monotonic() - t0}, "pass" if code == 0 else "FAIL")
         return code
     args = [a for a in argv if not a.startswith("--")]
-    base = args[0] if args else last_full_pass()
+    base = args[0] if args else default_base()
     files = changed(base)
     steps, why = plan(files, conf)
     print(f"base: {base or 'HEAD (no passing full check logged yet)'}")
     for w in why:
         print(f"  {w}")
     print(f"steps: {', '.join(steps)}")
+    whole = files is None or steps == ORDER
+    names = None if whole or "core" not in steps else picked_tests(base, files, conf)
     if "--dry-run" in argv:
         return 0
-    return run("quick", steps)
+    return run("quick", steps, names)
 
 
 if __name__ == "__main__":

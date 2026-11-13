@@ -1,16 +1,51 @@
 [
   {
-    "name": "an empty title is refused",
-    "file": "crates/core/src/page.rs",
-    "find": "if strings.title.trim().is_empty() {",
-    "replace": "if false {",
-    "test": "an_empty_title_is_rejected_by_name"
+    "name": "an unknown action is refused",
+    "file": "crates/core/src/app.rs",
+    "find": "return Err(format!(\"Unknown action \\\"{other}\\\".\"));",
+    "replace": "return Ok(());",
+    "test": "act_refuses_an_unknown_action_in_error"
   },
   {
-    "name": "an unknown action is refused",
-    "file": "crates/core/src/api.rs",
-    "find": "other => return Err(format!(\"Unknown action \\\"{other}\\\".\")),",
-    "replace": "_ => {}",
-    "test": "act_refuses_an_unknown_action"
+    "name": "shell: the master gain is scaled to sixty percent",
+    "file": "crates/core/src/save.rs",
+    "find": "p * p * 6 / 100",
+    "replace": "p * p / 10",
+    "test": "a_full_slider_is_sixty_percent_of_the_old_full_level"
+  },
+  {
+    "name": "shell: the music slider reaches the save",
+    "file": "crates/core/src/app.rs",
+    "find": "\"settings.music\" => self.save.music = percent(value)?,",
+    "replace": "\"settings.music\" => {}",
+    "test": "sound_and_music_reach_the_save_and_a_reload_brings_them_back"
+  },
+  {
+    "name": "shell: bots fill the open seats",
+    "file": "crates/core/src/lobby.rs",
+    "find": "(true, Who::Empty) => {",
+    "replace": "(true, Who::Empty) if false => {",
+    "test": "bots_fill_the_open_seats_and_give_way_to_a_person"
+  },
+  {
+    "name": "shell: the host sets a bot's difficulty",
+    "file": "crates/core/src/online/room.rs",
+    "find": "self.lobby.set_level(seat, level);",
+    "replace": "let _ = (seat, level);",
+    "test": "the_hosts_options_and_bot_levels_reach_every_browser"
+  },
+  {
+    "name": "shell: players stay within two to eight",
+    "file": "crates/core/src/lobby.rs",
+    "find": "let players = players.clamp(fewest, MAX_SEATS as u32);",
+    "replace": "let players = players.max(fewest).min(12);",
+    "test": "players_stay_within_two_to_eight_and_never_below_the_people"
+  },
+  {
+    "name": "shell: an invite link joins the room",
+    "file": "crates/core/src/app.rs",
+    "find": "\"flag.room\" => self.join(value),",
+    "replace": "\"flag.room\" => {}",
+    "test": "an_invite_link_joins_and_a_bad_code_says_so"
   }
 ]

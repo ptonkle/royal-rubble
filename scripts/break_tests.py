@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Rule 6 as a script: break each behaviour a test covers, run that test,
+"""Rule 6 as a script: break each behavior a test covers, run that test,
 require it to fail, and put the code back. A test that still passes with its
-behaviour broken does not cover it. (After Long Time Comin' and Lowballer.)
+behavior broken does not cover it. (After Long Time Comin' and Lowballer.)
 
     python3 scripts/break_tests.py              every break in tests/breaks.json
     python3 scripts/break_tests.py title intro  the breaks whose names hold these words
@@ -52,7 +52,7 @@ def main(words):
         finally:
             path.write_text(original)
         if run.returncode == 0:
-            print(f"  MISSED  {b['name']}: {b['test']} still passes with the behaviour broken")
+            print(f"  MISSED  {b['name']}: {b['test']} still passes with the behavior broken")
             bad.append(b["name"])
         else:
             print(f"  caught  {b['name']}")
