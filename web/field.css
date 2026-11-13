@@ -20,6 +20,9 @@
   --field-debris: #6d7444;
   --field-fire: #d9772e;
   --field-ring: rgba(46, 58, 85, 0.6);
+  /* the plot's fine running stitch and grid (web/field-draw.js) */
+  --field-zone-thread: #7b4f3e;
+  --field-grid-thread: #51524b;
   --field-bad: #b0302a;
   --mat-wood: #c49a45;
   --mat-stone: #b9ae93;
@@ -61,11 +64,12 @@
   --royal-armory: #6d4a3a;
 
   /* the field's bars */
-  --bar-bg: rgba(46, 58, 85, 0.88);
-  --bar-chosen: #f0e2b6;
-  --hud-ink: #f0e2b6;
-  /* upgrade cards' edges by tier */
-  --card-silver: #b9bcc2;
-  --card-gold: #d4a83a;
-  --card-prismatic: #9a7ac0;
+  /* linen panels with the brick rule and stitched edge of the menus (theme.css) */
+  --bar-bg: var(--linen) var(--look-linen) repeat;
+  --bar-chosen: var(--brick);
+  --hud-ink: var(--navy);
+  /* upgrade cards' edges by tier, in wool */
+  --card-silver: #8494a8;
+  --card-gold: #9a8052;
+  --card-prismatic: #41606a;
 }

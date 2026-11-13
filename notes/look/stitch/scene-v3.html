@@ -1,0 +1,393 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Tapestry v3</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas>
+<script src="stitch.js"></script>
+<script type="module">
+import { create, parts } from "../../../web/stitch.js";
+// Royal Rubble look reference, Bayeux style (v2). Same game scene as the
+// v1 mockup, with the trebuchet about three castle-widths farther off and a
+// ridge between. Layout is in 1920x1080 fabric units; ?zoom=2&cx=&cy=
+// renders a close-up around a point with the stitches scaled up too.
+const W0 = 1920, H0 = 1080;
+const TOP = [8, 104], BOT = [968, 1072];
+const SCENE = {
+  ground: [[0, 716], [120, 712], [300, 708], [420, 716], [520, 760], [600, 800], [680, 770], [760, 650], [840, 560],
+    [900, 532], [960, 548], [1040, 640], [1120, 770], [1200, 846], [1250, 866]],
+  moat: [1250, 1392, 868, 900],
+  motte: [[1392, 866], [1420, 760], [1446, 660], [1470, 612], [1500, 600], [1840, 600], [1876, 640], [1906, 760], [1920, 820]],
+  treb: { base: 704, x0: 150, x1: 312, pivot: [231, 584], angle: -62, long: 172, short: 52 },
+  shot: { from: [352, 424], to: [1672, 296], apex: 230, t: 0.41, r: 13 },
+  // [x, y, w, h, material]
+  blocks: [
+    [1496, 478, 22, 122, "stone"], [1596, 478, 22, 122, "stone"], [1700, 478, 22, 122, "stone"], [1800, 478, 22, 122, "stone"],
+    [1484, 464, 350, 14, "stone"],
+    [1512, 362, 12, 102, "wood"], [1660, 362, 12, 102, "wood"], [1794, 362, 12, 102, "wood"],
+    [1498, 350, 320, 12, "wood"],
+    [1622, 248, 16, 102, "stone"], [1722, 248, 16, 102, "stone"],
+    [1610, 236, 140, 12, "stone"],
+    [1508, 296, 52, 54, "stone"],
+  ],
+  braces: [[1524, 364, 1660, 462, "wood", 9], [1672, 364, 1794, 462, "wood", 9], [1618, 598, 1700, 480, "metal", 9]],
+  merlons: [[1610, 236, 140, 5]],
+  roof: [[1502, 296], [1534, 228], [1566, 296]],
+  rope: [[1748, 240], [1800, 360], [1850, 510], [1872, 604]],
+  flag: { x: 1690, y: 236, h: 88 },
+  royals: [[1556, 600, "squire", -1], [1760, 600, "princess", -1], [1590, 464, "queen", -1], [1742, 464, "prince", -1], [1682, 350, "king", -1]],
+  trees: [[612, 790, 1], [1196, 838, -1], [40, 714, 1]],
+  inscription: { text: "HIC TREBVCHETVM : LAPIDEM IACIT :", x: 70, y: 168, cap: 30, colors: ["navy", "rule", "slate", "terracotta"] },
+  hud: { x0: 560, x1: 1360, mats: [["WOOD", 1, 12, "wood"], ["STONE", 3, 6, "stone"], ["METAL", 5, 0, "metal"]], gold: 14, phase: "BUILD", time: "0:42" },
+};
+
+(async () => {
+  const q = new URLSearchParams(location.search);
+  const zoom = +(q.get("zoom") || 1), cx = +(q.get("cx") || W0 / 2), cy = +(q.get("cy") || H0 / 2);
+  const c = document.getElementById("c");
+  c.width = innerWidth; c.height = innerHeight;
+  const ctx = c.getContext("2d");
+  const palette = await (await fetch("../../../data/palette.json")).json();
+  const K = await (await fetch("../../../data/stitch.json")).json();
+  K.stitch.zoom = zoom;
+  const S = create(ctx, palette, K, 1066);
+  const B = Stitch.create(ctx, palette, { zoom, thread: 4.2, stemWidth: 4, barEvery: 3.5 }, 1066);
+  B.scale(zoom);
+  S.border = B.border; S.letters = B.letters; S.motif = B.motif;
+  ctx.setTransform(zoom, 0, 0, zoom, innerWidth / 2 - cx * zoom, innerHeight / 2 - cy * zoom);
+  S.scale(zoom);
+  const R = S.R, P = S.P;
+  const thin = P.stem_width * 0.62;
+
+  S.linen(0, 0, W0, H0);
+
+  // --- helpers on polylines
+  function offset(pts, d) {
+    return pts.map((p, i) => {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+      return [p[0] - dy / l * d, p[1] + dx / l * d];
+    });
+  }
+  const band = (pts, d0, d1) => offset(pts, d0).concat(offset(pts, d1).reverse());
+  const beam = (x1, y1, x2, y2, t) => {
+    const a = Math.atan2(y2 - y1, x2 - x1), nx = -Math.sin(a) * t / 2, ny = Math.cos(a) * t / 2;
+    return [[x1 + nx, y1 + ny], [x2 + nx, y2 + ny], [x2 - nx, y2 - ny], [x1 - nx, y1 - ny]];
+  };
+  // a hill as nested arches: copies of its profile shrunk toward the base
+  function mound(profile, [bx, by], cols, step) {
+    const ring = f => profile.map(([x, y]) => [bx + (x - bx) * (1 - (1 - f) * 0.35), by + (y - by) * f]);
+    const outer = profile.concat([[profile[profile.length - 1][0], by], [profile[0][0], by]]);
+    ctx.save(); ctx.clip(S.poly(outer).path);
+    cols.forEach((col, i) => {
+      const f0 = 1 - i * step, f1 = 1 - (i + 1) * step;
+      const a = ring(f0), b = ring(f1);
+      if (col) S.couch(S.poly(a.concat(b.slice().reverse())), col, { scale: 0.85, angle: 0 });
+      if (col) { S.stem(a, i % 4 ? "navy" : "rule", { w: thin * 0.9 }); S.stem(b, i % 4 ? "rule" : "navy", { w: thin * 0.9 }); }
+    });
+    S.stem(ring(1 - cols.length * step), "rule", { w: thin * 0.9 });
+    ctx.restore();
+    S.stem(profile, "rule", { w: thin });
+  }
+  const rect = (x, y, w, h) => [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
+  // scalloped ground line, the small humps the tapestry walks on
+  function scallops(pts, r) {
+    const out = [], fine = S.curve(pts, 10);
+    let acc = 0, last = fine[0];
+    const steps = [];
+    for (const p of fine) { acc += Math.hypot(p[0] - last[0], p[1] - last[1]); last = p; steps.push([p, acc]); }
+    for (let i = 0; i < steps.length - 1; i++) {
+      const [p, s] = steps[i], [p2] = steps[i + 1];
+      const dx = p2[0] - p[0], dy = p2[1] - p[1], l = Math.hypot(dx, dy) || 1;
+      const h = Math.abs(Math.sin(s / (r * 2) * Math.PI)) * r * 0.75;
+      out.push([p[0] + dy / l * h, p[1] - dx / l * h]);
+    }
+    return out;
+  }
+
+  // --- borders, top and bottom (the bottom one holds the HUD)
+  S.border(0, TOP[0], W0, TOP[1] - TOP[0], { alternate: true });
+  S.border(0, BOT[0], W0, BOT[1] - BOT[0], { alternate: true, skip: [[SCENE.hud.x0 - 20, SCENE.hud.x1 + 20]], phase: 0.5 });
+
+  // --- terrain: the left field and the ridge
+  const G = S.curve(SCENE.ground, 8);
+  // two nested bands under the surface, then linen: the tapestry's mound
+  const GL = G.filter(p => p[0] < 610);
+  S.couch(S.poly(band(GL, 4, 18)), "olive", { angle: 0, scale: 0.85 });
+    S.stem(offset(GL, 4), "rule", { w: thin });
+  S.stem(offset(GL, 18), "slate", { w: thin });
+  S.stem(scallops(G, 9), "slate", { w: thin });
+  // the ridge: nested arches filling the mound, as the tapestry draws hills
+  mound(G.filter(p => p[0] >= 600 && p[0] <= 1250), [930, 968], ["olive", null, "tan", null, "terracotta", null], 0.15);
+
+  // --- moat: wavy lines in several wools
+  const [mx0, mx1, mt, mb] = SCENE.moat;
+  ["slate", "buff", "bluegreen", "tan"].forEach((col, i) => {
+    const y = mt + 6 + i * 8, pts = [];
+    for (let x = mx0 + 6; x <= mx1 - 6; x += 6) pts.push([x, y + Math.sin(x / 11 + i * 1.7) * 3]);
+    S.stem(pts, col, { w: thin * 0.9 });
+  });
+  S.patch([[1300, 884], [1309, 880], [1318, 884], [1309, 888], [1300, 884], [1295, 880], [1295, 888]], "ochre", "navy", { scale: 0.6, lineW: thin * 0.7 });
+  S.stem(S.curve([[1240, 862], [1262, 902], [1320, 906], [1386, 902], [1398, 862]], 6), "rule", { w: thin });
+
+  // --- the motte: nested bands like the mounds at Dol and Dinan
+  const M = S.curve(SCENE.motte, 8);
+  mound(M, [1656, 968], ["terracotta", null, "tan", null, "slate", null], 0.14);
+  S.stem(scallops(M.filter(p => p[1] < 640), 8), "slate", { w: thin });
+
+  // --- trees: interlaced trunks splitting into curled branches and leaf fans
+  function tree(x, y, f) {
+    const tr = [[x - 5, y], [x - 3, y - 70], [x + 3, y - 70], [x + 5, y]];
+    S.patch(tr, "terracotta", "navy", { angle: Math.PI / 2, scale: 0.7, lineW: thin });
+    const curls = [[-1, 0.9], [1, 1], [-1, 0.6], [1, 0.55]];
+    curls.forEach(([s, k], i) => {
+      const by = y - 70 + i * 6, ex = x + s * 34 * k * f, ey = by - 46 * k;
+      const pts = S.curve([[x, by], [x + s * 10 * f, by - 20 * k], [ex, ey + 8], [ex - s * 10 * f, ey], [ex - s * 4 * f, ey + 10]], 6);
+      S.stem(pts, i % 2 ? "tan" : "rule", { w: thin * 1.2 });
+      for (const [ang, len] of [[-0.7, 20], [0, 26], [0.7, 20]]) {
+        const ux = Math.sin(ang + s * f * 0.3), uy = -Math.cos(ang + s * f * 0.3);
+        const tip = [ex + ux * len, ey + uy * len], side = [-uy * 5, ux * 5];
+        const leaf = S.curve([[ex, ey], [ex + ux * len * 0.5 + side[0], ey + uy * len * 0.5 + side[1]], tip, [ex + ux * len * 0.5 - side[0], ey + uy * len * 0.5 - side[1]]], 4, true);
+        S.patch(leaf, i % 2 ? "olive" : "slate", "navy", { angle: ang, scale: 0.55, lineW: thin * 0.7 });
+      }
+    });
+    S.stem(S.curve([[x - 3, y - 6], [x + 3, y - 26], [x - 3, y - 46], [x + 3, y - 66]], 5), "buff", { w: thin * 0.8 });
+  }
+  for (const [x, y, f] of SCENE.trees) tree(x, y, f);
+  // small trefoil plants on the field
+  for (const x of [470, 700, 1010, 1100]) {
+    const y = S.curve(SCENE.ground, 8).reduce((b, p) => Math.abs(p[0] - x) < Math.abs(b[0] - x) ? p : b)[1];
+    S.motif("sprig", x, y - 2, 34, "tan", "rule", 1);
+  }
+
+  // --- castle
+  function material(ring, mat, along) {
+    if (mat === "wood") {
+      S.patch(ring, "terracotta", "navy", { angle: along, scale: 0.75, lineW: thin });
+    } else if (mat === "metal") {
+      S.patch(ring, "navy", "buff", { angle: along, scale: 0.75, lineW: thin });
+    } else {
+      S.patch(ring, "buff", "rule", { angle: along, scale: 0.75, lineW: thin });
+    }
+  }
+  function stoneCourses(x, y, w, h) {
+    // masonry: course lines and staggered joints in red-brown
+    for (let yy = y + 11, r = 0; yy < y + h - 3; yy += 11, r++) S.stem([[x + 1, yy], [x + w - 1, yy]], "rule", { w: thin * 0.55 });
+    for (let yy = y, r = 0; yy < y + h - 4; yy += 11, r++) {
+      for (let xx = x + (r % 2 ? w * 0.5 : w * 0.25); xx < x + w - 2; xx += w > 40 ? 16 : w * 0.5)
+        S.stem([[xx, yy + 2], [xx, Math.min(yy + 9, y + h - 2)]], "rule", { w: thin * 0.5 });
+    }
+  }
+  for (const [x1, y1, x2, y2, mat, t] of SCENE.braces) material(beam(x1, y1, x2, y2, t), mat, Math.atan2(y2 - y1, x2 - x1));
+  for (const [x, y, w, h, mat] of SCENE.blocks) {
+    material(rect(x, y, w, h), mat, w > h ? 0 : Math.PI / 2);
+    if (mat === "stone") stoneCourses(x, y, w, h);
+    if (mat === "wood") S.stem([[x + (w > h ? 2 : w / 2), y + (w > h ? h / 2 : 2)], [x + (w > h ? w - 2 : w / 2), y + (w > h ? h / 2 : h - 2)]], "tan", { w: thin * 0.6 });
+  }
+  // metal brace rivets
+  { const [x1, y1, x2, y2] = SCENE.braces[2]; for (let t = 0.15; t < 0.95; t += 0.23) S.knot(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, "buff", 1.5); }
+  // merlons
+  for (const [x, y, w, n] of SCENE.merlons) for (let i = 0; i < n; i++) {
+    const mw = w / (n * 2 - 1), r = rect(x + i * mw * 2, y - 12, mw, 12);
+    S.patch(r, i % 2 ? "tan" : "buff", "rule", { scale: 0.7, lineW: thin * 0.8 });
+  }
+  // turret: scale-tiled conical roof, rows of little arcs as on the tapestry
+  {
+    const [a, tip, b] = SCENE.roof;
+    const roof = S.poly([a, tip, b]);
+    S.couch(roof, "slate", { scale: 0.7, angle: 0 });
+    ctx.save(); ctx.clip(roof.path);
+    for (let y = tip[1] + 8, r = 0; y < a[1] + 6; y += 9, r++) {
+      for (let x = a[0] - 10 + (r % 2) * 5; x < b[0] + 10; x += 10) S.stem(S.ellipse(x, y, 5, 6, 0, Math.PI, 6), r % 2 ? "buff" : "tan", { w: thin * 0.6 });
+    }
+    ctx.restore();
+    S.stem([a, tip, b], "navy", { w: thin });
+    S.knot(tip[0], tip[1] - 3, "ochre", 3.2);
+  }
+  // window arches in the turret and the keep
+  S.patch(S.curve([[1528, 340], [1528, 318], [1534, 310], [1540, 318], [1540, 340]], 4), "navy", "navy", { scale: 0.5, lineW: thin * 0.6 });
+  // rope
+  S.stem(S.curve(SCENE.rope, 8), "tan", { w: thin * 0.9, slant: 0.8 });
+  // gonfanon on the keep: a pole, a cross, and a three-tailed flag flying with the wind
+  {
+    const { x, y, h } = SCENE.flag;
+    S.stem([[x, y], [x, y - h]], "rule", { w: thin * 1.1 });
+    S.stem([[x - 5, y - h + 4], [x + 5, y - h + 4]], "rule", { w: thin * 0.8 });
+    const fy = y - h + 10, flag = S.curve([[x, fy], [x + 30, fy - 3], [x + 62, fy + 2], [x + 76, fy + 4], [x + 60, fy + 12], [x + 74, fy + 18], [x + 56, fy + 22], [x + 68, fy + 30], [x + 30, fy + 30], [x, fy + 30]], 3);
+    const f = S.patch(flag, "terracotta", "navy", { scale: 0.6, lineW: thin * 0.9 });
+    ctx.save(); ctx.clip(f.path);
+    S.couch(S.poly(rect(x, fy + 10, 80, 9)), "ochre", { scale: 0.6 });
+    ctx.restore();
+    S.stem([[x, fy + 10], [x + 70, fy + 12]], "navy", { w: thin * 0.6 });
+    S.stem([[x, fy + 19], [x + 70, fy + 21]], "navy", { w: thin * 0.6 });
+  }
+
+  // --- royals: elongated tapestry figures with stitched faces
+  const COSTUME = {
+    king: { tunic: "tan", robe: true, cloak: "navy", legs: "terracotta", hair: "slate", crown: true, beard: true, scepter: true },
+    queen: { tunic: "terracotta", robe: true, veil: "slate", legs: "terracotta", crown: true },
+    prince: { tunic: "slate", cloak: "terracotta", legs: "tan", hair: "rule", crown: true, spear: true },
+    princess: { tunic: "olive", robe: true, legs: "tan", hair: "tan", crown: true, longHair: true },
+    squire: { tunic: "tan", legs: "slate", hair: "terracotta", cap: true },
+  };
+  function royal(x, foot, kind, f) {
+    const C = COSTUME[kind], s = 0.86; // 100 units tall -> 86 fabric px
+    const T = pts => pts.map(([px, py]) => [x + px * s * f, foot + py * s]);
+    const fs = 0.6, lw = thin * 1.0;
+    // cloak behind the body
+    if (C.cloak) S.patch(T([[-6, -71], [-19, -56], [-24, -26], [-17, kind === "king" ? -6 : -30], [-6, -36]]), C.cloak, "rule", { angle: 1.3, scale: fs, lineW: lw });
+    // legs and pointed feet
+    if (!C.robe) {
+      for (const [a, b, toe] of [[-8, -2, -1], [2, 8, 1]]) {
+        S.patch(T([[a, -38], [b, -38], [b + toe * 2, -5], [a + toe * 2, -4]]), C.legs, "navy", { angle: Math.PI / 2, scale: fs, lineW: lw });
+        for (let yy = -32; yy > -38 + 34; yy += 7) void yy;
+        for (let yy = -33; yy < -8; yy += 7) S.stem(T([[a, yy], [b + toe, yy + 4]]), "buff", { w: lw * 0.8 });
+        S.patch(T([[a + toe * 2, -5], [b + toe * 2, -5], [b + toe * 8, 1], [a + toe * 3, 0]]), "navy", "navy", { scale: fs, lineW: lw * 0.7 });
+      }
+    } else {
+      S.patch(T([[-7, -4], [0, -4], [4, 1], [-5, 1]]), "navy", "navy", { scale: fs, lineW: lw * 0.7 });
+    }
+    // tunic or robe with fold lines
+    const hem = C.robe ? -5 : -34;
+    const body = [[-9, -72], [8, -72], [10, -56], C.robe ? [15, hem] : [17, hem], C.robe ? [-14, hem] : [-15, hem], [-11, -56]];
+    S.patch(T(body), C.tunic, kind === "squire" ? "rule" : "navy", { angle: Math.PI / 2, scale: fs, lineW: lw });
+    const fold = C.tunic === "tan" || C.tunic === "olive" ? "rule" : "buff";
+    for (const [a, b] of [[-4, -8], [2, 4], [7, 11]]) S.stem(T([[a, -54], [b, hem + 2]]), fold, { w: lw * 0.9 });
+    S.stem(T([[-11, -56], [10, -56]]), fold, { w: lw * 0.8 });
+    if (C.robe) S.stem(T([[-14, hem - 4], [15, hem - 4]]), fold, { w: lw * 0.8 });
+    // arm reaching forward (toward the enemy), long fingers
+    S.patch(T([[3, -70], [9, -71], [22, -62], [19, -57]]), C.tunic, "navy", { angle: -0.6, scale: fs, lineW: lw });
+    S.knot(...T([[23, -60]])[0], "buff", 1.6);
+    for (const [dx, dy] of [[6, -4], [7, -1], [6, 2], [2, -5]]) S.stem(T([[23, -60], [23 + dx, -60 + dy]]), "navy", { w: lw * 0.55 });
+    // back arm holding the scepter or spear
+    if (C.scepter || C.spear) {
+      S.stem(T([[-4, -68], [-8, -55], [-2, -50]]), C.tunic, { w: lw * 1.6 });
+      const top = C.spear ? [-2, -112] : [-1, -92], bot = C.spear ? [-2, -4] : [-3, -40];
+      S.stem(T([bot, top]), C.spear ? "rule" : "ochre", { w: lw * (C.spear ? 0.9 : 1.2) });
+      if (C.scepter) { for (const p of [[-1, -95], [-5, -91], [3, -91]]) S.knot(...T([p])[0], "ochre", 1.7); }
+      else S.patch(T([[-2, -122], [2, -112], [-2, -108], [-6, -112]]), "slate", "navy", { scale: 0.5, lineW: lw * 0.6 });
+    }
+    // neck and head: bare linen face outlined in stem stitch
+    const head = S.ellipse(0, -83, 7, 8.4, 0, Math.PI * 2, 18).map(([px, py]) => [x + px * s * f, foot + py * s]);
+    ctx.save(); ctx.fillStyle = palette.linen.mid; ctx.beginPath(); head.forEach(([a, b], i) => i ? ctx.lineTo(a, b) : ctx.moveTo(a, b)); ctx.fill(); ctx.restore();
+    if (C.veil) S.patch(T([[-9, -70], [-10, -86], [-5, -94], [4, -95], [9, -89], [6, -87], [1, -90], [-3, -86], [-2, -74], [4, -72]]), C.veil, "navy", { angle: 1.4, scale: fs, lineW: lw });
+    if (C.longHair) S.patch(T([[-4, -90], [-9, -84], [-10, -62], [-5, -64], [-3, -80]]), C.hair, "rule", { angle: Math.PI / 2, scale: fs, lineW: lw });
+    if (C.hair && !C.veil) S.patch(T([[5, -89.5], [1, -92], [-5, -91], [-7.6, -86], [-7, -79.5], [-4.6, -79.5], [-4, -86], [2, -88.6]]), C.hair, "rule", { angle: 0.2, scale: fs, lineW: lw * 0.8 });
+    S.stem(head, "rule", { closed: true, w: lw * 0.75 });
+    // face: brow, eye, nose in profile, mouth
+    S.stem(T([[2, -87], [5.5, -87]]), "navy", { w: lw * 0.55 });
+    S.knot(...T([[4.2, -85]])[0], "navy", 1.0);
+    S.stem(T([[6, -86], [8.6, -81.5], [6.2, -80.5]]), "rule", { w: lw * 0.6 });
+    S.stem(T([[4.2, -78.3], [6.6, -78.6]]), "rule", { w: lw * 0.55 });
+    if (C.beard) S.patch(T([[-1, -80], [6, -79], [5, -74], [1, -71], [-1, -75]]), "slate", "navy", { angle: Math.PI / 2, scale: 0.45, lineW: lw * 0.6 });
+    if (C.cap) S.stem(T([[-6, -88], [6, -88]]), "navy", { w: lw * 0.8 });
+    // crown: a band with three trefoil points, bold enough to read in play
+    if (C.crown) {
+      const cy0 = C.veil ? -94 : -90.5;
+      S.patch(T([[-7, cy0 + 1], [7.5, cy0 + 1], [7.5, cy0 - 4], [5, cy0 - 9], [3, cy0 - 4], [0.5, cy0 - 10], [-2, cy0 - 4], [-4.5, cy0 - 9], [-7, cy0 - 4]]), "ochre", "navy", { scale: 0.45, lineW: lw * 0.8 });
+      for (const p of [[5, cy0 - 10], [0.5, cy0 - 11.5], [-4.5, cy0 - 10]]) S.knot(...T([p])[0], "ochre", 1.6);
+    }
+  }
+  for (const [x, y, k, f] of SCENE.royals) {
+    const C = K.costumes[k], flags = {}; C.flags.forEach(fl => flags[fl] = true);
+    parts(S, K.body, C, x, y, 0.9, f, flags);
+  }
+  // a knight and a hut on the near field, as in the game
+  { const C = K.costumes.knight, flags = {}; C.flags.forEach(fl => flags[fl] = true); parts(S, K.body, C, 380, 712, 0.9, 1, flags); }
+  { const H = K.huts.quarry; parts(S, K.hut, { wall: H.wall, roof: H.roof, tiles_a: H.tiles_a, tiles_b: H.tiles_b }, 1880, 600, 0.6, 1, { pick: true, checks: true }); }
+
+
+  // --- trebuchet, mid-swing: timber frame, wheels, arm, counterweight, sling
+  {
+    const T = SCENE.treb, [px, py] = T.pivot, a = T.angle * Math.PI / 180;
+    const longEnd = [px + Math.cos(a) * T.long, py + Math.sin(a) * T.long];
+    const shortEnd = [px - Math.cos(a) * T.short, py - Math.sin(a) * T.short];
+    // counterweight hangs from the short end
+    const cw = [shortEnd[0], shortEnd[1] + 12];
+    S.stem([shortEnd, cw], "navy", { w: thin });
+    const box = rect(cw[0] - 16, cw[1], 32, 27);
+    S.patch(box, "buff", "navy", { scale: 0.7, lineW: thin });
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) if ((i + j) % 2 === 0) S.patch(rect(cw[0] - 16 + i * 8, cw[1] + j * 9, 8, 9), "navy", "navy", { scale: 0.5, lineW: thin * 0.4 });
+    // A-frame legs and base beam
+    S.patch(beam(T.x0 + 22, T.base, px, py, 11), "tan", "rule", { angle: Math.atan2(py - T.base, px - T.x0 - 22), scale: 0.75, lineW: thin });
+    S.patch(beam(T.x1 - 16, T.base, px, py, 11), "tan", "rule", { angle: Math.atan2(py - T.base, px - T.x1 + 16), scale: 0.75, lineW: thin });
+    S.patch(beam(T.x0 + 52, T.base - 50, T.x1 - 40, T.base - 50, 8), "terracotta", "navy", { scale: 0.7, lineW: thin * 0.8 });
+    S.patch(rect(T.x0, T.base - 5, T.x1 - T.x0, 12), "terracotta", "navy", { scale: 0.75, lineW: thin });
+    for (let x = T.x0 + 14; x < T.x1 - 6; x += 18) S.stem([[x, T.base - 4], [x + 8, T.base + 6]], "tan", { w: thin * 0.7 });
+    // wheels
+    for (const wx of [T.x0 + 28, T.x1 - 28]) {
+      const ring = S.ellipse(wx, T.base + 13, 14, 14, 0, Math.PI * 2, 20), inner = S.ellipse(wx, T.base + 13, 9.5, 9.5, 0, Math.PI * 2, 18);
+      S.couch(S.poly(ring, inner.slice().reverse()), "slate", { scale: 0.6 });
+      S.stem(ring, "navy", { closed: true, w: thin * 0.8 }); S.stem(inner, "navy", { closed: true, w: thin * 0.7 });
+      for (let k = 0; k < 4; k++) { const ang = k * Math.PI / 4 + 0.3; S.stem([[wx - Math.cos(ang) * 9.5, T.base + 13 - Math.sin(ang) * 9.5], [wx + Math.cos(ang) * 9.5, T.base + 13 + Math.sin(ang) * 9.5]], "tan", { w: thin * 0.7 }); }
+      S.knot(wx, T.base + 13, "rule", 2.2);
+    }
+    // the arm, striped like the tapestry's posts
+    const arm = beam(shortEnd[0], shortEnd[1], longEnd[0], longEnd[1], 9);
+    const armS = S.patch(arm, "ochre", "rule", { angle: a, scale: 0.7, lineW: thin });
+    ctx.save(); ctx.clip(armS.path);
+    for (let t = 0.04; t < 1; t += 0.09) {
+      const x = shortEnd[0] + (longEnd[0] - shortEnd[0]) * t, y = shortEnd[1] + (longEnd[1] - shortEnd[1]) * t;
+      S.stem([[x - 8, y + 2], [x + 4, y - 9]], "rule", { w: thin * 1.1 });
+    }
+    ctx.restore();
+    S.knot(px, py, "navy", 4.5); S.knot(px, py, "ochre", 2.2);
+    // sling: rope swinging up from the arm's end, pouch just opened
+    const pouch = [longEnd[0] + 40, longEnd[1] - 8];
+    S.stem(S.curve([longEnd, [longEnd[0] + 22, longEnd[1] - 16], pouch], 6), "tan", { w: thin * 0.8, slant: 0.8 });
+    S.patch(S.curve([[pouch[0] - 6, pouch[1] - 3], [pouch[0] + 6, pouch[1] - 8], [pouch[0] + 9, pouch[1] + 2], [pouch[0] - 2, pouch[1] + 5]], 4, true), "rule", "navy", { scale: 0.5, lineW: thin * 0.6 });
+    // swing streaks, as the tapestry draws motion: a few stitched arcs
+    for (let i = 0; i < 3; i++) {
+      const rr = T.long - 20 - i * 20;
+      S.running(S.ellipse(px, py, rr, rr, a + 0.16, a + 0.62, 10), "slate", { len: 5, gap: 5, w: P.run_width * 0.8 });
+    }
+  }
+
+  // --- the shot: a stone ball in flight; running stitch shows its path
+  {
+    const { from, to, apex, t: st, r } = SCENE.shot;
+    const arcAt = t => [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t - 4 * apex * t * (1 - t)];
+    const behind = [], ahead = [];
+    for (let t = 0; t <= st - 0.02; t += 0.01) behind.push(arcAt(t));
+    for (let t = st + 0.03; t <= 1; t += 0.01) ahead.push(arcAt(t));
+    S.running(behind, "rule", {});
+    S.running(ahead, "slate", { len: 5, gap: 10, w: P.run_width * 0.8 });
+    const [sx, sy] = arcAt(st), [qx, qy] = arcAt(st - 0.02), ang = Math.atan2(sy - qy, sx - qx);
+    for (const [dd, len] of [[-7, 26], [0, 38], [7, 24]]) {
+      const ox = -Math.sin(ang) * dd, oy = Math.cos(ang) * dd;
+      S.stem([[sx - Math.cos(ang) * (r + 6) + ox, sy - Math.sin(ang) * (r + 6) + oy], [sx - Math.cos(ang) * (r + 6 + len) + ox, sy - Math.sin(ang) * (r + 6 + len) + oy]], dd ? "tan" : "rule", { w: thin * 0.9 });
+    }
+    const ball = S.ellipse(sx, sy, r, r, 0, Math.PI * 2, 22);
+    S.patch(ball, "navy", "buff", { angle: 0.5, scale: 0.7, lineW: thin * 1.1 });
+    S.stem(S.ellipse(sx, sy, r * 0.55, r * 0.55, 3.6, 5.0, 6), "slate", { w: thin * 0.7 });
+  }
+
+  // --- inscription: irregular stitched capitals, words in turn colors
+  { const I = SCENE.inscription; S.letters(I.text, I.x, I.y, I.cap, I.colors); }
+
+  // --- HUD sliver in the lower border: stitched panel, swatches, labels
+  {
+    const H = SCENE.hud, y0 = BOT[0] + 10, y1 = BOT[1] - 10;
+    const panel = rect(H.x0, y0, H.x1 - H.x0, y1 - y0);
+    ctx.save(); ctx.fillStyle = palette.linen.mid; ctx.beginPath(); panel.forEach(([a, b], i) => i ? ctx.lineTo(a, b) : ctx.moveTo(a, b)); ctx.fill(); ctx.restore();
+    S.linen(H.x0, y0, H.x1 - H.x0, y1 - y0);
+    S.stem(panel, "rule", { closed: true, w: thin });
+    S.stem(rect(H.x0 + 6, y0 + 6, H.x1 - H.x0 - 12, y1 - y0 - 12), "rule", { closed: true, w: thin * 0.6 });
+    const cyM = (y0 + y1) / 2;
+    H.mats.forEach(([name, cost, have, mat], i) => {
+      const x = H.x0 + 30 + i * 196;
+      const sw = rect(x, cyM - 20, 40, 40);
+      material(sw, mat, Math.PI / 2);
+      if (mat === "stone") stoneCourses(x, cyM - 20, 40, 40);
+      if (i === 0) S.stem(rect(x - 8, cyM - 30, 180, 60), "ochre", { closed: true, w: thin * 0.9 });
+      S.letters(name, x + 52, cyM - 2, 19, ["navy"], { tracking: 0.14 });
+      S.letters(`${cost} GOLD · ${have}`, x + 52, cyM + 25, 15, ["rule"], { tracking: 0.12 });
+    });
+    const gx = H.x1 - 190;
+    S.patch(S.ellipse(gx, cyM - 12, 13, 13, 0, Math.PI * 2, 20), "ochre", "rule", { scale: 0.6, lineW: thin });
+    S.knot(gx, cyM - 12, "buff", 2);
+    S.letters(String(H.gold), gx + 22, cyM - 1, 24, ["navy"]);
+    S.letters(`${H.phase} ${H.time}`, gx - 14, cyM + 27, 16, ["terracotta"], { tracking: 0.12 });
+  }
+
+  window.DONE = true;
+})();
+</script></body></html>

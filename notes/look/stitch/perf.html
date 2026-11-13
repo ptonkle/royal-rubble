@@ -1,0 +1,43 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Field draw timing</title>
+<link rel="stylesheet" href="../../../web/theme.css"><link rel="stylesheet" href="../../../web/field.css">
+<style>html,body{margin:0;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script type="module">
+// Times web/field-draw.js on a made-up frame: a 150-segment castle with six
+// royals, a building, shots and debris, at 1920x1080. render.py --json
+// prints the result. Warm frames reuse the cached textures; "moving" shifts
+// the view a pixel each frame so the terrain layer redraws, as in a siege.
+import { drawField, setLook } from "../../../web/field-draw.js";
+const json = async (p) => (await fetch(p)).json();
+const [table, stitch, palette] = await Promise.all([json("../../../data/field.json"), json("../../../data/stitch.json"), json("../../../data/palette.json")]);
+setLook(table, stitch, palette);
+const g = document.getElementById("c").getContext("2d");
+function frame(dx) {
+  const ground = [];
+  for (let x = -40; x <= 2000; x += 40) ground.push([x + dx, 760 + Math.round(30 * Math.sin(x / 300))]);
+  const beams = [], mats = ["wood", "stone", "metal", "rope"];
+  const cols = 10, rows = 5, cw = 60, rh = 70, x0 = 1200 + dx, y0 = 760;
+  for (let r = 0; r < rows; r++) for (let c = 0; c <= cols; c++) {
+    const x = x0 + c * cw, y = y0 - r * rh;
+    beams.push({ a: [x, y], b: [x, y - rh], w: 10, material: mats[(r + c) % 3] });
+    if (c < cols) beams.push({ a: [x, y - rh], b: [x + cw, y - rh], w: 10, material: mats[(r * 3 + c) % 3] });
+    if (c < cols) beams.push({ a: [x, y], b: [x + cw, y - rh], w: 8, material: (c + r) % 4 ? "wood" : "rope" });
+  }
+  const royals = ["squire", "knight", "princess", "prince", "queen", "king"].map((rank, i) => ({ x: x0 + 40 + i * 100, y: y0 - rh * (i % 3) - 14, r: 14, rank, dead: false }));
+  royals.push({ x: x0 + 660, y: y0 - 16, r: 16, rank: "quarry", dead: false });
+  return {
+    mode: "siege", size: [1920, 1080], ground, water: [[700 + dx, 790], [900 + dx, 790]], zone: [x0 - 20, 300, x0 + 700, y0], grid: 30,
+    beams: beams.slice(0, 150), nodes: [], royals, shots: [{ x: 900, y: 300, r: 9, hot: false }], debris: [{ x: 1100, y: 600, r: 5 }],
+    engine: { feet: [[200 + dx, 760], [320 + dx, 760]], pivot: [260 + dx, 640], tip: [180 + dx, 520], weight: [300 + dx, 680], arm_w: 9, weight_r: 14, loaded: null },
+    trail: [[300, 500], [600, 300], [900, 300]], spots: [], cues: [], loops: [], music: "",
+  };
+}
+const t0 = performance.now(); drawField(g, frame(0)); const first = performance.now() - t0;
+const time = (n, moving) => { const a = performance.now(); for (let i = 0; i < n; i++) drawField(g, frame(moving ? i % 2 : 0)); return (performance.now() - a) / n; };
+time(10, false);
+const still = time(120, false), moving = time(30, true);
+drawField(g, frame(0));
+window.RESULT = { first_ms: +first.toFixed(1), still_ms: +still.toFixed(2), moving_ms: +moving.toFixed(2), beams: 150 };
+window.DONE = true;
+</script></body></html>

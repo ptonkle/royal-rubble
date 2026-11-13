@@ -23,7 +23,9 @@ export async function initField(theSend) {
   send = theSend;
   canvas = document.getElementById("field");
   g = canvas.getContext("2d");
-  setLook(await (await fetch("data/field.json")).json());
+  const json = async (path) => (await fetch(path)).json();
+  const [table, stitch, palette] = await Promise.all([json("data/field.json"), json("data/stitch.json"), json("data/palette.json")]);
+  setLook(table, stitch, palette);
   sound.initSound();
   canvas.addEventListener("pointerdown", (e) => {
     canvas.setPointerCapture(e.pointerId);
