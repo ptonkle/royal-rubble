@@ -100,11 +100,10 @@ pub const FLOOR_UNITS: i64 = 1;
 /// top), so a room is one segment tall and a royal fits under the floor
 /// above (R1.2500). A row with no floor is braced both ways below it.
 pub const ROOM_ROWS: i64 = 2;
-/// A hut (R1.2500): two posts down to the ground, a level roof between
-/// them and a strut from each post's top to the ground, out to this many
-/// quarter units beyond it where a beam reaches, so five wood beams make a
-/// stiff shelter a royal fits under.
-pub const HUT_STRUT_QUARTERS: i64 = 3;
+/// A hall (R1.2500): a post at every bay edge, a level roof between their
+/// tops and a strut from each end post's top to the ground, out to this
+/// many quarter units beyond it where a beam reaches.
+pub const HALL_STRUT_QUARTERS: i64 = 3;
 /// Head room a hut's or hall's roof leaves over the ground at each bay's
 /// middle, in eighths: the figure (3/2) and half a wood beam, rounded up
 /// to the grid (R1.2502).
@@ -114,8 +113,9 @@ pub const HUT_ROOM_EIGHTHS: i64 = 13;
 pub const FRONT_SETBACK: usize = 4;
 /// Most the ground may rise under a castle, raw Q16.16 (one unit).
 pub const MAX_RISE_RAW: i64 = 1 << 16;
-/// Widest a template's width parameter goes, in bays.
-pub const MAX_BAYS: i64 = 20;
+/// Widest a bot's keep goes, in bays; past it the keep only grows taller
+/// (R1.4000).
+pub const KEEP_MAX_BAYS: i64 = 6;
 
 /// A stronger column material is chosen when its best castle is worth at
 /// least this share (num, den) of the best castle in any material.
@@ -127,7 +127,7 @@ pub fn royal_radius() -> crate::physics::Fx {
 }
 
 /// Floors a template may rise to, by level (index level - 1).
-pub const MAX_FLOORS: [i64; 9] = [3, 3, 4, 4, 5, 5, 6, 6, 7];
+pub const MAX_FLOORS: [i64; 9] = [4, 6, 6, 8, 8, 10, 10, 12, 12];
 
 /// Gold a bot keeps banked for interest, by difficulty and round: nothing
 /// in the first rounds, so round 1 builds a castle (R1.1452).
