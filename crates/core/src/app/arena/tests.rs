@@ -253,7 +253,32 @@ fn arena_the_first_siege_tick_shows_the_trebuchet_and_the_ground_under_it() {
 }
 
 #[test]
-fn arena_a_high_shot_widens_the_view_and_keeps_the_ground_in_it() {
+fn arena_the_aim_view_shows_the_trebuchet_and_the_castle_front_up_close() {
+    // R1.4200: the aim view stopped 38 units past the trebuchet, short of a
+    // castle 60 to 80 away, and the flight then opened to tiny castles
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    to_siege(&mut a);
+    for _ in 0..CAM_EASE * 8 {
+        a.tick();
+    }
+    let f = a.my_field().unwrap();
+    let (cl, _, ground, top) = a.castle_box(f);
+    let base = f.base;
+    assert!(on_screen(&a, base), "trebuchet off {:?}", a.camera());
+    assert!(
+        on_screen(&a, Vec2::new(cl, (ground + top) / 2)),
+        "castle front {cl:?} base {base:?} off {:?}",
+        a.camera()
+    );
+    // never wider than 110 units: over 17 pixels a unit
+    assert!(a.camera().ppu > Fx::from_int(17), "{:?}", a.camera());
+}
+
+#[test]
+fn arena_a_high_shot_is_followed_at_the_aim_zoom() {
+    // R1.4200: a high shot opened the view to 260 units and the castles
+    // shrank to a few pixels; now the flight keeps the aim width
     let mut a = arena(1);
     a.set_size("1920,1080").unwrap();
     to_siege(&mut a);
@@ -288,15 +313,13 @@ fn arena_a_high_shot_widens_the_view_and_keeps_the_ground_in_it() {
     let [bx, by] = a.camera_target().px(ball.pos);
     assert!(
         (0..1920).contains(&bx) && (0..1080).contains(&by),
-        "ball off {:?}",
+        "ball {:?} at {bx},{by} off {:?}",
+        ball.pos,
         a.camera_target()
     );
-    let ground = crate::play::units::physics_terrain(&f.plot).height_at(ball.pos.x);
-    assert!(
-        on_screen(&a, Vec2::new(ball.pos.x, ground)),
-        "ground off {:?}",
-        a.camera()
-    );
+    let aim = a.aim_width(f, 1920, 1080);
+    assert_eq!(a.camera_target().ppu, Fx::from_int(1920) / aim);
+    assert!(aim <= Fx::from_int(110), "aim view {aim:?} wide");
 }
 
 #[test]

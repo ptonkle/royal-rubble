@@ -100,15 +100,16 @@ const DRUM_FROM: u32 = 10;
 /// ...and beats harder from this many (R1.3800).
 const DRUM_HARD: u32 = 3;
 /// Siege camera (R1.1454), in world units: margin round the castle, how far
-/// behind a shot or the trebuchet the view starts, widest flight view, the
-/// aim view's width range, and an empty castle's stand-in size.
+/// behind a shot or the trebuchet the view starts, the aim view's width
+/// range (R1.4200: wide enough for the castle's front, so the castle reads
+/// at about a quarter of the height), and an empty castle's stand-in size.
 const CAM_MARGIN: i64 = 3;
 const CAM_BEHIND: i64 = 6;
-const CAM_FLY_MAX_W: i64 = 44;
-/// The widest a high shot opens the view to keep the ground in it.
-const CAM_FLY_TALL_W: i64 = 260;
 const CAM_AIM_MIN_W: i64 = 24;
-const CAM_AIM_MAX_W: i64 = 44;
+const CAM_AIM_MAX_W: i64 = 110;
+/// The aim view shows the whole castle while it fills at least this share
+/// (num, den) of the height (R1.4200).
+const CAM_AIM_SHARE: (i64, i64) = (1, 4);
 const CAM_EMPTY_W: i64 = 10;
 const CAM_MIN_TALL: i64 = 4;
 /// The settled castle fills at least this share (num, den) of the height.
@@ -723,40 +724,42 @@ impl Arena {
             // pan stops with the castle in view, so it is there before impact
             let mut cam = Camera::spanning(home, width, Fx::ZERO, w, h);
             let tall = cam.height();
-            cam.left = (b.pos.x - width * 2 / 5).max(home).min(cr + m - width);
+            // a shot thrown back past the trebuchet stays in view (R1.4200)
+            let back = home.min(b.pos.x - m);
+            cam.left = (b.pos.x - width * 2 / 5).max(back).min(cr + m - width);
             cam.bottom = (floor - tall / 6).max(b.pos.y - tall * 3 / 5);
             return cam.kept_in(edge);
         }
         if settled {
             return castle.kept_in(edge);
         }
-        let left = base.x - Fx::from_int(CAM_BEHIND);
-        let width = (cl + Fx::from_int(CAM_MARGIN) - left)
-            .min(Fx::from_int(CAM_AIM_MAX_W))
-            .max(Fx::from_int(CAM_AIM_MIN_W));
-        let mut cam = Camera::spanning(left, width, Fx::ZERO, w, h);
-        cam.bottom = floor - cam.height() / 6;
+        let width = self.aim_width(f, w, h);
+        let mut cam = Camera::spanning(home, width, Fx::ZERO, w, h);
+        let tall = cam.height();
+        // the lower of the trebuchet's and the castle front's ground a sixth
+        // up, raised if the castle's top would be cut
+        let floor = floor.min(self.ground(f.owner, cl));
+        cam.bottom = (floor - tall / 6).max((top + m - tall).min(floor - tall / 12));
         cam.kept_in(edge)
     }
 
-    /// The flight view's width for shot `b` just thrown at field `f`
-    /// (R1.3204): from the trebuchet to past the castle, widened so the
-    /// shot's highest point sits under the top quarter, at most the widest.
-    fn flight_width(&self, f: &Field, b: &crate::physics::balls::Ball) -> Fx {
-        let (w, h) = self.size;
-        let (_, cr, ground, _) = self.castle_box(f);
-        let floor = f.base.y.min(ground);
+    /// The aim view's width for field `f` (R1.4200): from behind the
+    /// trebuchet to past the whole castle while the castle still fills a
+    /// quarter of the height, and never short of the castle's front, up to
+    /// the widest aim view. The flight keeps this width (R1.3204), so the
+    /// view never zooms at release.
+    fn aim_width(&self, f: &Field, w: i32, h: i32) -> Fx {
+        let (cl, cr, ground, top) = self.castle_box(f);
+        let m = Fx::from_int(CAM_MARGIN);
         let home = f.base.x - Fx::from_int(CAM_BEHIND);
-        let across = (cr + Fx::from_int(CAM_MARGIN) - home)
-            .min(Fx::from_int(CAM_FLY_MAX_W))
-            .max(Fx::from_int(CAM_AIM_MIN_W));
-        // rise under gravity alone: vy^2 / 2g, in raw units
-        let vy = b.vel.y.0.max(0);
-        let rise = Fx(vy * vy / (2 * crate::physics::tune::G_RAW));
-        let tall = (b.pos.y + rise + Fx::from_int(CAM_MARGIN) - floor) * 12 / 7;
-        across
-            .max(tall * Fx::from_int(w as i64) / Fx::from_int(h.max(1) as i64))
-            .min(Fx::from_int(CAM_FLY_TALL_W))
+        let (num, den) = CAM_AIM_SHARE;
+        let share_w =
+            (top - ground).max(Fx::ONE) * Fx::from_int(w as i64 * den) / Fx::from_int(h.max(1) as i64 * num);
+        let front = (cl + m * 3 - home).min(Fx::from_int(CAM_AIM_MAX_W));
+        (cr + m - home)
+            .min(share_w)
+            .max(front)
+            .max(Fx::from_int(CAM_AIM_MIN_W))
     }
 
     /// Whether the view is back on the trebuchet after a shot, so the next
@@ -1228,7 +1231,7 @@ impl Arena {
             Some(fl) if fl.ball == i => fl,
             _ => Flight {
                 ball: i,
-                width: self.flight_width(f, b),
+                width: self.aim_width(f, self.size.0, self.size.1),
                 fell: false,
                 landed: false,
             },
