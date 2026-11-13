@@ -7,13 +7,13 @@ use crate::rng::Rng;
 const SALT: u64 = 0x4E41_4D45_5342_4F54;
 
 #[derive(serde::Deserialize)]
-struct File {
+struct NamesList {
     names: Vec<String>,
 }
 
 /// The names list, built into the core.
 pub fn all() -> Vec<String> {
-    serde_json::from_str::<File>(include_str!("../../../../data/bot-names.json"))
+    serde_json::from_str::<NamesList>(include_str!("../../../../data/bot-names.json"))
         .map(|f| f.names)
         .unwrap_or_default()
 }
