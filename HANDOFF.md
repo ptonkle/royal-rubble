@@ -30,6 +30,8 @@ Where the design journal is, its link if it is published, and its newest entry.
 
 Every `SECOND-ORDER.md` row with status *person*, by number, with what the person has to decide or supply. `scripts/notebook_check.py` fails while one is missing.
 
+- R1.505: listen to every sound and both music loops on `notes/sound/preview.html`, and say what to change.
+
 ## Mistakes so far
 
 By system, from `SECOND-ORDER.md`, with the rule each one produced.

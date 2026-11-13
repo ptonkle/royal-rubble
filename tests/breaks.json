@@ -12,5 +12,19 @@
     "find": "other => return Err(format!(\"Unknown action \\\"{other}\\\".\")),",
     "replace": "_ => {}",
     "test": "act_refuses_an_unknown_action"
+  },
+  {
+    "name": "the sound volume stays low",
+    "file": "data/sound-programs.json",
+    "find": "\"master_scale\":0.6",
+    "replace": "\"master_scale\":1.0",
+    "test": "a_full_slider_plays_at_most_sixty_percent"
+  },
+  {
+    "name": "a sound group names only compiled sounds",
+    "file": "data/sound-programs.json",
+    "find": "\"impact_wood\":[\"impact_wood_1\"",
+    "replace": "\"impact_wood\":[\"impact_wood_9\"",
+    "test": "every_named_sound_is_compiled"
   }
 ]

@@ -59,3 +59,9 @@ name = "the checks themselves"
 # a change to a script that runs or builds the checks runs everything
 files = ["scripts/**", "tests/tags.toml"]
 steps = ["all"]
+
+[[rule]]
+name = "the sound tools"
+# they write data/sound*.json, which crates/core/tests/sound.rs reads
+files = ["tools/sound/**"]
+steps = ["core"]
