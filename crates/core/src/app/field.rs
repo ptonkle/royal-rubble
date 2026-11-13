@@ -180,7 +180,7 @@ pub struct Tree {
 }
 
 /// How tall a scenery tree stands, in cells.
-pub const TREE_TALL_CELLS: i32 = 9;
+pub const TREE_TALL_CELLS: i32 = 5;
 
 /// The plot's scenery trees inside the view, in pixels.
 pub fn tree_marks(plot: &Plot, cam: &Camera) -> Vec<Tree> {
