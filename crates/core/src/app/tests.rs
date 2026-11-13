@@ -177,8 +177,9 @@ fn online_two_apps_play_the_same_match_from_the_lobby() {
     }
     assert_eq!(host.ui().screen, "match");
     assert_eq!(join.ui().screen, "match");
-    host.act("match.ready", "").unwrap();
-    join.act("match.ready", "").unwrap();
+    // the button waits for every royal (R1.3305): send Ready itself
+    host.arena.as_mut().unwrap().ready_now();
+    join.arena.as_mut().unwrap().ready_now();
     for _ in 0..200 {
         wire_frame(&mut now, &mut host, &mut join);
     }

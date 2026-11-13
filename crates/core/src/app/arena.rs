@@ -1285,6 +1285,13 @@ impl Arena {
             .any(|(_, f)| castle::beam_hits_royal(a, b, f))
     }
 
+    /// Ready as sent, past the button's wait for every royal (tests of
+    /// the online wire).
+    #[cfg(test)]
+    pub(crate) fn ready_now(&mut self) {
+        self.queue(Input::Ready);
+    }
+
     /// Takes back the newest piece placed this build, for a full refund.
     fn undo(&mut self) {
         if !self.building_now() {
