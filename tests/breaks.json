@@ -1146,5 +1146,19 @@
     "find": "Input::Release(part) => (11, part.min(31) as u64),",
     "replace": "Input::Release(_) => (11, 0),",
     "test": "online_release_part_survives_packing"
+  },
+  {
+    "name": "bot hilly huts shelter spare royals",
+    "file": "crates/core/src/ai/build.rs",
+    "find": "for hut in &huts[..h] {",
+    "replace": "for hut in &huts[..h.min(1)] {",
+    "test": "ai_bot_castle_grows_every_round_and_stands"
+  },
+  {
+    "name": "bot hilly royals keep their planned spots",
+    "file": "crates/core/src/ai/build.rs",
+    "find": ".flatten() == Some(*g))",
+    "replace": ".flatten() == Some(*g) && i > 99)",
+    "test": "ai_bot_castle_grows_every_round_and_stands"
   }
 ]
