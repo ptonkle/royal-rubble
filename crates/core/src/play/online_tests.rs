@@ -174,9 +174,9 @@ fn truth(m: &MatchStart, people: usize, ticks: u32) -> NetMatch {
 #[test]
 fn online_two_lagged_browsers_play_a_whole_match_and_agree_every_second() {
     let m = start(2, 2, 41);
-    // the whole match: this script plays to the results in 24,119 ticks
+    // the whole match: this script plays to the results in 27,357 ticks
     // (bots grow their castles every round, R1.1451)
-    let ticks = 24_300;
+    let ticks = 27_600;
     let mut pair = Pair::new(&m);
     pair.play(ticks);
     let want = truth(&m, 2, ticks);

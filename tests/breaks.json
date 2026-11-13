@@ -714,13 +714,6 @@
     "test": "rules_plot_size_is_the_terrain_span"
   },
   {
-    "name": "play: level one throw reaches the plot",
-    "file": "crates/core/src/play/tune.rs",
-    "find": "pub const LAUNCH_BASE_PCT: i64 = 200;",
-    "replace": "pub const LAUNCH_BASE_PCT: i64 = 100;",
-    "test": "level_one_throw_reaches_the_plot_front"
-  },
-  {
     "name": "sandbox drag keeps to the material reach",
     "file": "crates/core/src/app/sandbox.rs",
     "find": "        if (b - a).len() <= max {\n            return b;\n        }",
@@ -786,23 +779,23 @@
   {
     "name": "wire: trebuchet level one reach",
     "file": "crates/core/src/physics/tune.rs",
-    "find": "treb_sling_pct: 2756,",
+    "find": "treb_sling_pct: 2470,",
     "replace": "treb_sling_pct: 600,",
     "test": "trebuchet_level_one_reaches_the_whole_level_one_plot"
   },
   {
     "name": "wire: trebuchet level nine reach",
     "file": "crates/core/src/physics/tune.rs",
-    "find": "treb_sling_pct: 2756,",
+    "find": "treb_sling_pct: 2470,",
     "replace": "treb_sling_pct: 600,",
     "test": "trebuchet_full_power_reaches_the_far_end_of_the_level_nine_plot"
   },
   {
-    "name": "wire: trebuchet far raised plot",
+    "name": "trebuchet best throw lands just past the farthest plot back",
     "file": "crates/core/src/physics/tune.rs",
-    "find": "treb_sling_pct: 2756,",
-    "replace": "treb_sling_pct: 2300,",
-    "test": "trebuchet_level_one_clears_a_far_raised_plot"
+    "find": "treb_sling_pct: 2470,",
+    "replace": "treb_sling_pct: 2756,",
+    "test": "trebuchet_best_throw_lands_just_past_the_farthest_plot_back"
   },
   {
     "name": "wire: strength upgrades",
