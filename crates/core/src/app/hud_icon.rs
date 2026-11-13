@@ -56,6 +56,7 @@ const SHAPES: &[(&str, &str)] = &[
     ("dive", "<path d='M3 5 L5 3 L17 15 V8 H21 V21 H8 V17 H15 Z'/>"),
     ("boost", "<path d='M2 4 L10 12 L2 20 V15 L5 12 L2 9 Z M12 4 L20 12 L12 20 V15 L15 12 L12 9 Z'/>"),
     ("bounce", "<path d='M3 20 L9 8 L13 16 L21 4' fill='none' stroke='black' stroke-width='2.5'/><circle cx='21' cy='4' r='2.5'/>"),
+    ("bounce", "<path d='M2 22 H22 V20 H2 Z'/><path fill='none' stroke='black' stroke-width='2.5' d='M3 4 L9 18 L14 8 L17 14 L20 11'/>"),
     // actions
     ("buy_shot", "<path d='M10 7 A7 7 0 1 1 10 21 A7 7 0 1 1 10 7 Z M18 1 H20 V4 H23 V6 H20 V9 H18 V6 H15 V4 H18 Z'/>"),
     ("test", "<path fill='none' stroke='black' stroke-width='2.5' stroke-linejoin='round' d='M1 13 H5 L8 5 L12 20 L15 9 L17 13 H23'/>"),
