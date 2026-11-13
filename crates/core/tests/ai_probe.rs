@@ -162,6 +162,8 @@ fn probe_botplan_worst_tick() {
         // the tick each bot's first and last shot was ready
         let mut first: Vec<Option<u32>> = vec![None; bots];
         let mut last = vec![0u32; bots];
+        // every shot, with the tick it was ready (R1.2800)
+        let mut shots: Vec<Vec<(tool_core::play::siege::PlannedShot, u32)>> = vec![Vec::new(); bots];
         while jobs.iter().any(|j| j.next_cost() > 0) {
             let t = Instant::now();
             let mut refs: Vec<&mut (dyn PlanJob + 'static)> = jobs
@@ -171,10 +173,12 @@ fn probe_botplan_worst_tick() {
             let spent = tool_core::play::plan_slice(&mut refs, BOT_PLAN_BUDGET);
             let us = t.elapsed().as_micros();
             for (i, j) in jobs.iter_mut().enumerate() {
-                if !j.take_ready().is_empty() {
+                let got = j.take_ready();
+                if !got.is_empty() {
                     first[i].get_or_insert(ticks);
                     last[i] = ticks;
                 }
+                shots[i].extend(got.into_iter().map(|s| (s, ticks)));
             }
             if us > worst {
                 worst = us;
@@ -191,6 +195,24 @@ fn probe_botplan_worst_tick() {
             first.iter().map(|f| f.unwrap_or(0)).max().unwrap_or(0),
             last.iter().max().unwrap_or(&0),
         );
+        // the siege tick of each bot's first swing, and the most any shot
+        // swings late, when planning had `pre` ticks of the build (R1.2800)
+        for pre in [0u32, 60, 300, 3600] {
+            let (mut first_swing, mut late) = (0u32, 0u32);
+            for list in &shots {
+                let mut plan: Vec<tool_core::play::siege::PlannedShot> = Vec::new();
+                for (s, ready) in list {
+                    let mut s = *s;
+                    let planned = s.swing_at;
+                    s.swing_at =
+                        tool_core::play::siege::swing_tick(plan.last(), planned, ready.saturating_sub(pre));
+                    late = late.max(s.swing_at - planned);
+                    plan.push(s);
+                }
+                first_swing = first_swing.max(plan.first().map_or(0, |s| s.swing_at));
+            }
+            println!("  planning from {pre} ticks before the siege: last first swing at tick {first_swing}, most late {late} ticks");
+        }
     }
 }
 

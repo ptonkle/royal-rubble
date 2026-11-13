@@ -1195,5 +1195,26 @@
     "find": "pub const FIGURE_TALL: Fx = Fx::ratio(3, 2);",
     "replace": "pub const FIGURE_TALL: Fx = Fx::ratio(15, 8);",
     "test": "ai_bot_royal_figures_fit_under_their_cover"
+  },
+  {
+    "name": "botplan build planning sees the royals placed at the build's end",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "            place_left_royals(&mut pl, self.settings.seed, self.round);\n",
+    "replace": "",
+    "test": "botplan_build_planning_is_kept_when_the_castle_stands_as_planned"
+  },
+  {
+    "name": "botplan build planning runs during the build",
+    "file": "crates/core/src/play/mod.rs",
+    "find": "            self.preplan();\n",
+    "replace": "",
+    "test": "botplan_build_planning_is_kept_when_the_castle_stands_as_planned"
+  },
+  {
+    "name": "botplan build planning kept only for the same castle",
+    "file": "crates/core/src/play/mod.rs",
+    "find": "p.attacker == attacker && p.key == key)",
+    "replace": "p.attacker == attacker)",
+    "test": "botplan_build_planning_starts_again_when_the_castle_changed"
   }
 ]

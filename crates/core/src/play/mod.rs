@@ -23,7 +23,7 @@ use castle::{Castle, Geo};
 use siege::{Field, Shooter, ShotPlanner, Siege, SiegeView};
 use units::GridPt;
 
-use crate::game::flow::{Match, Phase, Seat, Settings, SiegeResult};
+use crate::game::flow::{Match, Phase, Player, Seat, Settings, SiegeResult};
 use crate::game::ledger::{BuildingKind, Piece};
 use crate::game::pairing::Pairing;
 use crate::game::{PlayerId, Refusal};
@@ -85,6 +85,70 @@ pub struct Play {
     /// The last siege's outcome, kept for the replay and the page.
     pub last_result: Option<SiegeResult>,
     planner: ShotPlanner,
+    /// Bot shot planning begun during the build, against the castles as
+    /// they stand (R1.2800).
+    pre: Vec<PrePlan>,
+    /// Inputs each player has had accepted this build; planning against a
+    /// castle (or with a loadout) that changed since starts again.
+    edits: Vec<u32>,
+}
+
+/// A bot's siege shots, planned during the build.
+#[derive(Clone, Debug)]
+struct PrePlan {
+    owner: PlayerId,
+    attacker: PlayerId,
+    /// `edits` of the owner and the attacker when planning began.
+    edits: (u32, u32),
+    /// Fingerprint of everything the planner was shown (`PlanSetup::key`).
+    key: u64,
+    job: Box<dyn siege::PlanJob>,
+}
+
+/// One field's start: who shoots at whom, from where, with what.
+struct PlanSetup {
+    cw: castle::CastleWorld,
+    royals: Vec<(usize, u32)>,
+    shooter: Shooter,
+    base: crate::physics::Vec2,
+    difficulty: Option<crate::game::flow::Difficulty>,
+}
+
+impl PlanSetup {
+    fn view<'a>(&'a self, plot: &'a crate::terrain::Plot) -> SiegeView<'a> {
+        SiegeView {
+            royals: &self.royals,
+            world: &self.cw.world,
+            plot,
+            base: self.base,
+            power: self.shooter.power,
+            ammo: &self.shooter.ammo,
+            air: &self.shooter.air,
+            difficulty: self.difficulty,
+        }
+    }
+
+    /// A fingerprint of what the planner sees, so planning begun during the
+    /// build is kept only when the siege starts from the same thing.
+    fn key(&self) -> u64 {
+        let mut h: u64 = self.cw.world.checksum();
+        let text = format!(
+            "{:?}",
+            (
+                &self.royals,
+                self.base,
+                self.shooter.power,
+                &self.shooter.ammo,
+                &self.shooter.air,
+                self.difficulty
+            )
+        );
+        for b in text.as_bytes() {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x0100_0000_01b3);
+        }
+        h
+    }
 }
 
 impl Play {
@@ -98,6 +162,8 @@ impl Play {
             siege: None,
             last_result: None,
             planner: siege::simple_job,
+            pre: Vec::new(),
+            edits: Vec::new(),
         })
     }
 
@@ -122,6 +188,18 @@ impl Play {
 
     /// One player input, now.
     pub fn apply(&mut self, p: PlayerId, input: Input) -> Result<(), Refusal> {
+        let build = self.rules.phase == Phase::Build;
+        let r = self.apply_input(p, input);
+        if build && r.is_ok() && input != Input::Ready {
+            if self.edits.len() <= p as usize {
+                self.edits.resize(p as usize + 1, 0);
+            }
+            self.edits[p as usize] += 1;
+        }
+        r
+    }
+
+    fn apply_input(&mut self, p: PlayerId, input: Input) -> Result<(), Refusal> {
         let r = &mut self.rules;
         match input {
             Input::Pick(slot) => r.pick(p, slot as usize),
@@ -253,6 +331,9 @@ impl Play {
     pub fn tick(&mut self) {
         let before = self.rules.phase;
         let round = self.rules.round;
+        if before == Phase::Build {
+            self.preplan();
+        }
         if let Some(s) = self.siege.as_mut() {
             let live = self.rules.phase == Phase::Siege;
             if live {
@@ -292,6 +373,104 @@ impl Play {
         if self.rules.round != round || (before != self.rules.phase && self.rules.phase == Phase::Build) {
             self.refresh_all();
         }
+        if self.rules.phase != Phase::Build {
+            self.pre.clear();
+            self.edits.clear();
+        }
+    }
+
+    /// Who shoots at whom this round: (owner, attacker, ghost, the shooter
+    /// is a stand-in bot), one per field (R1.205 for ghosts).
+    fn field_plan(&self) -> Vec<(PlayerId, PlayerId, bool, bool)> {
+        let mut plan = Vec::new();
+        for pr in &self.rules.pairings {
+            match *pr {
+                Pairing::Duel(a, b) => {
+                    plan.push((b, a, false, false));
+                    plan.push((a, b, false, false));
+                }
+                Pairing::Ghost { attacker, copy_of } => {
+                    plan.push((copy_of, attacker, true, false));
+                    plan.push((attacker, copy_of, false, true));
+                }
+            }
+        }
+        plan
+    }
+
+    /// The field `a` shoots at `owner`'s castle in, from the players as
+    /// given (the live ones at the siege start, `as_at_siege` copies during
+    /// the build).
+    fn setup(&self, owner: PlayerId, o: &Player, a: &Player, stand_in: bool) -> PlanSetup {
+        let mut cw = self.castles[owner as usize].world(o, true);
+        cw.world.wind = siege::physics_wind(self.rules.wind);
+        let difficulty = match a.seat {
+            Seat::Bot(d) => Some(d),
+            Seat::Human => None,
+        };
+        let bot = stand_in || difficulty.is_some();
+        let shooter = Shooter::new(a.id, bot, &a.loadout(), &a.mods);
+        let royals = cw
+            .bodies
+            .iter()
+            .enumerate()
+            .filter_map(|(body, who)| match who {
+                castle::BodyOwner::Royal(i) => o.royals.get(*i).map(|r| (body, r.kind.base_damage())),
+                castle::BodyOwner::Building(_) => None,
+            })
+            .collect();
+        PlanSetup {
+            cw,
+            royals,
+            shooter,
+            base: units::trebuchet_base(&o.terrain),
+            difficulty: if stand_in { None } else { difficulty },
+        }
+    }
+
+    fn edits_of(&self, p: PlayerId) -> u32 {
+        self.edits.get(p as usize).copied().unwrap_or(0)
+    }
+
+    /// One build tick of bot shot planning (R1.2800): each bot field's
+    /// planning starts (again) from its castle as it now stands whenever
+    /// its owner or attacker has had an input accepted since, then the jobs
+    /// share `BOT_PLAN_BUDGET` as in the siege. Only accepted inputs and
+    /// the clock drive it, so every browser plans the same shots.
+    fn preplan(&mut self) {
+        let mut kept = Vec::new();
+        for (owner, attacker, _, stand_in) in self.field_plan() {
+            let Some(a) = self.rules.player(attacker) else {
+                continue;
+            };
+            if !(stand_in || matches!(a.seat, Seat::Bot(_))) {
+                continue;
+            }
+            let edits = (self.edits_of(owner), self.edits_of(attacker));
+            let same = self
+                .pre
+                .iter()
+                .position(|p| p.owner == owner && p.attacker == attacker && p.edits == edits);
+            if let Some(i) = same {
+                kept.push(self.pre.swap_remove(i));
+                continue;
+            }
+            let (Some(o), Some(a)) = (self.rules.as_at_siege(owner), self.rules.as_at_siege(attacker)) else {
+                continue;
+            };
+            let st = self.setup(owner, &o, &a, stand_in);
+            kept.push(PrePlan {
+                owner,
+                attacker,
+                edits,
+                key: st.key(),
+                job: (self.planner)(&st.view(&o.terrain)),
+            });
+        }
+        self.pre = kept;
+        let mut jobs: Vec<&mut (dyn siege::PlanJob + 'static)> =
+            self.pre.iter_mut().map(|p| p.job.as_mut()).collect();
+        plan_slice(&mut jobs, tune::BOT_PLAN_BUDGET);
     }
 
     fn drain_or_finish(&mut self) {
@@ -312,69 +491,36 @@ impl Play {
         self.last_result = Some(result);
     }
 
-    /// One field per castle under attack (R1.205 for ghosts).
+    /// One field per castle under attack (R1.205 for ghosts). A bot keeps
+    /// the planning it began during the build when the siege starts from
+    /// exactly what that planning saw, and starts again otherwise (R1.2800).
     fn begin_siege(&mut self) {
-        let wind = siege::physics_wind(self.rules.wind);
-        // (owner, attacker, ghost, shooter is a stand-in bot)
-        let mut plan: Vec<(PlayerId, PlayerId, bool, bool)> = Vec::new();
-        for pr in &self.rules.pairings {
-            match *pr {
-                Pairing::Duel(a, b) => {
-                    plan.push((b, a, false, false));
-                    plan.push((a, b, false, false));
-                }
-                Pairing::Ghost { attacker, copy_of } => {
-                    plan.push((copy_of, attacker, true, false));
-                    plan.push((attacker, copy_of, false, true));
-                }
-            }
-        }
+        let mut pre = std::mem::take(&mut self.pre);
         let mut fields = Vec::new();
-        for (owner, attacker, ghost, stand_in) in plan {
+        for (owner, attacker, ghost, stand_in) in self.field_plan() {
             let o = &self.rules.players[owner as usize];
             let a = &self.rules.players[attacker as usize];
-            let mut cw = self.castles[owner as usize].world(o, true);
-            let cw_bodies = cw.bodies.clone();
-            cw.world.wind = wind;
-            let difficulty = match a.seat {
-                Seat::Bot(d) => Some(d),
-                Seat::Human => None,
-            };
-            let bot = stand_in || difficulty.is_some();
-            let shooter = Shooter::new(attacker, bot, &a.loadout(), &a.mods);
-            let base = units::trebuchet_base(&o.terrain);
+            let st = self.setup(owner, o, a, stand_in);
             let mut job = None;
-            if bot {
-                let royals: Vec<(usize, u32)> = cw_bodies
+            if st.shooter.bot {
+                let key = st.key();
+                let kept = pre
                     .iter()
-                    .enumerate()
-                    .filter_map(|(body, owner)| match owner {
-                        castle::BodyOwner::Royal(i) => o.royals.get(*i).map(|r| (body, r.kind.base_damage())),
-                        castle::BodyOwner::Building(_) => None,
-                    })
-                    .collect();
-                let view = SiegeView {
-                    royals: &royals,
-                    world: &cw.world,
-                    plot: &o.terrain,
-                    base,
-                    power: shooter.power,
-                    ammo: &shooter.ammo,
-                    air: &shooter.air,
-                    difficulty: if stand_in { None } else { difficulty },
-                };
-                job = Some((self.planner)(&view));
+                    .position(|p| p.owner == owner && p.attacker == attacker && p.key == key)
+                    .map(|i| pre.swap_remove(i).job);
+                job = Some(kept.unwrap_or_else(|| (self.planner)(&st.view(&o.terrain))));
             }
+            let lives = siege::body_lives(&st.cw.bodies, o);
             fields.push(Field {
                 owner,
                 attacker,
                 ghost,
-                castle: cw,
-                shooter,
-                base,
+                castle: st.cw,
+                shooter: st.shooter,
+                base: st.base,
                 plot: o.terrain.clone(),
                 fuses: Vec::new(),
-                lives: siege::body_lives(&cw_bodies, o),
+                lives,
                 killed: Vec::new(),
                 job,
             });

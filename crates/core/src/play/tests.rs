@@ -765,3 +765,94 @@ fn botplan_late_shot_swings_when_ready_and_keeps_its_spacing() {
     };
     assert_eq!(swing_tick(Some(&late), 30 + every, 100), 80 + every);
 }
+
+/// A human and a Hard bot whose aimer plans during the build; the build
+/// is cut to `ticks` so the test runs fast.
+fn bot_duel_planning_in_the_build(ticks: u32) -> Play {
+    let mut play = Play::new(Settings {
+        seats: vec![Seat::Human, Seat::Bot(crate::game::flow::Difficulty::Hard)],
+        wind: false,
+        seed: 3,
+    })
+    .unwrap();
+    play.start().unwrap();
+    play.set_shot_planner(crate::ai::planner::plan_siege_job);
+    assert_eq!(play.rules.phase, Phase::Build);
+    play.rules.ticks_left = ticks;
+    play
+}
+
+/// Ticks to the siege start; the siege's first tick has not run.
+fn tick_to_siege(play: &mut Play) {
+    let mut n = 0;
+    while play.rules.phase == Phase::Build {
+        play.tick();
+        n += 1;
+        assert!(n < 10_000);
+    }
+    assert_eq!(play.siege.as_ref().map(|s| s.tick), Some(0));
+}
+
+/// The bot's shots at the human, planned all at once from the siege start.
+fn shots_planned_at_siege_start(play: &Play) -> Vec<super::siege::PlannedShot> {
+    let (o, a) = (&play.rules.players[0], &play.rules.players[1]);
+    let st = play.setup(0, o, a, false);
+    crate::ai::planner::plan_siege(&st.view(&o.terrain))
+}
+
+/// R1.2800: planning done during the build, against the human's castle
+/// with its royal not yet placed (placed at the build's end), is kept at
+/// the siege start: every shot is ready, the first swings on time, and
+/// the shots are those planned from the siege start.
+#[test]
+fn botplan_build_planning_is_kept_when_the_castle_stands_as_planned() {
+    let mut play = bot_duel_planning_in_the_build(400);
+    assert!(play.rules.players[0].royals.iter().all(|r| r.spot.is_none()));
+    tick_to_siege(&mut play);
+    let want = shots_planned_at_siege_start(&play);
+    assert!(!want.is_empty());
+    let f = play
+        .siege
+        .as_mut()
+        .unwrap()
+        .fields
+        .iter_mut()
+        .find(|f| f.attacker == 1)
+        .unwrap();
+    let job = f.job.as_mut().unwrap();
+    assert_eq!(job.next_cost(), 0, "planning not kept");
+    let got = job.take_ready();
+    assert_eq!(got, want);
+    assert_eq!(got[0].swing_at, super::tune::BOT_FIRST_SWING);
+}
+
+/// R1.2800: a castle that changed without the planner seeing it (the
+/// royal moved behind its back) is planned again from the siege start.
+#[test]
+fn botplan_build_planning_starts_again_when_the_castle_changed() {
+    let mut play = bot_duel_planning_in_the_build(400);
+    let plot = play.rules.players[0].terrain.clone();
+    let at = ground(&plot, flat_col(&plot, 2));
+    play.apply(0, Input::PlaceRoyal { index: 0, at }).unwrap();
+    for _ in 0..300 {
+        play.tick();
+    }
+    // moved with no input, so the build's planning never hears of it
+    play.castles[0].royal_at[0] = Some(ground(&plot, flat_col(&plot, 5)));
+    tick_to_siege(&mut play);
+    let want = shots_planned_at_siege_start(&play);
+    let f = play
+        .siege
+        .as_mut()
+        .unwrap()
+        .fields
+        .iter_mut()
+        .find(|f| f.attacker == 1)
+        .unwrap();
+    let job = f.job.as_mut().unwrap();
+    assert_eq!(job.planned(), 0, "stale planning kept");
+    while job.next_cost() > 0 {
+        job.advance();
+    }
+    assert_eq!(job.take_ready(), want);
+}

@@ -355,14 +355,21 @@ impl Match {
     }
 
     fn end_build(&mut self) {
-        let seed = self.settings.seed;
-        let round = self.round;
+        let (seed, round) = (self.settings.seed, self.round);
         for p in self.players.iter_mut().filter(|p| p.alive()) {
-            let plot = p.plot();
-            let mut d = Dice::derive(seed, round, SALT_ROYALS + p.id as u32);
-            royals::auto_place(&mut p.royals, &p.standing_spots, plot, &mut d);
+            place_left_royals(p, seed, round);
         }
         self.set_phase(Phase::Siege, tune::SIEGE_SECONDS);
+    }
+
+    /// Player `p` as the siege would find them if the build ended now: any
+    /// royal not yet standing placed as `end_build` places it (R1.2800).
+    pub fn as_at_siege(&self, p: PlayerId) -> Option<Player> {
+        let mut pl = self.player(p)?.clone();
+        if pl.alive() {
+            place_left_royals(&mut pl, self.settings.seed, self.round);
+        }
+        Some(pl)
     }
 
     fn all_ready(&self) -> bool {
@@ -618,6 +625,13 @@ impl Match {
             self.run_policy(id, &SimpleBot { difficulty: d });
         }
     }
+}
+
+/// Stands `p`'s royals that have no spot yet (the build's end).
+fn place_left_royals(p: &mut Player, seed: u64, round: u32) {
+    let plot = p.plot();
+    let mut d = Dice::derive(seed, round, SALT_ROYALS + p.id as u32);
+    royals::auto_place(&mut p.royals, &p.standing_spots, plot, &mut d);
 }
 
 #[cfg(test)]
