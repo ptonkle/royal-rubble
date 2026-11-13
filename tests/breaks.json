@@ -656,5 +656,54 @@
     "find": "pub const LAUNCH_BASE_PCT: i64 = 200;",
     "replace": "pub const LAUNCH_BASE_PCT: i64 = 100;",
     "test": "level_one_throw_reaches_the_plot_front"
+  },
+  {
+    "name": "sandbox drag keeps to the material reach",
+    "file": "crates/core/src/app/sandbox.rs",
+    "find": "        if (b - a).len() <= max {\n            return b;\n        }",
+    "replace": "        if true {\n            return b;\n        }",
+    "test": "sandbox_drag_is_pulled_back_inside_the_material_reach"
+  },
+  {
+    "name": "sandbox selling a floor drops its royal",
+    "file": "crates/core/src/app/sandbox.rs",
+    "find": "            self.royals.retain(|s| s.beam != i);\n",
+    "replace": "",
+    "test": "sandbox_selling_a_floor_takes_its_royal_with_it"
+  },
+  {
+    "name": "sandbox second space releases",
+    "file": "crates/core/src/app/sandbox.rs",
+    "find": "            (Some(_), false) => self.release(),",
+    "replace": "            (Some(_), false) => {}",
+    "test": "sandbox_space_twice_throws_one_shot"
+  },
+  {
+    "name": "sandbox power reaches the plot",
+    "file": "crates/core/src/app/sandbox.rs",
+    "find": "pub const POWER: u8 = 7;",
+    "replace": "pub const POWER: u8 = 2;",
+    "test": "sandbox_power_reaches_the_whole_level_one_plot"
+  },
+  {
+    "name": "field camera maps world to pixels",
+    "file": "crates/core/src/app/field.rs",
+    "find": "        [x as i32, self.h - y as i32]",
+    "replace": "        [x as i32, y as i32]",
+    "test": "camera_maps_a_world_point_to_pixels_and_back"
+  },
+  {
+    "name": "field strain steps by quarters",
+    "file": "crates/core/src/app/field.rs",
+    "find": "    (v * 4).floor_int().clamp(0, 3) as u8",
+    "replace": "    (v * 3).floor_int().clamp(0, 3) as u8",
+    "test": "strain_steps_by_quarters_and_a_break_is_the_top"
+  },
+  {
+    "name": "sandbox camera settles on the castle",
+    "file": "crates/core/src/app/sandbox.rs",
+    "find": "if self.swing.is_none() && !self.trail.is_empty() {",
+    "replace": "if false {",
+    "test": "sandbox_siege_camera_aims_at_the_trebuchet_then_settles_on_the_castle"
   }
 ]

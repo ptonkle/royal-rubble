@@ -159,3 +159,66 @@ A building that makes wood, stone or metal each round it survives: the Carpenter
 ### Spread shot
 
 Special ammo that flies apart into several small stones.
+### Build
+
+The phase where you place segments and royals. Press Test to see the strain before a siege.
+
+### Drop
+
+An air effect: the shot stops moving sideways and falls straight down.
+
+### Fire
+
+A shot that sets wood alight. Burning wood weakens and spreads fire to wood it touches.
+
+### Heavy
+
+A bigger, heavier shot that hits harder.
+
+### Metal
+
+The strongest material for segments, with the longest reach.
+
+### Normal
+
+The plain shot every player starts with.
+
+### Phase
+
+An air effect: the shot passes through walls for a moment.
+
+### Reverse
+
+An air effect: the shot turns back the way it came.
+
+### Rope
+
+A cheap segment that holds only when pulled. Shots pass through it.
+
+### Sandbox
+
+A practice field with no rules: build a castle, test it and throw shots at it.
+
+### Siege
+
+The phase where everyone throws shots at the castle they are assigned.
+
+### Split
+
+An air effect: the shot breaks into three that fan out.
+
+### Spread
+
+A shot that breaks into three as it leaves the arm.
+
+### Stone
+
+A heavy segment that holds a lot of weight from above but snaps when bent.
+
+### Test
+
+Shows how hard each segment of your castle is working, from easy to breaking.
+
+### Wood
+
+The cheapest segment. It burns.

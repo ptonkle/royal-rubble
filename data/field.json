@@ -1,0 +1,19 @@
+{
+  "_about": "Stroke styles for the playfield's renderer (web/field-draw.js), in CSS pixels. Positions, radii and segment widths come from the core; colors from web/field.css. The stem stitch and running stitch follow notes/look/tapestry.html.",
+  "edge_width": 2,
+  "outline": 4,
+  "thread_width": 1.4,
+  "thread_dash": [3, 4],
+  "ground_width": 4,
+  "grid_width": 1,
+  "grid_min_px": 6,
+  "zone_dash": [10, 8],
+  "trail_width": 3.4,
+  "trail_dash": [9, 9],
+  "ring_width": 2,
+  "ring_dash": [6, 6],
+  "preview_alpha": 0.7,
+  "fire_dash": [3, 5],
+  "full_turn": 6.283185307179586,
+  "pole_width": 4
+}

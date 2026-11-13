@@ -32,6 +32,7 @@ copy = "reader-visible words: GLOSSARY.md, TONE.md, data/strings.json, strings.r
 upgrades = "upgrade cards and what they do: game/upgrades.rs, data/upgrades.json, the upgrade rules in game/flow.rs"
 ammo = "ammo kinds, blasts and strength bonuses: physics/ammo.rs"
 match = "the match glue: play/ (build, siege, units) and its probe"
+field = "the playfield and sandbox: app/field.rs, app/sandbox*, web/field*.js, web/field.css, data/field.json"
 
 # A hit tag on the left also hits the tags on the right, transitively.
 [implies]
@@ -53,6 +54,8 @@ tags = ["boundary"]
 "test:online_fence" = ["online"]
 "lib:api" = ["page"]
 "lib:app" = ["page"]
+"lib:app::field" = ["field"]
+"lib:app::sandbox" = ["field"]
 "lib:icon" = ["page"]
 "lib:view" = ["page"]
 "lib:lobby" = ["online"]
@@ -177,3 +180,9 @@ name = "tests of the match glue"
 files = ["crates/core/src/play/**", "crates/core/tests/play_probe.rs"]
 steps = ["core"]
 tags = ["match"]
+
+[[rule]]
+name = "tests of the playfield"
+files = ["crates/core/src/app/field.rs", "crates/core/src/app/sandbox.rs", "crates/core/src/app/sandbox/**", "web/field.js", "web/field-draw.js", "web/field.css", "data/field.json"]
+steps = ["core"]
+tags = ["field"]

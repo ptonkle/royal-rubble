@@ -1,0 +1,51 @@
+/* The playfield's colors, read by name by web/field-draw.js, and the field's
+   bars. Toward the Bayeux tapestry look the person picked (notes/look/):
+   linen ground cloth, wool in terracotta, ochre, sage and blue-green, navy
+   stem-stitch outlines. Kept apart from theme.css, which holds the menus. */
+
+:root {
+  --field-sky: #e6dbbf;
+  --field-zone: rgba(46, 58, 85, 0.05);
+  --field-zone-edge: rgba(46, 58, 85, 0.5);
+  --field-grid: rgba(46, 58, 85, 0.07);
+  --field-ground: #8b9662;
+  --field-ground-edge: #2e3a55;
+  --field-water: #4d6f68;
+  --field-trail: #a5503a;
+  --field-outline: #2e3a55;
+  --field-thread: rgba(255, 248, 228, 0.55);
+  --field-node: #e6dbbf;
+  --field-anchor: #c49a45;
+  --field-shot: #2e3a55;
+  --field-debris: #6d7444;
+  --field-fire: #d9772e;
+  --field-ring: rgba(46, 58, 85, 0.6);
+  --field-bad: #b0302a;
+  --mat-wood: #c49a45;
+  --mat-stone: #b9ae93;
+  --mat-metal: #5d6f8a;
+  --mat-rope: #a5503a;
+  /* strain after a Test: easy to broke */
+  --strain-0: #5f7a4a;
+  --strain-1: #a3a04a;
+  --strain-2: #d0a040;
+  --strain-3: #c46a3a;
+  --strain-4: #a5302a;
+  --royal-squire: #8b9662;
+  --royal-knight: #4d6f68;
+  --royal-princess: #c98a7a;
+  --royal-prince: #c49a45;
+  --royal-queen: #7a5a8a;
+  --royal-king: #d4a83a;
+  --royal-dead: #9a917c;
+  --royal-edge: #2e3a55;
+  --engine-frame: #8a5a3a;
+  --engine-arm: #c49a45;
+  --engine-weight: #2e3a55;
+  --flag-pole: #2e3a55;
+  --flag-cloth: #a5503a;
+
+  /* the field's bars */
+  --bar-bg: rgba(46, 58, 85, 0.88);
+  --bar-chosen: #f0e2b6;
+}

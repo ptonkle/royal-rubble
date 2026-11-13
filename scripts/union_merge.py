@@ -16,7 +16,7 @@ import tomllib
 
 BLOCK = re.compile(r"^<<<<<<< [^\n]*\n(.*?)^=======\n(.*?)^>>>>>>> [^\n]*\n", re.S | re.M)
 UNION = ("SECOND-ORDER.md", "HANDOFF.md", "LICENSES.md", "MEASUREMENTS.md", "GLOSSARY.md",
-         "tests/tags.toml", "crates/core/src/lib.rs", "crates/shim/src/lib.rs")
+         "tests/tags.toml", "notes/check-times.md", "crates/core/src/lib.rs", "crates/shim/src/lib.rs")
 
 
 def sorted_modules(text, src_dir):
