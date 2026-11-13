@@ -24,6 +24,8 @@
   --field-zone-thread: #7b4f3e;
   --field-grid-thread: #51524b;
   --field-bad: #b0302a;
+  /* the Need mark over the cursor (web/field-draw.js nodeMarks) */
+  --field-need-font: 700 22px "Palatino Linotype", Palatino, "Book Antiqua", "URW Palladio L", Georgia, serif;
   --mat-wood: #c49a45;
   --mat-stone: #b9ae93;
   --mat-metal: #5d6f8a;

@@ -1636,5 +1636,26 @@
     "find": "    let braced = |i: i64| i % 2 == 1;",
     "replace": "    let braced = |i: i64| i % 2 == 0;",
     "test": "ai_keep_puts_each_royal_in_its_own_room"
+  },
+  {
+    "name": "r4300 half cell snap step",
+    "file": "crates/core/src/play/tune.rs",
+    "find": "pub const SNAP_STEP: Fx = Fx::ratio(1, 2);",
+    "replace": "pub const SNAP_STEP: Fx = Fx::ratio(1, 4);",
+    "test": "arena_a_press_in_the_air_snaps_to_the_half_cell_grid"
+  },
+  {
+    "name": "r4300 node pull picks node",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "        if let Some(n) = self.node_near(c) {\n            return n;\n        }",
+    "replace": "        if let Some(n) = self.node_near(c).filter(|_| false) {\n            return n;\n        }",
+    "test": "arena_a_press_near_a_quarter_cell_node_picks_that_node"
+  },
+  {
+    "name": "r4301 need gold mark",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "        if short > 0 {\n            let p = cam.px(c);",
+    "replace": "        if short > u32::MAX {\n            let p = cam.px(c);",
+    "test": "arena_a_segment_you_cannot_afford_shows_the_gold_you_lack"
   }
 ]

@@ -382,6 +382,41 @@ function ring(g, r) {
   g.restore();
 }
 
+// Placed nodes near the cursor get a solid ring; the one a press would pick
+// gets a filled, larger one (R1.4300). The Need mark sits over the cursor.
+function nodeMarks(g, b) {
+  g.save();
+  g.lineWidth = G.node_mark_w;
+  g.strokeStyle = wool.navy.mid;
+  (b.near || []).forEach(([x, y]) => {
+    g.beginPath();
+    g.arc(x, y, b.node_r, 0, look.full_turn);
+    g.stroke();
+  });
+  if (b.hover) {
+    const [x, y] = b.hover;
+    g.beginPath();
+    g.arc(x, y, b.node_r * G.node_hover_k, 0, look.full_turn);
+    g.globalAlpha = G.node_hover_alpha;
+    g.fillStyle = wool.ochre.mid;
+    g.fill();
+    g.globalAlpha = 1;
+    g.lineWidth = G.node_hover_w;
+    g.stroke();
+  }
+  if (b.need) {
+    g.font = color("field-need-font");
+    g.textAlign = "center";
+    g.textBaseline = "bottom";
+    g.lineWidth = G.need_edge;
+    g.strokeStyle = color("field-sky");
+    g.strokeText(b.need.text, b.need.x, b.need.y);
+    g.fillStyle = color("field-bad");
+    g.fillText(b.need.text, b.need.x, b.need.y);
+  }
+  g.restore();
+}
+
 function marks(g, f) {
   const b = f.build;
   if (b && b.keep_out) b.keep_out.forEach((r) => ring(g, r));
@@ -391,6 +426,7 @@ function marks(g, f) {
     figure(g, f, b.ghost);
     g.restore();
   }
+  if (b) nodeMarks(g, b);
   if (f.ring) ring(g, f.ring);
   if (f.preview) {
     const p = f.preview;

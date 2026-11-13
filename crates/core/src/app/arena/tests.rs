@@ -78,10 +78,13 @@ fn arena_a_press_and_release_in_build_places_a_wood_segment_through_play() {
     let (l, _, _) = a.zone(0);
     let x = l + Fx::from_int(30);
     let g = snap(a.ground(0, x));
-    // a ground point, then two cells up
+    // a ground point, then a point on the half-cell grid 1 to 1.5 cells up
+    // (the ground may sit on a quarter cell, R1.4300)
+    let half = Fx::ratio(1, 2).0;
+    let up = Fx((g + Fx::ratio(3, 2)).0.div_euclid(half) * half);
     let cam = a.camera();
     let p0 = cam.px(Vec2::new(x, g + Fx::ratio(1, 16)));
-    let p1 = cam.px(Vec2::new(x, g + Fx::from_int(2)));
+    let p1 = cam.px(Vec2::new(x, up));
     let before = a.play.castles[0].geo.len();
     // a press and release at the start places nothing
     a.down(&format!("{},{},0", p0[0], p0[1])).unwrap();
@@ -92,7 +95,7 @@ fn arena_a_press_and_release_in_build_places_a_wood_segment_through_play() {
     a.down(&format!("{},{},0", p1[0], p1[1])).unwrap();
     a.tick();
     assert_eq!(a.play.castles[0].geo.len(), before + 1);
-    assert_eq!(a.drag, Some(Vec2::new(x, g + Fx::from_int(2))));
+    assert_eq!(a.drag, Some(Vec2::new(x, up)));
     // a right press lets go of the start and sells nothing
     a.down(&format!("{},{},2", p1[0], p1[1])).unwrap();
     a.tick();
@@ -805,4 +808,67 @@ fn arena_a_hit_on_your_castle_flashes_the_labeled_corner_window() {
         a.tick();
     }
     assert!(!a.frame().inset.unwrap().hit, "the flash stays");
+}
+
+#[test]
+fn arena_a_press_in_the_air_snaps_to_the_half_cell_grid() {
+    let a = arena(1);
+    let (l, _, _) = a.zone(0);
+    let x0 = l + Fx::from_int(30);
+    let y0 = Fx::from_int(a.ground(0, x0).floor_int() + 4);
+    let c = Vec2::new(x0 + Fx::ratio(5, 16), y0 + Fx::ratio(5, 16));
+    // the quarter-cell physics grid would give (x0 + 1/4, y0 + 1/4)
+    assert_eq!(
+        a.start_at(c),
+        Vec2::new(x0 + Fx::ratio(1, 2), y0 + Fx::ratio(1, 2))
+    );
+}
+
+#[test]
+fn arena_a_press_near_a_quarter_cell_node_picks_that_node() {
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    let (l, _, _) = a.zone(0);
+    let x = l + Fx::from_int(30);
+    let g = snap(a.ground(0, x));
+    let top = Vec2::new(x + Fx::ratio(1, 4), g + Fx::ratio(7, 4));
+    a.queue(Input::PlaceSegment {
+        piece: Piece::Segment(ledger::Material::Wood),
+        a: grid_of(Vec2::new(x, g)),
+        b: grid_of(top),
+    });
+    a.tick();
+    assert!(a.is_node(top));
+    // an eighth of a cell off: the half-cell grid alone would give (x, g + 2)
+    let c = top + Vec2::new(-Fx::ratio(1, 8), Fx::ratio(1, 8));
+    assert_eq!(a.start_at(c), top);
+    // and the node is marked as the one a press picks
+    a.cursor = Some(c);
+    let cam = a.camera();
+    let marks = a.marks_over(&cam);
+    assert_eq!(marks.hover, Some(cam.px(top)));
+    assert!(marks.near.contains(&cam.px(top)));
+}
+
+#[test]
+fn arena_a_segment_you_cannot_afford_shows_the_gold_you_lack() {
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    a.need_text = "Need {n} gold".into();
+    let (l, _, _) = a.zone(0);
+    a.cursor = Some(Vec2::new(l + Fx::from_int(30), Fx::from_int(40)));
+    a.tool = Tool::Beam(Piece::Segment(ledger::Material::Metal));
+    let price = ledger::price(
+        Piece::Segment(ledger::Material::Metal),
+        &a.play.rules.players[0].mods,
+    );
+    let p = &mut a.play.rules.players[0];
+    p.ledger.stock.metal = 0;
+    p.purse.gold = 1;
+    let cam = a.camera();
+    let need = a.marks_over(&cam).need.expect("a Need mark");
+    assert_eq!(need.text, format!("Need {} gold", price - 1));
+    // with the gold, no mark
+    a.play.rules.players[0].purse.gold = price;
+    assert_eq!(a.marks_over(&cam).need, None);
 }
