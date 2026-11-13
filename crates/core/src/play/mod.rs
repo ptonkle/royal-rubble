@@ -11,6 +11,7 @@
 //! - `siege`: a field per castle under attack, trebuchets, shots.
 
 pub mod castle;
+pub mod online;
 pub mod siege;
 pub mod tune;
 pub mod units;
