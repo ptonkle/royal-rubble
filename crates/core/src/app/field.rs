@@ -446,6 +446,27 @@ pub struct BuildMarks {
     /// the royal being placed, standing where a press would put it
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ghost: Option<Figure>,
+    /// placed nodes near the cursor, where a segment may start or end
+    /// (R1.4300)
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub near: Vec<[i32; 2]>,
+    /// the node a press would pick
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hover: Option<[i32; 2]>,
+    /// the node marks' radius, pixels
+    pub node_r: i32,
+    /// by the cursor when the selected material costs more gold than you
+    /// have (R1.4301)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub need: Option<Label>,
+}
+
+/// A short word drawn on the field at a point, pixels.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Label {
+    pub x: i32,
+    pub y: i32,
+    pub text: String,
 }
 
 /// Everything on the canvas, in pixels.

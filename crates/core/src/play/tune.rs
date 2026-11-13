@@ -61,3 +61,13 @@ pub const BOT_FIRST_SWING: u32 = 30;
 /// units (`ai::tune::WORLD_STEP_COST`): about 4 ms on the 201-segment probe
 /// castle (R1.2000, MEASUREMENTS.md).
 pub const BOT_PLAN_BUDGET: u64 = 160_000;
+
+/// The player's build grid, in cells: segment ends snap to half a cell,
+/// twice the physics grid (`TUNE.grid`, which stays the unit of `GridPt`
+/// for ruins, bots and terrain) (R1.4300).
+pub const SNAP_STEP: Fx = Fx::ratio(1, 2);
+/// A press within this of a placed node picks that node, so a ruin's or a
+/// bot's quarter-cell node can still be built from (R1.4300).
+pub const NODE_PULL: Fx = Fx::ratio(1, 4);
+/// Placed nodes within this of the cursor are ringed while you build.
+pub const NODE_NEAR: Fx = Fx::from_int(3);

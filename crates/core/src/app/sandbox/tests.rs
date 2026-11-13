@@ -68,15 +68,20 @@ fn reach_past_the_circle_gives_the_full_length_the_cursor_points() {
     let a = Vec2::ints(50, 30);
     let max = Fx::from_int(2);
     // two cursors on the line 3 across for 1 up, both past the 2-cell reach
-    let near = super::reach_end(a, Vec2::ints(53, 31), max);
-    let far = super::reach_end(a, Vec2::ints(59, 33), max);
+    let near = super::reach_end(a, Vec2::ints(53, 31), max, TUNE.grid);
+    let far = super::reach_end(a, Vec2::ints(59, 33), max, TUNE.grid);
     assert_eq!(near, far);
     let len = (far - a).len();
     assert!(len <= max, "{len:?}");
     // the full-length point is (51.90, 30.63): within a grid step of it
     assert!(len >= max - TUNE.grid, "{len:?}");
     // and never shorter than a cursor just inside the circle that way
-    let inside = super::reach_end(a, Vec2::new(Fx::ratio(5180, 100), Fx::ratio(3060, 100)), max);
+    let inside = super::reach_end(
+        a,
+        Vec2::new(Fx::ratio(5180, 100), Fx::ratio(3060, 100)),
+        max,
+        TUNE.grid,
+    );
     assert!((inside - a).len() <= len, "{inside:?} {far:?}");
 }
 

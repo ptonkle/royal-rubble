@@ -160,6 +160,7 @@ pub const KEYS: &[&str] = &[
     "hud.reroll",
     "hud.reroll_plain",
     "tool.priced",
+    "build.need",
     "tool.stocked",
     "tool.royals",
     "tool.carpenter",

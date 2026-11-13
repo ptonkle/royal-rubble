@@ -15,10 +15,10 @@ use std::collections::BTreeMap;
 
 use super::field::{
     body_turn, cloth_at, facing, ground_line, impact_marks, material_name, tree_marks, world_parts,
-    world_right, BuildMarks, Camera, Cue, Engine, Figure, Flag, Frame, Inset, Preview, Ring, SpotMark,
+    world_right, BuildMarks, Camera, Cue, Engine, Figure, Flag, Frame, Inset, Label, Preview, Ring, SpotMark,
 };
 use super::hud_icon;
-use super::sandbox::{num, pair, reach_end};
+use super::sandbox::{num, pair, reach_end, snap_to};
 use crate::game::flow::Phase;
 use crate::game::ledger::{self, BuildingKind, Piece};
 use crate::game::royals::RoyalKind;
@@ -423,6 +423,9 @@ pub struct Arena {
     /// tick that count last rose (R1.3208).
     own_counts: (u32, u32),
     own_hit_at: Option<u32>,
+    /// "Need {n} gold", filled by the cursor when a segment costs more
+    /// than you have (R1.4301)
+    need_text: String,
 }
 
 /// Your shot in the air: its ball, the view's width for the flight,
@@ -500,6 +503,7 @@ impl Arena {
             landed_at: None,
             own_counts: (0, 0),
             own_hit_at: None,
+            need_text: s.get("build.need"),
         };
         a.rebuild();
         Ok(a)
@@ -1331,6 +1335,60 @@ impl Arena {
         self.in_zone(p) && (self.is_node(p) || p.y <= self.ground(self.me, p.x) + TUNE.grid / 2)
     }
 
+    /// The placed node nearest `p` within `NODE_PULL`.
+    fn node_near(&self, p: Vec2) -> Option<Vec2> {
+        let w = self.built_world()?;
+        let mut best: Option<(Fx, Vec2)> = None;
+        for n in &w.nodes {
+            let d = (n.pos - p).len();
+            if d <= crate::play::tune::NODE_PULL && best.is_none_or(|(bd, _)| d < bd) {
+                best = Some((d, n.pos));
+            }
+        }
+        best.map(|(_, n)| n)
+    }
+
+    /// The ground under `x`, on the physics grid.
+    fn ground_pt(&self, x: Fx) -> Vec2 {
+        Vec2::new(x, snap(self.ground(self.me, x)))
+    }
+
+    /// Where a press at `c` starts a segment: the placed node within
+    /// `NODE_PULL`, else the nearest point on the player's grid, or the
+    /// ground in that column when the ground is nearer (R1.4300).
+    fn start_at(&self, c: Vec2) -> Vec2 {
+        if let Some(n) = self.node_near(c) {
+            return n;
+        }
+        let step = crate::play::tune::SNAP_STEP;
+        let s = Vec2::new(snap_to(c.x, step), snap_to(c.y, step));
+        let g = self.ground_pt(s.x);
+        if (c.y - g.y).abs() <= (c.y - s.y).abs() {
+            g
+        } else {
+            s
+        }
+    }
+
+    /// Where a segment from `a` toward the cursor at `c` ends: a placed
+    /// node or the ground near the cursor when within reach, else
+    /// `reach_end` on the player's grid (R1.4300).
+    fn end_at(&self, a: Vec2, c: Vec2) -> Vec2 {
+        let max = self.max_len();
+        let fits = |p: Vec2| p != a && (p - a).len() <= max;
+        if let Some(n) = self.node_near(c).filter(|&n| fits(n)) {
+            return n;
+        }
+        let e = reach_end(a, c, max, crate::play::tune::SNAP_STEP);
+        let g = self.ground_pt(e.x);
+        let near = (c - a).len() <= max + crate::play::tune::SNAP_STEP;
+        if near && fits(g) && (c.y - g.y).abs() <= (c.y - e.y).abs() {
+            g
+        } else {
+            e
+        }
+    }
+
     fn max_len(&self) -> Fx {
         match self.tool {
             Tool::Beam(piece) => {
@@ -1445,13 +1503,13 @@ impl Arena {
         match self.tool {
             Tool::Beam(piece) => match self.drag {
                 None => {
-                    let s = Vec2::new(snap(p.x), snap(p.y));
+                    let s = self.start_at(p);
                     if self.can_start(s) {
                         self.drag = Some(s);
                     }
                 }
                 Some(a) => {
-                    let b = reach_end(a, p, self.max_len());
+                    let b = self.end_at(a, p);
                     if a == b {
                         self.drag = None;
                     } else if self.segment_ok(a, b) {
@@ -1819,7 +1877,11 @@ impl Arena {
             water,
             trees: tree_marks(plot, &cam),
             zone,
-            grid: if building { cam.len(TUNE.grid, 1) } else { 0 },
+            grid: if building {
+                cam.len(crate::play::tune::SNAP_STEP, 1)
+            } else {
+                0
+            },
             beams,
             nodes,
             royals,
@@ -1856,8 +1918,12 @@ impl Arena {
         edge.push(cam.px(Vec2::new(l, top)));
         let mut marks = BuildMarks {
             zone_edge: edge,
+            node_r: cam.len(crate::play::tune::NODE_PULL, 4),
             ..BuildMarks::default()
         };
+        if let (Tool::Beam(_), Some(c)) = (self.tool, self.cursor) {
+            self.node_marks(cam, c, &mut marks);
+        }
         if self.tool != Tool::Royal {
             return marks;
         }
@@ -1895,6 +1961,55 @@ impl Arena {
             });
         }
         marks
+    }
+
+    /// The placed nodes near the cursor at `c`, the one a press would
+    /// pick, and the gold you lack for the selected material (R1.4300,
+    /// R1.4301).
+    fn node_marks(&self, cam: &Camera, c: Vec2, marks: &mut BuildMarks) {
+        if let Some(w) = self.built_world() {
+            for n in &w.nodes {
+                if (n.pos - c).len() <= crate::play::tune::NODE_NEAR && self.in_zone(n.pos) {
+                    marks.near.push(cam.px(n.pos));
+                }
+            }
+        }
+        let pick = match self.drag {
+            None => Some(self.start_at(c)),
+            Some(a) => Some(self.end_at(a, c)).filter(|&b| b != a),
+        };
+        marks.hover = pick.filter(|&p| self.is_node(p)).map(|p| cam.px(p));
+        let short = self.gold_short();
+        if short > 0 {
+            let p = cam.px(c);
+            marks.need = Some(Label {
+                x: p[0],
+                y: p[1] - cam.len(Fx::ONE, 24),
+                text: self.need_text.replace("{n}", &short.to_string()),
+            });
+        }
+    }
+
+    /// How much more gold the selected material's next segment costs than
+    /// you have: 0 when it is stocked, affordable or no segment is chosen.
+    fn gold_short(&self) -> u32 {
+        let Tool::Beam(piece) = self.tool else {
+            return 0;
+        };
+        let Some(me) = self.play.rules.player(self.me) else {
+            return 0;
+        };
+        let stock = me.ledger.stock;
+        let stocked = match piece {
+            Piece::Segment(ledger::Material::Wood) => stock.wood,
+            Piece::Segment(ledger::Material::Stone) => stock.stone,
+            Piece::Segment(ledger::Material::Metal) => stock.metal,
+            _ => 0,
+        };
+        if stocked > 0 {
+            return 0;
+        }
+        ledger::price(piece, &me.mods).saturating_sub(me.purse.gold)
     }
 
     fn empty_frame(&self) -> Frame {
@@ -1937,27 +2052,28 @@ impl Arena {
         match self.tool {
             Tool::Beam(piece) => {
                 let m = castle::physics_material(piece).unwrap_or(Material::Wood);
+                let broke = self.gold_short() > 0;
                 let Some(a) = self.drag else {
-                    let s = Vec2::new(snap(c.x), snap(c.y));
+                    let s = self.start_at(c);
                     let p = cam.px(s);
                     return (
                         None,
                         Some(Ring {
                             x: p[0],
                             y: p[1],
-                            r: cam.len(TUNE.grid / 2, 3),
-                            ok: self.can_start(s),
+                            r: cam.len(crate::play::tune::SNAP_STEP / 2, 3),
+                            ok: self.can_start(s) && !broke,
                         }),
                     );
                 };
-                let b = reach_end(a, c, self.max_len());
+                let b = self.end_at(a, c);
                 let pa = cam.px(a);
                 let preview = Preview {
                     a: pa,
                     b: cam.px(b),
                     w: cam.len(TUNE.material(m).thickness, 2),
                     material: material_name(m),
-                    ok: a != b && self.in_zone(b),
+                    ok: a != b && self.in_zone(b) && !broke,
                     len: 0,
                 }
                 .measured();

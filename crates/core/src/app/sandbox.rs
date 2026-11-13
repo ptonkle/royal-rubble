@@ -792,7 +792,7 @@ impl Sandbox {
     /// Where a drag from `a` toward `to` ends: snapped, and pulled back
     /// inside the material's reach.
     pub fn drag_end(&self, a: Vec2, to: Vec2) -> Vec2 {
-        reach_end(a, to, self.max_len())
+        reach_end(a, to, self.max_len(), TUNE.grid)
     }
 }
 
@@ -800,8 +800,15 @@ impl Sandbox {
 /// the grid point nearest the cursor when that is within reach, else the
 /// grid point within reach nearest the full-length point along the
 /// cursor's direction, so pointing past the reach always gives the longest
-/// piece that way (R1.3304).
-pub(super) fn reach_end(a: Vec2, to: Vec2, max: Fx) -> Vec2 {
+/// piece that way (R1.3304). Points lie on a grid `step` apart (R1.4300).
+/// `v` rounded to the nearest multiple of `step`.
+pub(super) fn snap_to(v: Fx, step: Fx) -> Fx {
+    let g = step.0;
+    Fx((v.0 + g / 2).div_euclid(g) * g)
+}
+
+pub(super) fn reach_end(a: Vec2, to: Vec2, max: Fx, step: Fx) -> Vec2 {
+    let snap = |v: Fx| snap_to(v, step);
     let b = Vec2::new(snap(to.x), snap(to.y));
     if (b - a).len() <= max {
         return b;
@@ -813,7 +820,7 @@ pub(super) fn reach_end(a: Vec2, to: Vec2, max: Fx) -> Vec2 {
         to
     };
     let (cx, cy) = (snap(aim.x), snap(aim.y));
-    let g = TUNE.grid;
+    let g = step;
     let mut best: Option<(Fx, Vec2)> = None;
     for i in -2..=2i64 {
         for j in -2..=2i64 {
