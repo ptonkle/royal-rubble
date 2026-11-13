@@ -90,7 +90,7 @@ const CAM_MARGIN: i64 = 3;
 const CAM_BEHIND: i64 = 6;
 const CAM_FLY_MAX_W: i64 = 44;
 /// The widest a high shot opens the view to keep the ground in it.
-const CAM_FLY_TALL_W: i64 = 140;
+const CAM_FLY_TALL_W: i64 = 260;
 const CAM_AIM_MIN_W: i64 = 24;
 const CAM_AIM_MAX_W: i64 = 44;
 const CAM_EMPTY_W: i64 = 10;
@@ -518,6 +518,13 @@ impl Arena {
                 (tall * Fx::from_int(w as i64) / Fx::from_int(h.max(1) as i64))
                     .min(Fx::from_int(CAM_FLY_TALL_W)),
             );
+            // the trebuchet stays in while the widened view still holds the ball
+            let home = base.x - Fx::from_int(CAM_BEHIND);
+            let left = if home < left && b.pos.x + Fx::from_int(CAM_MARGIN) < home + width {
+                home
+            } else {
+                left
+            };
             let mut cam = Camera::spanning(left, width, Fx::ZERO, w, h);
             cam.bottom = floor - cam.height() / 6;
             let above = b.pos.y + Fx::from_int(CAM_MARGIN) - (cam.bottom + cam.height());
