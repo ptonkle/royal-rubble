@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.2.7",
+    "date": "2026-11-13",
+    "notes": [
+      "Bots start shooting as soon as a siege begins."
+    ]
+  },
+  {
     "version": "0.2.6",
     "date": "2026-11-13",
     "notes": [
