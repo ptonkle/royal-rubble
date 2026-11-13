@@ -1218,6 +1218,48 @@
     "test": "botplan_build_planning_starts_again_when_the_castle_changed"
   },
   {
+    "name": "wardrum countdown drum misses the hard beats",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "Some(if now <= DRUM_HARD { \"drum_close\" } else { \"drum_count\" })",
+    "replace": "Some(\"drum_count\")",
+    "test": "arena_drum_beats_each_new_second_of_the_last_ten_harder_in_the_last_three"
+  },
+  {
+    "name": "wardrum arena never cues the drum",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                self.cue(beat, 0);\n",
+    "replace": "                let _ = beat;\n",
+    "test": "arena_the_build_timer_reaching_ten_seconds_cues_the_drum"
+  },
+  {
+    "name": "deathcry every royal cries as a knight",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "cries.extend(kinds.iter().skip(seen).map(|&k| death_cry(k)));",
+    "replace": "cries.extend(kinds.iter().skip(seen).map(|_| \"royal_knight\"));",
+    "test": "arena_a_royal_killed_in_your_siege_cries_by_its_rank"
+  },
+  {
+    "name": "buildsongs every round plays the first song",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "BUILD_SONGS[round.saturating_sub(1) as usize % BUILD_SONGS.len()]",
+    "replace": "BUILD_SONGS[0]",
+    "test": "arena_songs_building_songs_take_turns_round_by_round"
+  },
+  {
+    "name": "buildsongs a named song is missing from the sounds",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "    \"music_mandolins\",\n];",
+    "replace": "    \"music_lost\",\n];",
+    "test": "arena_songs_every_track_the_core_names_is_compiled"
+  },
+  {
+    "name": "menutheme the menus stay silent",
+    "file": "crates/core/src/app.rs",
+    "find": "                MENU_MUSIC.into()\n",
+    "replace": "                String::new()\n",
+    "test": "the_menus_play_the_menu_theme_and_a_match_leaves_music_to_its_field"
+  },
+  {
     "name": "hudpick early build opens on pick",
     "file": "crates/core/src/game/flow.rs",
     "find": "            Phase::Upgrade => self\n                .player(p)",

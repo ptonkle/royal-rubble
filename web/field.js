@@ -63,23 +63,24 @@ export function showField(ui) {
   if (!canvas) return;
   const f = ui.field;
   canvas.hidden = !f;
+  // decimal strings from the core ("0.800"); Web Audio's arithmetic reads them
+  sound.setVolume(ui.sound_share);
+  sound.setMusicVolume(ui.music_share);
   if (!f) {
     if (showing) {
       loopsOn.forEach((name) => sound.stopLoop(name));
       loopsOn = new Set();
-      sound.music(null);
       lastCue = null;
     }
     showing = false;
+    // the menu theme, or none (the core says which)
+    sound.music(ui.menu_music || null);
     return;
   }
   showing = true;
   fit();
   // where the buildable area is, for the browser checks to aim at
   canvas.dataset.zone = f.zone ? f.zone.join(",") : "";
-  // decimal strings from the core ("0.800"); Web Audio's arithmetic reads them
-  sound.setVolume(ui.sound_share);
-  sound.setMusicVolume(ui.music_share);
   drawField(g, f);
   sounds(f);
 }

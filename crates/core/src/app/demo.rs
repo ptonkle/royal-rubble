@@ -15,8 +15,8 @@ use crate::game::royals::RoyalKind;
 use crate::physics::world::snap;
 use crate::physics::{Fx, Material, Vec2};
 
-/// The menu's music (the sound set has no menu track yet).
-const MUSIC: &str = "music_build";
+/// The menu theme, as `app::MENU_MUSIC` plays when no backdrop shows.
+const MUSIC: &str = "music_menu";
 /// The backdrop view's width, units.
 const VIEW_UNITS: i64 = 30;
 /// How far across the view the castle's middle stands, percent.

@@ -31,6 +31,9 @@ const VOLUME_STEP: u32 = 5;
 /// The sound sliders' top, percent.
 const VOLUME_MAX: u32 = 100;
 
+/// The menu theme, on every screen outside a match (R1.3802).
+const MENU_MUSIC: &str = "music_menu";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Screen {
     Title,
@@ -750,6 +753,11 @@ impl App {
             } else {
                 self.strings.get(status)
             },
+            menu_music: if matches!(self.screen, Screen::Play | Screen::Sandbox) {
+                String::new()
+            } else {
+                MENU_MUSIC.into()
+            },
             field: arena
                 .map(|a| a.frame())
                 .or_else(|| sandbox.map(|s| s.frame()))
@@ -760,7 +768,7 @@ impl App {
                         .map(|d| d.frame())
                 }),
             samples: self.samples,
-            sample_cue: "ui_click".into(),
+            sample_cue: "sample".into(),
             escape: self.escape().into(),
             sync: room
                 .filter(|r| r.game.is_some())
