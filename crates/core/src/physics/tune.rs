@@ -214,7 +214,7 @@ pub const TUNE: Tune = Tune {
     ],
     treb_sling_full: 80,
     treb_power_base: 100,
-    treb_sling_pct: 2756,
+    treb_sling_pct: 2470,
     edge_margin: Fx::from_int(64),
 };
 

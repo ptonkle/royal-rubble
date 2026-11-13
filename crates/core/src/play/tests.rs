@@ -468,26 +468,6 @@ fn trebuchet_full_power_reaches_the_far_end_of_the_level_nine_plot() {
     }
 }
 
-#[test]
-fn trebuchet_level_one_clears_a_far_raised_plot() {
-    // the far case the terrain is moving to: the plot's front 161 cells out
-    // and 30 cells above the pad, with a 40-column level-1 span
-    let mut heights = vec![Fx::ZERO; 120];
-    heights.extend((0..10).map(|k| Fx::from_int(3 * k)));
-    heights.extend(vec![Fx::from_int(30); 300]);
-    let t = crate::physics::Terrain {
-        col_width: Fx::ONE,
-        heights,
-    };
-    let base = Vec2::ints(5, 0);
-    let power = super::siege::launch_power(rules::LEVELS[0].shot_power_pct);
-    let far = (0..SCAN)
-        .filter_map(|r| land_x(t.clone(), base, r, power))
-        .max()
-        .unwrap();
-    assert!(far >= 5 + 161 + 40, "level 1 lands at most {far}");
-}
-
 /// Into the siege after `setup` changes the match in the build phase, with
 /// player 0's squire on the ground.
 fn siege_after(seed: u64, setup: impl FnOnce(&mut Play)) -> (Play, Vec2) {
@@ -688,5 +668,33 @@ fn ruins_stand_under_the_static_test_on_every_seed() {
                 assert!(permille < 500, "seed {seed}: ruin piece {id} at {permille}");
             }
         }
+    }
+}
+
+/// The seed in 1..=300 whose `level` plot back edge lies farthest from the
+/// trebuchet, and that distance in columns.
+fn farthest_back(level: u8) -> (u64, i64) {
+    (1..=300u64)
+        .map(|seed| {
+            let plot = Plot::generate(seed);
+            (seed, plot.buildable(level).end as i64 - plot.launch_col as i64)
+        })
+        .max_by_key(|(_, d)| *d)
+        .unwrap()
+}
+
+#[test]
+fn trebuchet_best_throw_lands_just_past_the_farthest_plot_back() {
+    // R1.1600: the best plain throw clears the farthest map's back edge by
+    // at most 15 percent, at level 1 and at level 9
+    for level in [1u8, 9] {
+        let (seed, back) = farthest_back(level);
+        let plot = Plot::generate(seed);
+        let power = super::siege::launch_power(rules::LEVELS[level as usize - 1].shot_power_pct);
+        let far = reach(&plot, power).1 - plot.launch_col as i64;
+        assert!(
+            far >= back && far * 100 <= back * 115,
+            "level {level}, seed {seed}: lands {far}, back {back}"
+        );
     }
 }
