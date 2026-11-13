@@ -45,8 +45,18 @@ pub struct SiegeLog {
 impl SiegeLog {
     /// `owner`'s castle as the last siege began, and its attacker's inputs.
     pub fn replay_of(&self, owner: PlayerId) -> Option<(Field, Vec<Logged>)> {
-        let field = self.start.as_ref()?.iter().find(|f| f.owner == owner && !f.ghost)?.clone();
-        let inputs = self.inputs.iter().filter(|l| l.player == field.attacker).copied().collect();
+        let field = self
+            .start
+            .as_ref()?
+            .iter()
+            .find(|f| f.owner == owner && !f.ghost)?
+            .clone();
+        let inputs = self
+            .inputs
+            .iter()
+            .filter(|l| l.player == field.attacker)
+            .copied()
+            .collect();
         Some((field, inputs))
     }
 }
@@ -63,7 +73,10 @@ pub fn replay_input(field: &mut Field, input: Input, now: u32) {
 }
 
 fn is_siege_input(i: Input) -> bool {
-    matches!(i, Input::SelectAmmo(_) | Input::Swing | Input::Release | Input::Air(_))
+    matches!(
+        i,
+        Input::SelectAmmo(_) | Input::Swing | Input::Release | Input::Air(_)
+    )
 }
 
 /// One match tick with these inputs, then what follows inside the same tick:

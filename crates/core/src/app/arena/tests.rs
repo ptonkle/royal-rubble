@@ -1,4 +1,5 @@
 use super::*;
+use crate::game::flow::{Difficulty, Seat};
 use crate::lobby::{Options, StartSeat};
 use crate::strings::tests::sample;
 

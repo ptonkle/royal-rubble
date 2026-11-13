@@ -184,9 +184,16 @@ fn online_two_lagged_browsers_play_a_whole_match_and_agree_every_second() {
         assert_eq!(b.tick, ticks, "browser {k} stalled");
         assert_eq!(b.confirmed, ticks, "browser {k} confirmed every tick");
         assert_eq!(b.status, crate::online::PLAYING, "browser {k}: no desync");
-        assert_eq!(pair.games[k].sum(), want.sum(), "browser {k} ends on the true match");
+        assert_eq!(
+            pair.games[k].sum(),
+            want.sum(),
+            "browser {k} ends on the true match"
+        );
     }
-    assert!(pair.browsers[1].rollbacks > 0, "the wire made the joiner guess wrong");
+    assert!(
+        pair.browsers[1].rollbacks > 0,
+        "the wire made the joiner guess wrong"
+    );
     // a checksum every second, the same on both
     let seconds = (ticks / SUM_EVERY) as usize;
     assert!(pair.sums[0].len() >= seconds - 1, "sums {:?}", pair.sums[0].len());
@@ -286,3 +293,31 @@ fn online_the_replay_holds_a_persons_siege_inputs_at_their_ticks() {
     assert_eq!(got, [(0, Input::Swing), (3, Input::Release)]);
 }
 
+#[test]
+fn online_a_bot_with_no_castle_builds_one_in_the_tick_a_build_begins() {
+    let m = start(1, 1, 3);
+    let mut g = NetMatch::new(&m).unwrap();
+    let has_beams = |g: &NetMatch| {
+        g.play.castles[1]
+            .geo
+            .values()
+            .any(|x| matches!(x, castle::Geo::Beam { .. }))
+    };
+    let at_start = has_beams(&g);
+    g.play.castles[1] = castle::Castle::default();
+    let ready = pack(Input::Ready).unwrap();
+    let mut t = 0;
+    while g.play.rules.phase != Phase::Siege && t < 20_000 {
+        g.step([ready, 0, 0, 0, 0, 0, 0, 0]);
+        t += 1;
+    }
+    while g.play.rules.phase != Phase::Build && t < 40_000 {
+        g.step([ready, 0, 0, 0, 0, 0, 0, 0]);
+        t += 1;
+    }
+    assert_eq!(g.play.rules.phase, Phase::Build);
+    assert!(
+        has_beams(&g),
+        "the bot rebuilt as the build began (built at the start: {at_start})"
+    );
+}

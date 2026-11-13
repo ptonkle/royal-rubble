@@ -253,9 +253,8 @@ impl App {
         )]
     }
 
-    /// The match, until the rules land. `state` is what the online check
-    /// compares: the first two seats' marks, then the newest checksum with
-    /// its tick.
+    /// The countdown before an online match. `state` is what the online
+    /// check compares: the round, then the newest checksum with its tick.
     pub(super) fn play_panels(&self, room: &Room) -> Vec<Panel> {
         let mut items = Vec::new();
         if let Some(n) = room.counting(self.now_ms) {
@@ -273,8 +272,8 @@ impl App {
     }
 }
 
-fn state_line(room: &Room) -> String {
-    let pos = |seat: usize| room.game.as_ref().map_or(0, |game| game.pos[seat]);
+pub(super) fn state_line(room: &Room) -> String {
+    let round = room.game.as_ref().map_or(0, |game| game.play.rules.round);
     let (tick, sum) = room.session.newest_sum().unwrap_or((0, 0));
-    format!("{} : {} : {tick} : {sum}", pos(0), pos(1))
+    format!("{round} : {tick} : {sum}")
 }

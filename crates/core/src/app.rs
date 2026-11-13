@@ -279,8 +279,8 @@ impl App {
             "match.again" => {
                 let seed = self.rng.next_u64();
                 let next = match &self.arena {
-                    Some(a) => a.again(seed, &self.strings)?,
-                    None => return Err(format!("Unknown action \"{name}\".")),
+                    Some(a) if !a.is_online() => a.again(seed, &self.strings)?,
+                    _ => return Err(format!("Unknown action \"{name}\".")),
                 };
                 self.arena = Some(next);
             }
@@ -380,10 +380,21 @@ impl App {
         if let Some(a) = &mut self.arena {
             a.pump(now_ms, keys);
         }
-        let mut pump = self
-            .room
-            .as_mut()
-            .map_or_else(Pump::default, |r| r.pump(now_ms, keys));
+        if let (Some(a), Some(r)) = (&mut self.arena, &mut self.room) {
+            if a.is_online() {
+                for i in a.take_inputs() {
+                    r.queue(i);
+                }
+            }
+        }
+        let mut pump = self.room.as_mut().map_or_else(Pump::default, |r| r.pump(now_ms));
+        if let (Some(a), Some(r)) = (&mut self.arena, &self.room) {
+            match &r.game {
+                Some(g) if a.is_online() => a.follow(g, r.session.tick),
+                None if a.is_online() => self.arena = None,
+                _ => {}
+            }
+        }
         pump.requests.append(&mut self.leaving);
         if self.screen == Screen::Paste && self.room.as_ref().is_some_and(|r| r.heard) {
             self.screen = Screen::Lobby;
@@ -398,20 +409,36 @@ impl App {
         pump
     }
 
-    /// A solo room that has started gets its match (online rooms keep the
-    /// placeholder until the match runs through the rollback session).
+    /// A room that has started gets its match screen: solo, the arena runs
+    /// the match; online, it follows the room's once the countdown ends.
     fn start_arena(&mut self) {
         if self.arena.is_some() {
             return;
         }
         let Some(room) = &self.room else { return };
-        if room.kind != Kind::Solo || room.stage == Stage::Lobby {
-            return;
-        }
         let Some(start) = &room.start else { return };
-        if let Ok(a) = arena::Arena::new(start, &self.client, self.fast, &self.strings) {
+        let made = match (&room.game, room.stage) {
+            (_, Stage::Lobby) => return,
+            (None, _) if room.kind == Kind::Solo => {
+                arena::Arena::new(start, &self.client, self.fast, &self.strings)
+            }
+            (Some(g), Stage::Playing) => {
+                arena::Arena::online(start, &self.client, &self.strings, g, room.session.tick)
+            }
+            _ => return,
+        };
+        if let Ok(a) = made {
             self.arena = Some(a);
         }
+    }
+
+    /// The match stopped because the browsers disagree.
+    fn out_of_sync_panels(&self) -> Vec<Panel> {
+        vec![Panel::new(
+            "play",
+            self.strings.get("online.desync"),
+            vec![self.quiet("play.leave", "play.leave")],
+        )]
     }
 
     fn button(&self, id: &str, key: &str) -> Item {
@@ -530,6 +557,7 @@ impl App {
             (Screen::Online, _) => self.online_panels(),
             (Screen::Paste, r) => self.paste_panels(r),
             (Screen::Lobby, Some(r)) => self.lobby_panels(r),
+            (Screen::Play, Some(r)) if self.arena.is_some() && r.out_of_sync() => self.out_of_sync_panels(),
             (Screen::Play, Some(_)) if self.arena.is_some() => self
                 .arena
                 .as_ref()
@@ -589,6 +617,9 @@ impl App {
                 self.strings.get(status)
             },
             field: arena.map(|a| a.frame()).or_else(|| sandbox.map(|s| s.frame())),
+            sync: room
+                .filter(|r| r.game.is_some())
+                .map_or_else(String::new, lobby_view::state_line),
         }
     }
 }

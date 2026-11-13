@@ -256,6 +256,9 @@ pub struct Ui {
     /// the playfield's canvas, while one shows
     #[serde(skip_serializing_if = "Option::is_none")]
     pub field: Option<crate::app::field::Frame>,
+    /// An online match, for the two-browser check to compare: round, then
+    /// the newest checksum's tick and value (`body[data-sync]`).
+    pub sync: String,
 }
 
 #[cfg(test)]
