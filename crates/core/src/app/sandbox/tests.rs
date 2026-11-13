@@ -14,7 +14,7 @@ fn sandbox_starts_with_a_castle_that_stands_a_test() {
 /// Where a shot released at tick `t` first comes down to the ground, with
 /// no wind and nothing in the way.
 fn landing(s: &Sandbox, t: u32) -> Fx {
-    let l = trebuchet_launch(s.engine_base(), t, POWER, false);
+    let l = trebuchet_launch(s.engine_base(), t, power(), false);
     let (mut p, mut v) = (l.pos, l.vel);
     let mut n = 0;
     while p.y > s.ground(p.x) && n < 2000 {
@@ -29,7 +29,9 @@ fn landing(s: &Sandbox, t: u32) -> Fx {
 fn sandbox_power_reaches_the_whole_level_one_plot() {
     let s = Sandbox::new(5);
     let (zl, zr, _) = s.zone();
-    let lands: Vec<(u32, i64)> = (20..80).map(|t| (t, landing(&s, t).floor_int())).collect();
+    let lands: Vec<(u32, i64)> = (0..Sandbox::swing_end())
+        .map(|t| (t, landing(&s, t).floor_int()))
+        .collect();
     let inside: Vec<u32> = lands
         .iter()
         .filter(|(_, x)| *x >= zl.floor_int() && *x <= zr.floor_int())

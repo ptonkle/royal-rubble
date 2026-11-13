@@ -119,37 +119,37 @@ pub const LEVELS: [LevelRow; 9] = [
     LevelRow {
         level: 3,
         normal_shots: 4,
-        shot_power_pct: 105,
+        shot_power_pct: 102,
     },
     LevelRow {
         level: 4,
         normal_shots: 4,
-        shot_power_pct: 110,
+        shot_power_pct: 104,
     },
     LevelRow {
         level: 5,
         normal_shots: 4,
-        shot_power_pct: 115,
+        shot_power_pct: 106,
     },
     LevelRow {
         level: 6,
         normal_shots: 5,
-        shot_power_pct: 120,
+        shot_power_pct: 108,
     },
     LevelRow {
         level: 7,
         normal_shots: 5,
-        shot_power_pct: 125,
+        shot_power_pct: 110,
     },
     LevelRow {
         level: 8,
         normal_shots: 5,
-        shot_power_pct: 130,
+        shot_power_pct: 112,
     },
     LevelRow {
         level: 9,
         normal_shots: 6,
-        shot_power_pct: 140,
+        shot_power_pct: 115,
     },
 ];
 

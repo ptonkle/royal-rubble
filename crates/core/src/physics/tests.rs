@@ -371,9 +371,12 @@ fn a_later_release_throws_a_flatter_arc() {
     for pair in useful.windows(2) {
         assert!(launch_angle_order(pair[0], pair[1]));
     }
+    // just past the top of the backswing it throws nearly straight up
+    let up = trebuchet_launch(base, 30, 3, false);
+    assert!(up.vel.x > Fx::ZERO && up.vel.y > up.vel.x * 3);
     // too early throws backward, too late throws into the ground
     assert!(trebuchet_launch(base, 10, 3, false).vel.x < Fx::ZERO);
-    assert!(trebuchet_launch(base, 75, 3, false).vel.y < Fx::ZERO);
+    assert!(trebuchet_launch(base, 190, 3, false).vel.y < Fx::ZERO);
     // facing left mirrors it
     let r = trebuchet_launch(base, 50, 3, false);
     let l = trebuchet_launch(base, 50, 3, true);
@@ -437,11 +440,14 @@ fn air_hover_hangs_still_then_falls() {
 }
 
 #[test]
-fn trebuchet_release_window_is_30_to_40_ticks() {
+fn trebuchet_forward_release_window_ends_by_tick_160() {
     let base = Vec2::ints(0, 0);
-    let useful = (0..200)
-        .map(|t| trebuchet_launch(base, t, 0, false))
-        .filter(|l| l.vel.x > Fx::ZERO && l.vel.y > Fx::ZERO)
-        .count();
-    assert!((30..=40).contains(&useful), "forward and up for {useful} ticks");
+    let forward: Vec<u32> = (0..300)
+        .filter(|&t| {
+            let l = trebuchet_launch(base, t, 0, false);
+            l.vel.x > Fx::ZERO && l.vel.y > Fx::ZERO
+        })
+        .collect();
+    let last = *forward.last().unwrap();
+    assert!(forward.len() >= 120 && last <= 160, "forward and up {forward:?}");
 }

@@ -49,9 +49,10 @@ pub fn keys() -> BTreeMap<String, u32> {
     k
 }
 
-/// The sandbox's trebuchet power (the rules will hand in the player's).
-/// At 7 the farthest throw just reaches the level-1 plot's back edge.
-pub const POWER: u8 = 7;
+/// The sandbox's trebuchet power: a level-1 match's, so it throws the same.
+pub fn power() -> u8 {
+    crate::play::siege::launch_power(crate::game::tune::LEVELS[0].shot_power_pct)
+}
 /// Wind per level, raw units per tick squared (about 2 units of drift over a
 /// two-second flight).
 const WIND_STEP: i64 = 18;
@@ -497,7 +498,7 @@ impl Sandbox {
 
     fn release(&mut self) {
         let t = self.swing_tick().unwrap_or(0);
-        let launch = trebuchet_launch(self.engine_base(), t, POWER, false);
+        let launch = trebuchet_launch(self.engine_base(), t, power(), false);
         let ammo = AMMO[self.ammo];
         let i = self.world.fire(launch, ammo.radius, ammo.mass);
         self.world.projectiles[i].fire = ammo.fire;

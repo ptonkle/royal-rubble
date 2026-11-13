@@ -744,8 +744,8 @@
   {
     "name": "sandbox power reaches the plot",
     "file": "crates/core/src/app/sandbox.rs",
-    "find": "pub const POWER: u8 = 7;",
-    "replace": "pub const POWER: u8 = 2;",
+    "find": "crate::play::siege::launch_power(crate::game::tune::LEVELS[0].shot_power_pct)",
+    "replace": "crate::play::siege::launch_power(crate::game::tune::LEVELS[8].shot_power_pct) * 4",
     "test": "sandbox_power_reaches_the_whole_level_one_plot"
   },
   {
@@ -779,29 +779,29 @@
   {
     "name": "wire: trebuchet release window",
     "file": "crates/core/src/physics/tune.rs",
-    "find": "treb_top_speed: 450,",
-    "replace": "treb_top_speed: 614,",
-    "test": "trebuchet_release_window_is_30_to_40_ticks"
+    "find": "(78, 80),\n        (150, 80),",
+    "replace": "(78, 40),\n        (150, 40),",
+    "test": "trebuchet_forward_release_window_ends_by_tick_160"
   },
   {
     "name": "wire: trebuchet level one reach",
     "file": "crates/core/src/physics/tune.rs",
-    "find": "treb_sling_pct: 490,",
-    "replace": "treb_sling_pct: 100,",
+    "find": "treb_sling_pct: 2756,",
+    "replace": "treb_sling_pct: 600,",
     "test": "trebuchet_level_one_reaches_the_whole_level_one_plot"
   },
   {
     "name": "wire: trebuchet level nine reach",
     "file": "crates/core/src/physics/tune.rs",
-    "find": "treb_sling_pct: 490,",
-    "replace": "treb_sling_pct: 100,",
+    "find": "treb_sling_pct: 2756,",
+    "replace": "treb_sling_pct: 600,",
     "test": "trebuchet_full_power_reaches_the_far_end_of_the_level_nine_plot"
   },
   {
     "name": "wire: trebuchet far raised plot",
     "file": "crates/core/src/physics/tune.rs",
-    "find": "treb_sling_pct: 490,",
-    "replace": "treb_sling_pct: 400,",
+    "find": "treb_sling_pct: 2756,",
+    "replace": "treb_sling_pct: 2300,",
     "test": "trebuchet_level_one_clears_a_far_raised_plot"
   },
   {
@@ -894,5 +894,26 @@
     "find": "clamp_slope_from(&mut h, front, PLOT_STEEP);",
     "replace": "clamp_slope_from(&mut h, front, 3 * CELL);",
     "test": "terrain_hundred_seeds_all_playable"
+  },
+  {
+    "name": "wire: trebuchet level one plot window",
+    "file": "crates/core/src/physics/trebuchet.rs",
+    "find": "let sling = speed.min(TUNE.treb_sling_full);",
+    "replace": "let sling = speed.min(TUNE.treb_sling_full) * 2;",
+    "test": "trebuchet_level_one_plot_window_is_at_least_12_ticks"
+  },
+  {
+    "name": "wire: trebuchet level nine plot window",
+    "file": "crates/core/src/physics/trebuchet.rs",
+    "find": "let sling = speed.min(TUNE.treb_sling_full);",
+    "replace": "let sling = speed.min(TUNE.treb_sling_full) * 2;",
+    "test": "trebuchet_level_nine_plot_window_is_at_least_12_ticks"
+  },
+  {
+    "name": "wire: trebuchet arm slows through the forward arc",
+    "file": "crates/core/src/physics/tune.rs",
+    "find": "(24, 80),\n        (54, 80),",
+    "replace": "(24, 240),\n        (54, 240),",
+    "test": "trebuchet_level_one_plot_window_is_at_least_12_ticks"
   }
 ]
