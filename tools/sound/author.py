@@ -10,6 +10,8 @@ Edit here, not in the JSON. See tools/sound/compile.py for the recipe fields.
 import json
 import pathlib
 
+import songs
+
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SILENCE = 0.001
 
@@ -169,27 +171,43 @@ cue("air_reverse", "Reverse",
     noise(0.1, [bp(600, 1.5, to_freq=2000, sweep_ms=220)], attack_ms=15, hold_ms=420, release_ms=100))
 
 # ---- royals ----
-def yelp(f0, up, down, dur, formant, gain=0.16, at=0):
-    return {"wave": "sawtooth", "freq": f0, "gain": gain, "at_ms": at, "attack_ms": 12, "hold_ms": dur, "release_ms": 70,
-            "bends": [[dur * 0.3, up], [dur, down]], "filters": [bp(formant, 3.5), bp(formant * 2.6, 4)],
-            "wobble": [{"rate": 11, "cents": 25}]}
+# A short cry of death (R1.3801): a voice (a sawtooth whose pitch leaps up,
+# then falls away) through three vowel formants, each its own layer so they
+# sit side by side, and a breath of noise. Higher ranks cry longer; women and
+# the squire cry higher. A thud and the rank's mark follow.
+AH = (760, 1180, 2550)     # "aah"
+OH = (560, 900, 2400)      # "ohh", for the deep voices
+
+
+def cry(f0, peak, end, dur, vowel=AH, scale=1.0, gain=0.3, at=0):
+    gain *= 2.1  # loud enough to cut through a collapse
+    bends = [[dur * 0.18, peak], [dur * 0.5, round(peak * 0.93)], [dur, end]]
+    out = []
+    for formant, share, q in zip(vowel, (1.0, 0.7, 0.35), (5, 7, 9)):
+        out.append({"wave": "sawtooth", "freq": f0, "gain": round(gain * share, 3), "at_ms": at, "attack_ms": 14,
+                    "hold_ms": dur, "release_ms": 110, "bends": bends,
+                    "filters": [bp(round(formant * scale), q)],
+                    "wobble": [{"rate": 7.5, "cents": 35}, {"rate": 23, "cents": 12}]})
+    out.append(noise(round(gain * 0.12, 3), [bp(round(vowel[1] * scale), 2)], at_ms=at, attack_ms=10,
+                     hold_ms=round(dur * 0.6), release_ms=round(dur * 0.5)))
+    return out
 
 
 def thud(at, gain=0.3):
     return [tone("sine", 95, gain, 140, to=50, at=at), struck("noise", gain * 0.6, [[0, 1]], 30, filters=[lp(500)], at=at)]
 
 
-cue("royal_squire", "Squire falls", yelp(520, 700, 380, 180, 1100, 0.13), thud(200, 0.22))
-cue("royal_knight", "Knight falls", yelp(260, 330, 190, 240, 700), thud(260), metal(620, 0.08, 160, at=260))
-cue("royal_princess", "Princess falls", yelp(780, 1100, 640, 300, 1400, 0.12), thud(330, 0.22),
-    [struck("sine", 0.05, [[0, 1]], 300, freq=f, at=340 + k * 70) for k, f in enumerate((1568, 2093))])
-cue("royal_prince", "Prince falls", yelp(330, 450, 240, 320, 850), thud(350),
-    [struck("sine", 0.05, [[0, 1]], 300, freq=f, at=360 + k * 70) for k, f in enumerate((1175, 1568))])
-cue("royal_queen", "Queen falls", yelp(440, 620, 330, 420, 1000), thud(450),
-    [struck("sine", 0.06, [[0, 1]], 500, freq=f, at=470 + k * 90) for k, f in enumerate((1047, 1319, 1568))])
-cue("royal_king", "King falls", yelp(190, 260, 140, 420, 620, 0.18), thud(450, 0.35),
-    trumpet(523, 520, 70), trumpet(523, 640, 70), trumpet(392, 760, 420, release=380),
-    trumpet(659, 520, 70, gain=0.05), trumpet(659, 640, 70, gain=0.05), trumpet(494, 760, 420, gain=0.05, release=380))
+cue("royal_squire", "Squire falls", cry(420, 640, 300, 260, scale=1.12, gain=0.26), thud(280, 0.22))
+cue("royal_knight", "Knight falls", cry(170, 250, 110, 330, OH, gain=0.32), thud(330), metal(620, 0.08, 160, at=330))
+cue("royal_princess", "Princess falls", cry(560, 900, 420, 380, scale=1.2, gain=0.24), thud(400, 0.22),
+    [struck("sine", 0.05, [[0, 1]], 300, freq=f, at=420 + k * 70) for k, f in enumerate((1568, 2093))])
+cue("royal_prince", "Prince falls", cry(230, 340, 150, 380, gain=0.3), thud(400),
+    [struck("sine", 0.05, [[0, 1]], 300, freq=f, at=420 + k * 70) for k, f in enumerate((1175, 1568))])
+cue("royal_queen", "Queen falls", cry(400, 680, 280, 520, scale=1.15, gain=0.26), thud(540),
+    [struck("sine", 0.06, [[0, 1]], 500, freq=f, at=560 + k * 90) for k, f in enumerate((1047, 1319, 1568))])
+cue("royal_king", "King falls", cry(140, 210, 80, 560, OH, gain=0.36), thud(580, 0.35),
+    trumpet(523, 650, 70), trumpet(523, 770, 70), trumpet(392, 890, 420, release=380),
+    trumpet(659, 650, 70, gain=0.05), trumpet(659, 770, 70, gain=0.05), trumpet(494, 890, 420, gain=0.05, release=380))
 
 # ---- building and gold ----
 cue("place_segment", "Place segment",
@@ -226,12 +244,17 @@ cue("horn_siege", "Siege begins",
     horn(220, 0, 130, gain=0.13), horn(220, 230, 130, gain=0.13), horn(329.6, 460, 900, gain=0.13, release=450),
     horn(110, 0, 1500, gain=0.07, release=450),
     tone("sine", 70, 0.4, 500, to=40), struck("noise", 0.25, [[0, 1]], 60, filters=[lp(300)]))
-cue("tick", "Timer tick",
-    tone("sine", 1250, 0.11, 45, to=1000),
-    struck("noise", 0.06, [[0, 1]], 5, filters=[bp(2600, 3)]))
-cue("tick_last", "Last tick",
-    tone("sine", 1650, 0.14, 60, to=1350),
-    struck("noise", 0.08, [[0, 1]], 6, filters=[bp(3200, 3)]))
+# The countdown war drum (R1.3800): one deep beat each second in the last
+# ten, and in the last three a harder beat with a second one close behind.
+def war_beat(gain, at=0):
+    return [tone("sine", 72, gain, 420, to=42, glide=260, at=at),
+            tone("sine", 118, gain * 0.35, 160, to=80, at=at),
+            struck("noise", gain * 0.7, [[0, 1]], 70, filters=[lp(220)], at=at),
+            struck("noise", gain * 0.25, [[0, 1]], 14, filters=[bp(900, 1.4)], at=at)]
+
+
+cue("drum_count", "Countdown drum", war_beat(0.42))
+cue("drum_close", "Countdown drum (last seconds)", war_beat(0.6), war_beat(0.42, at=240))
 cue("elimination", "Player out",
     horn(392, 0, 250, gain=0.1), horn(370, 330, 250, gain=0.1), horn(330, 660, 250, gain=0.1),
     {**horn(262, 990, 700, gain=0.1, release=700), "wobble": [{"rate": 5, "cents": 25}]},
@@ -246,6 +269,11 @@ cue("victory", "Victory",
     struck("noise", 0.2, [[1260, 1]], 120, filters=[lp(400)]))
 cue("ui_click", "Click", tone("sine", 1000, 0.08, 35, to=700), struck("noise", 0.03, [[0, 1]], 4, filters=[bp(3000, 2)]))
 cue("ui_hover", "Hover", tone("sine", 1800, 0.025, 28))
+# a short lute strum for the volume sliders to play (R1.3803)
+LUTE = [1, 0.62, 0.46, 0.32, 0.22, 0.16, 0.1, 0.07]
+cue("sample", "Volume sample",
+    [{"wave": "periodic", "harmonics": LUTE, "freq": f, "gain": 0.09, "at_ms": k * 28, "attack_ms": 3, "release_ms": 650,
+      "filters": [lp(f * 8, sweep_ms=260, to_freq=f * 2.2)]} for k, f in enumerate((146.83, 220, 293.66, 369.99))])
 
 # tidy: drop helper keys that are not recipe fields
 for c in C:
@@ -373,6 +401,8 @@ URGENT = {
     ],
 }
 
+INSTRUMENTS.update(songs.INSTRUMENTS)
+
 DATA = {
     "_note": "Every sound in Royal Rubble. There are no audio files: tools/sound/compile.py compiles these recipes into data/sound-programs.json, which web/synth.js plays and tools/sound/render.py renders. Written by tools/sound/author.py; edit there. Frequencies in Hz, times in ms, gains 0 to 1.",
     "silence": SILENCE,
@@ -395,18 +425,19 @@ DATA = {
         {"label": "Impacts", "ids": ["impact_wood_1", "impact_wood_2", "impact_wood_3", "impact_stone_1", "impact_stone_2",
                                      "impact_stone_3", "impact_metal_1", "impact_metal_2", "impact_metal_3", "segment_snap",
                                      "collapse_small", "collapse_mid", "collapse_big", "debris_1", "debris_2"]},
-        {"label": "Shots and air effects", "ids": ["splash", "explosion", "fire_ignite", "fire_crackle", "phase_shimmer",
+        {"label": "Shots and tricks", "ids": ["splash", "explosion", "fire_ignite", "fire_crackle", "phase_shimmer",
                                                    "split_pop", "dive_whistle", "air_drop", "air_reverse"]},
         {"label": "Royals", "ids": ["royal_squire", "royal_knight", "royal_princess", "royal_prince", "royal_queen", "royal_king"]},
         {"label": "Building and gold", "ids": ["place_segment", "sell_segment", "coin", "buy_xp", "level_up",
                                                "cards_reveal", "card_pick", "reroll"]},
-        {"label": "Phases and menus", "ids": ["horn_build", "horn_siege", "tick", "tick_last", "elimination", "victory",
-                                              "ui_click", "ui_hover"]},
-        {"label": "Music", "ids": ["music_build", "music_siege", "music_siege_urgent"]},
+        {"label": "Phases and menus", "ids": ["horn_build", "horn_siege", "drum_count", "drum_close", "elimination", "victory",
+                                              "ui_click", "ui_hover", "sample"]},
+        {"label": "Music", "ids": ["music_menu", "music_build"] + [m["id"] for m in songs.SONGS]
+         + ["music_siege", "music_siege_urgent"]},
     ],
     "cues": C,
     "instruments": INSTRUMENTS,
-    "music": [BUILD, SIEGE, URGENT],
+    "music": [songs.MENU, BUILD] + songs.SONGS + [SIEGE, URGENT],
 }
 
 if __name__ == "__main__":
