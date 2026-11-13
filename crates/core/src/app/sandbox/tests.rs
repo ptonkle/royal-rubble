@@ -51,8 +51,8 @@ fn sandbox_power_reaches_the_whole_level_one_plot() {
 fn sandbox_drag_is_pulled_back_inside_the_material_reach() {
     let s = Sandbox::new(5);
     let a = Vec2::ints(50, 30);
-    // wood reaches 2: a drag 5 to the right ends 2 to the right, on the grid
-    assert_eq!(s.drag_end(a, Vec2::ints(55, 30)), Vec2::ints(52, 30));
+    // wood reaches 3: a drag 5 to the right ends 3 to the right, on the grid
+    assert_eq!(s.drag_end(a, Vec2::ints(55, 30)), Vec2::ints(53, 30));
     // a short drag snaps to the nearest grid point
     assert_eq!(
         s.drag_end(
