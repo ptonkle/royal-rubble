@@ -226,6 +226,6 @@ steps = []
 
 [[rule]]
 name = "tests of the match screen"
-files = ["crates/core/src/app/arena.rs", "crates/core/src/app/arena/**", "scripts/play_match.py"]
+files = ["crates/core/src/app/arena.rs", "crates/core/src/app/arena/**", "scripts/play_match.py", "scripts/play_late.py"]
 steps = ["core"]
 tags = ["arena"]
