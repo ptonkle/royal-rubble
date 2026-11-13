@@ -21,8 +21,9 @@ const colors = {};
 const layers = {};
 
 // field.json, stitch.json, palette.json, stitch-sprites.json; resolves when
-// the baked pictures have loaded.
-export async function setLook(table, stitch, palette, baked) {
+// the baked pictures have loaded and been drawn once on `into` (the field's
+// own 2D context, cleared again after), so the first view does not stall.
+export async function setLook(table, stitch, palette, baked, into) {
   look = table;
   K = stitch;
   G = stitch.game;
@@ -32,11 +33,32 @@ export async function setLook(table, stitch, palette, baked) {
     if (!sp.file) continue;
     const img = new Image();
     img.src = sp.file;
-    images[name] = img;
-    loads.push(img.decode());
+    loads.push(img.decode().then(() => createImageBitmap(img)).then((bm) => (images[name] = bm)));
   }
   await Promise.all(loads);
   sprites = baked;
+  warm(into);
+}
+
+// Draws every picture and pattern once on the field's canvas and reads one
+// pixel back, so the GPU has them all before the first view appears and
+// the first frame does not stall on uploads (R1.2900).
+function warm(g) {
+  for (const name of Object.keys(images)) {
+    const sp = sprites[name];
+    g.drawImage(images[name], 0, 0, sp.w, sp.h);
+    g.fillStyle = pattern(g, name);
+    g.fillRect(0, 0, sp.w, sp.h);
+  }
+  g.setLineDash([G.band_dash, G.band_gap]);
+  g.beginPath();
+  g.moveTo(0, 0);
+  g.lineTo(sprites.linen.w, sprites.linen.h);
+  g.stroke();
+  g.getImageData(0, 0, 1, 1);
+  g.setLineDash([]);
+  g.clearRect(0, 0, g.canvas.width, g.canvas.height);
+  getComputedStyle(document.documentElement).getPropertyValue("--field-bad");
 }
 
 function color(name) {
@@ -47,6 +69,17 @@ function color(name) {
 function pattern(g, name) {
   if (!patterns[name]) patterns[name] = g.createPattern(images[name], "repeat");
   return patterns[name];
+}
+
+// A beam's strip pattern scaled to a width ww, made once per width.
+function strip(g, name, ww) {
+  const key = name + " " + ww;
+  if (!patterns[key]) {
+    const k = ww / sprites[name].h;
+    patterns[key] = g.createPattern(images[name], "repeat");
+    patterns[key].setTransform(new DOMMatrix([k, 0, 0, k, 0, -half(ww)]));
+  }
+  return patterns[key];
 }
 
 const half = (v) => v * K.n.half;
@@ -73,9 +106,7 @@ function beam(g, a, b, w, len, material, strain) {
   const name = "beam-" + (K.materials[material] ? material : "wood");
   const sp = sprites[name];
   const ww = most(w, G.beam_min_w);
-  const k = ww / sp.h;
-  const pat = pattern(g, name);
-  pat.setTransform(new DOMMatrix([k, 0, 0, k, 0, -half(ww)]));
+  const pat = strip(g, name, ww);
   g.save();
   g.transform(ux, uy, -uy, ux, ax, ay);
   g.fillStyle = pat;
@@ -163,19 +194,37 @@ function stroke(g, pts, wool_, w, dash, gap) {
   g.setLineDash([]);
 }
 
-function background(slot, f) {
+// The background is kept on its own canvas while the view holds still and
+// drawn straight onto the field while the view moves, which saves laying it
+// on a layer only to copy it once (R1.2902).
+function background(out, slot, f) {
   const [w, h] = f.size;
   const key = JSON.stringify([w, h, f.cloth, f.trees, f.ground, f.water, f.zone, f.grid]);
   let L = layers[slot];
-  if (L && L.key === key) return L.c;
   if (!L || L.c.width !== w || L.c.height !== h) {
-    L = { c: document.createElement("canvas") };
+    L = { c: document.createElement("canvas"), key: "", last: "" };
     L.c.width = w;
     L.c.height = h;
     layers[slot] = L;
   }
-  L.key = key;
-  const g = L.c.getContext("2d");
+  const moving = key !== L.last;
+  L.last = key;
+  if (key !== L.key && moving) {
+    out.save();
+    paint(out, slot, f, w, h);
+    out.restore();
+    return;
+  }
+  if (key !== L.key) {
+    L.key = key;
+    const g = L.c.getContext("2d");
+    g.clearRect(0, 0, w, h);
+    paint(g, slot, f, w, h);
+  }
+  out.drawImage(L.c, 0, 0);
+}
+
+function paint(g, slot, f, w, h) {
   // the cloth is laid from the core's origin point, so it moves with the ground
   const [cx, cy] = f.cloth;
   const lin = pattern(g, "linen");
@@ -211,7 +260,11 @@ function background(slot, f) {
     // solid earth down to the bottom, the stitched bands laid over it
     g.fillStyle = pattern(g, "wool-" + K.ground_fill);
     g.fillRect(0, 0, w, h);
-    for (const [name, a, b] of K.ground_bands) {
+    // a band's lower edge is the next band's upper edge, stitched over it,
+    // so only the last band's lower edge is sewn (R1.2901)
+    const lastBand = K.ground_bands[K.ground_bands.length - 1];
+    for (const band of K.ground_bands) {
+      const [name, a, b] = band;
       const top = pts.map(([x, y]) => [x, y + G[a]]);
       const bot = pts.map(([x, y]) => [x, y + G[b]]);
       g.beginPath();
@@ -220,7 +273,7 @@ function background(slot, f) {
       g.fillStyle = pattern(g, "wool-" + name);
       g.fill();
       stroke(g, top, "navy", G.ground_band_line, G.band_dash, G.band_gap);
-      stroke(g, bot, "rule", G.ground_band_line, G.band_dash, G.band_gap);
+      if (band === lastBand) stroke(g, bot, "rule", G.ground_band_line, G.band_dash, G.band_gap);
     }
     g.restore();
     // water: waves above the ground between the banks
@@ -283,7 +336,6 @@ function background(slot, f) {
     g.strokeRect(l, t, r - l, b - t);
     g.restore();
   }
-  return L.c;
 }
 
 // --- shots, debris, the trail, small marks
@@ -375,7 +427,7 @@ function inset(g, f) {
 }
 
 function draw(g, f, slot) {
-  g.drawImage(background(slot, f), 0, 0);
+  background(g, slot, f);
   engine(g, f);
   spots(g, f);
   dashed(g, f.trail, wool.rule.dark, wool.rule.light, G.trail_w, G.trail_len, G.trail_gap);

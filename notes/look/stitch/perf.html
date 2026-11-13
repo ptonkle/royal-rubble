@@ -4,41 +4,75 @@
 <style>html,body{margin:0;overflow:hidden}canvas{display:block}</style></head>
 <body><canvas id="c" width="1920" height="1080"></canvas>
 <script type="module">
-// Times web/field-draw.js on a made-up frame: a 150-segment castle with six
-// royals, a building, shots and debris, at 1920x1080. render.py --json
-// prints the result. Warm frames reuse the cached textures; "moving" shifts
-// the view a pixel each frame so the terrain layer redraws, as in a siege.
+// Times web/field-draw.js on a made-up siege frame in the core's current
+// shape (app/field.rs Frame): a 150-segment castle, six royals and a
+// building, trees, water, the trebuchet, 80 pieces of debris (about eight
+// sieges' worth) and the corner window of your own castle, at 1920x1080.
+// render.py --json prints the result. "first" is the first frame after
+// setLook; "zoom" is the first frame at a new zoom; "moving" pans the view
+// a pixel each frame, as in a siege. Times are main-thread time per frame.
+// ?old=1 is ignored by the page; pass ?parts=1 to also time each part.
 import { drawField, setLook } from "../../../web/field-draw.js";
 const json = async (p) => (await fetch(p)).json();
 const [table, stitch, palette, baked] = await Promise.all(["field", "stitch", "palette", "stitch-sprites"].map((n) => json("../../../data/" + n + ".json")));
 for (const sp of Object.values(baked)) if (sp.file) sp.file = "../../../" + sp.file;
-await setLook(table, stitch, palette, baked);
 const g = document.getElementById("c").getContext("2d");
-function frame(dx) {
+const tl = performance.now();
+await setLook(table, stitch, palette, baked, g);
+const load = performance.now() - tl;
+// No readback to wait for the GPU: Chromium moves a canvas read back often
+// onto the CPU, which would time a different renderer than the game uses.
+const sync = () => 0;
+function frame(dx, z, W, H, inner) {
+  z = z || 1; W = W || 1920; H = H || 1080;
+  const s = (v) => Math.round(v * z);
   const ground = [];
-  for (let x = -40; x <= 2000; x += 40) ground.push([x + dx, 760 + Math.round(30 * Math.sin(x / 300))]);
+  for (let x = -60; x <= W + 60; x += s(48)) ground.push([x + dx, s(760) + Math.round(30 * Math.sin(x / 300))]);
   const beams = [], mats = ["wood", "stone", "metal", "rope"];
-  const cols = 10, rows = 5, cw = 60, rh = 70, x0 = 1200 + dx, y0 = 760;
+  const cols = 10, rows = 5, cw = s(60), rh = s(70), x0 = s(1200) + dx, y0 = s(760);
   for (let r = 0; r < rows; r++) for (let c = 0; c <= cols; c++) {
     const x = x0 + c * cw, y = y0 - r * rh;
-    beams.push({ a: [x, y], b: [x, y - rh], len: rh, w: 10, material: mats[(r + c) % 3] });
-    if (c < cols) beams.push({ a: [x, y - rh], b: [x + cw, y - rh], len: cw, w: 10, material: mats[(r * 3 + c) % 3] });
-    if (c < cols) beams.push({ a: [x, y], b: [x + cw, y - rh], len: 92, w: 8, material: (c + r) % 4 ? "wood" : "rope" });
+    beams.push({ a: [x, y], b: [x, y - rh], len: rh, w: s(10), material: mats[(r + c) % 3], burning: r === 2 && c === 3 });
+    if (c < cols) beams.push({ a: [x, y - rh], b: [x + cw, y - rh], len: cw, w: s(10), material: mats[(r * 3 + c) % 3] });
+    if (c < cols) beams.push({ a: [x, y], b: [x + cw, y - rh], len: s(92), w: s(8), material: (c + r) % 4 ? "wood" : "rope" });
   }
-  const royals = ["squire", "knight", "princess", "prince", "queen", "king"].map((rank, i) => ({ x: x0 + 40 + i * 100, y: y0 - rh * (i % 3) - 14, r: 14, rank, dead: false }));
-  royals.push({ x: x0 + 660, y: y0 - 16, r: 16, rank: "quarry", dead: false });
-  return {
-    mode: "siege", size: [1920, 1080], ground, water: [[700 + dx, 790], [900 + dx, 790]], zone: [x0 - 20, 300, x0 + 700, y0], grid: 30,
-    beams: beams.slice(0, 150), nodes: [], royals, shots: [{ x: 900, y: 300, r: 9, hot: false }], debris: [{ x: 1100, y: 600, r: 5 }],
-    engine: { feet: [[200 + dx, 760], [320 + dx, 760]], pivot: [260 + dx, 640], tip: [180 + dx, 520], weight: [300 + dx, 680], arm_w: 9, weight_r: 14, lens: [134, 134, 120, 152], loaded: null },
-    trail: [[300, 500], [600, 300], [900, 300]], spots: [], cues: [], loops: [], music: "",
+  const royals = ["squire", "knight", "princess", "prince", "queen", "king"].map((rank, i) => ({ x: x0 + s(40 + i * 100), y: y0 - rh * (i % 3) - s(14), r: s(14), tall: s(64), rank, dead: i === 1 }));
+  royals.push({ x: x0 + s(660), y: y0 - s(16), r: s(16), tall: s(64), rank: "quarry", dead: false });
+  const debris = [];
+  for (let i = 0; i < 80; i++) debris.push({ x: s(900 + (i * 37) % 900) + dx, y: s(745 - (i % 5) * 4), r: s(5 + (i % 3)) });
+  const trees = [0, 1, 2, 0, 1, 2].map((look, i) => ({ x: s(80 + i * 330) + dx, y: s(770), h: s(250), look }));
+  const e = { feet: [[200 + dx, 760], [320 + dx, 760]], wheels: [[200 + dx, 770], [320 + dx, 770]], wheel_r: 14, pivot: [260 + dx, 640], brace: [[230 + dx, 700], [290 + dx, 700]], tip: [180 + dx, 520], weight: [300 + dx, 680], box: [[285 + dx, 690], [315 + dx, 690], [315 + dx, 720], [285 + dx, 720]], sling: [[180 + dx, 520], [190 + dx, 560], [200 + dx, 600]], arm_w: 9, rope_w: 3, sling_w: 4, lens: [134, 134, 120, 152, 60], loaded: null };
+  const f = {
+    mode: "siege", size: [W, H], cloth: [dx, s(500)], ground, trees, water: [[s(700) + dx, s(790)], [s(900) + dx, s(790)]], zone: [x0 - 20, s(300), x0 + s(700), y0], grid: s(30),
+    beams: beams.slice(0, 150), nodes: [], royals, shots: [{ x: 900, y: 300, r: 9, hot: false }], debris,
+    engine: e, trail: [[300, 500], [600, 300], [900, 300]], spots: [], cues: [], loops: [], music: "",
   };
+  if (!inner) {
+    f.flag = { pole: [[60, 200], [60, 120]], cloth: [[60, 120], [110, 130], [60, 140]] };
+    f.inset = { at: [1920 - 480 - 24, 180], frame: frame(0, 0.25, 480, 270, true) };
+  }
+  return f;
 }
-const t0 = performance.now(); drawField(g, frame(0)); const first = performance.now() - t0;
-const time = (n, moving) => { const a = performance.now(); for (let i = 0; i < n; i++) drawField(g, frame(moving ? i % 2 : 0)); return (performance.now() - a) / n; };
-time(10, false);
-const still = time(120, false), moving = time(30, true);
+const t0 = performance.now(); drawField(g, frame(0)); sync(); const first = performance.now() - t0;
+const time = (n, mk) => { const a = performance.now(); for (let i = 0; i < n; i++) drawField(g, mk(i)); sync(); return (performance.now() - a) / n; };
+time(10, () => frame(0));
+const t1 = performance.now(); drawField(g, frame(0, 1.5)); sync(); const zoom = performance.now() - t1;
+const t2 = performance.now(); drawField(g, frame(0, 0.6)); sync(); const zoom2 = performance.now() - t2;
+const still = time(120, () => frame(0)), moving = time(60, (i) => frame(i % 2));
+const R = { load_ms: +load.toFixed(1), first_ms: +first.toFixed(1), zoom_in_ms: +zoom.toFixed(1), zoom_out_ms: +zoom2.toFixed(1), still_ms: +still.toFixed(2), moving_ms: +moving.toFixed(2), beams: 150, debris: 80 };
+if (location.search.includes("parts")) {
+  const strip = { no_grid: (f) => (f.grid = 0), no_zone: (f) => (f.zone = null), no_ground: (f) => ((f.ground = []), (f.trees = [])), no_trees: (f) => (f.trees = []), no_inset: (f) => delete f.inset, no_beams: (f) => (f.beams = []), no_debris: (f) => (f.debris = []) };
+  for (const [k, fn] of Object.entries(strip)) R["moving_" + k] = +time(60, (i) => { const f = frame(i % 2); fn(f); return f; }).toFixed(2);
+  // what the canvas calls cost: each turned off in turn
+  const P = CanvasRenderingContext2D.prototype;
+  for (const name of ["setLineDash", "clip", "stroke", "fill", "drawImage", "fillRect"]) {
+    const keep = P[name];
+    P[name] = name === "setLineDash" ? function () { keep.call(this, []); } : function () {};
+    R["moving_no_" + name] = +time(60, (i) => frame(i % 2)).toFixed(2);
+    P[name] = keep;
+  }
+}
 drawField(g, frame(0));
-window.RESULT = { first_ms: +first.toFixed(1), still_ms: +still.toFixed(2), moving_ms: +moving.toFixed(2), beams: 150 };
+window.RESULT = R;
 window.DONE = true;
 </script></body></html>

@@ -26,7 +26,7 @@ export async function initField(theSend) {
   const json = async (path) => (await fetch(path)).json();
   const names = ["field", "stitch", "palette", "stitch-sprites"];
   const [table, stitch, palette, baked] = await Promise.all(names.map((n) => json("data/" + n + ".json")));
-  await setLook(table, stitch, palette, baked);
+  await setLook(table, stitch, palette, baked, g);
   sound.initSound();
   canvas.addEventListener("pointerdown", (e) => {
     canvas.setPointerCapture(e.pointerId);
