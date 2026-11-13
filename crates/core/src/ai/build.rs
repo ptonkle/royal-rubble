@@ -19,6 +19,7 @@ use crate::game::sites;
 use crate::game::upgrades::Modifiers;
 use crate::physics::world::snap;
 use crate::physics::{self, Fx, Vec2, World};
+use crate::play::Input;
 use crate::rng::Rng;
 use crate::terrain::Plot;
 
@@ -278,7 +279,7 @@ pub fn plan_castle(ask: &BuildAsk) -> CastlePlan {
     }
     let max_floors = tune::MAX_FLOORS[level as usize - 1]
         .min(Plot::build_height(level) as i64 / crate::terrain::CELL as i64 - 1);
-    let max_rise = Fx::ONE.raw() / 2;
+    let max_rise = tune::MAX_RISE_RAW;
     let setback = tune::FRONT_SETBACK;
     let start = rng.below(TEMPLATES.len() as u32) as usize;
     // the best plan with each column material, strongest first
@@ -320,7 +321,8 @@ pub fn plan_castle(ask: &BuildAsk) -> CastlePlan {
                 }
             }
         }
-        if best.iter().any(|b| b.is_some()) {
+        // the seed's template wins unless another keeps more royals apart
+        if best.iter().flatten().any(|b| (b.0 >> 40) as usize >= ask.royals) {
             break;
         }
     }
@@ -458,4 +460,36 @@ pub fn to_world(plan: &CastlePlan, plot: &Plot) -> (World, Vec<usize>) {
         }
     }
     (w, royals)
+}
+
+/// The plan as match inputs, in the order to feed them through
+/// `play::Play::apply` during a build: segments, then producers, then royals
+/// (royal `i` of the plan is royal index `royal_index[i]`, or `i` when the
+/// list is short).
+pub fn to_inputs(plan: &CastlePlan, royal_index: &[u8]) -> Vec<Input> {
+    let mut out: Vec<Input> = plan
+        .segments
+        .iter()
+        .map(|s| Input::PlaceSegment {
+            piece: Piece::Segment(s.material),
+            a: units::grid_pt(s.a),
+            b: units::grid_pt(s.b),
+        })
+        .collect();
+    for b in &plan.buildings {
+        let s = plan.segments[b.segment];
+        // the floor's left end stands in the building's column
+        let at = if s.a.x <= s.b.x { s.a } else { s.b };
+        out.push(Input::PlaceBuilding {
+            kind: b.kind,
+            at: units::grid_pt(at),
+        });
+    }
+    for (i, r) in plan.royals.iter().enumerate() {
+        out.push(Input::PlaceRoyal {
+            index: royal_index.get(i).copied().unwrap_or(i as u8),
+            at: units::grid_pt(r.at),
+        });
+    }
+    out
 }

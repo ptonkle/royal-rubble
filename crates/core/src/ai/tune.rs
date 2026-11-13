@@ -15,6 +15,8 @@ pub struct AimTune {
     pub miss_chance: (u32, u32),
     /// Largest deliberate release error, in ticks.
     pub miss_ticks: i32,
+    /// Also check the best plan with each owned air effect.
+    pub each_effect: bool,
 }
 
 pub fn aim(d: Difficulty) -> AimTune {
@@ -24,27 +26,29 @@ pub fn aim(d: Difficulty) -> AimTune {
             trigger_stride: 8,
             miss_chance: (1, 2),
             miss_ticks: 2,
+            each_effect: false,
         },
         Difficulty::Normal => AimTune {
             verified: 1,
             trigger_stride: 4,
             miss_chance: (1, 4),
             miss_ticks: 1,
+            each_effect: false,
         },
         Difficulty::Hard => AimTune {
             verified: 2,
             trigger_stride: 2,
             miss_chance: (0, 1),
             miss_ticks: 0,
+            each_effect: true,
         },
     }
 }
 
-/// Release ticks the aimer tries, counted from the swing start, both included.
-/// The trebuchet's forward window is about 33..46 (R1.107); the quick pass
-/// drops the backward and ground throws on either side.
-pub const RELEASE_MIN: u32 = 26;
-pub const RELEASE_MAX: u32 = 56;
+/// The aimer tries every release tick up to this one (from the swing start)
+/// that throws forward with the real trebuchet, so a retune of the arm moves
+/// the window by itself.
+pub const RELEASE_SCAN_MAX: u32 = 200;
 
 /// Longest flight the quick pass follows, in ticks.
 pub const FLIGHT_MAX: u32 = 360;
@@ -81,8 +85,10 @@ pub const FLOOR_UNITS: i64 = 1;
 
 /// Columns kept clear between the plot's front edge and the castle.
 pub const FRONT_SETBACK: usize = 4;
+/// Most the ground may rise under a castle, raw Q16.16 (one unit).
+pub const MAX_RISE_RAW: i64 = 1 << 16;
 /// Widest a template's width parameter goes, in bays.
-pub const MAX_BAYS: i64 = 12;
+pub const MAX_BAYS: i64 = 20;
 
 /// A stronger column material is chosen when its best castle is worth at
 /// least this share (num, den) of the best castle in any material.

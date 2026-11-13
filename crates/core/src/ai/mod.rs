@@ -9,6 +9,7 @@
 
 pub mod aim;
 pub mod build;
+pub mod planner;
 pub mod tune;
 pub mod units;
 

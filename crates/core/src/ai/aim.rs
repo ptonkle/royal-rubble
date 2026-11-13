@@ -23,6 +23,8 @@ pub struct Shooter {
     pub radius: Fx,
     pub mass: Fx,
     pub fire: bool,
+    /// Splits into three as it leaves the arm (spread ammo).
+    pub spread: bool,
 }
 
 /// A royal to aim at: its body in the world and what killing it is worth.
@@ -49,6 +51,8 @@ pub struct Outcome {
     pub near_breaks: u32,
     /// Closest any shot came to a living target, raw Q16.16 (i64::MAX: none).
     pub closest: i64,
+    /// Bit i set: target i was killed (first 64 targets).
+    pub killed_mask: u64,
 }
 
 impl Outcome {
@@ -67,23 +71,50 @@ fn launch_ball(s: &Shooter, release_tick: u32) -> Ball {
     b
 }
 
-fn apply_effect(balls: &mut Vec<Ball>, effect: AirEffect) {
-    let Some(first) = balls.first_mut() else {
-        return;
-    };
-    match effect {
-        AirEffect::Drop => first.drop_down(),
-        AirEffect::Reverse => first.reverse(),
-        AirEffect::Phase => first.phase_for(TUNE.phase_ticks),
-        AirEffect::Dive => first.dive(),
-        AirEffect::Boost => first.boost(TUNE.boost_speed),
-        AirEffect::Split => {
-            let [l, m, r] = first.split(TUNE.split_spread);
-            *first = m;
-            balls.push(l);
-            balls.push(r);
-        }
+/// The shots a release puts in the air: one, or three for spread ammo.
+fn launch_balls(s: &Shooter, release_tick: u32) -> Vec<Ball> {
+    let b = launch_ball(s, release_tick);
+    if s.spread {
+        b.split(TUNE.split_spread).to_vec()
+    } else {
+        vec![b]
     }
+}
+
+/// The release ticks that throw forward, from the real trebuchet: the
+/// window follows any retune of the arm.
+pub fn release_ticks(s: &Shooter) -> Vec<u32> {
+    (1..=tune::RELEASE_SCAN_MAX)
+        .filter(|&t| {
+            let v = trebuchet_launch(s.base, t, s.power, s.facing_left).vel;
+            if s.facing_left {
+                v.x < Fx::ZERO
+            } else {
+                v.x > Fx::ZERO
+            }
+        })
+        .collect()
+}
+
+/// An air effect on every shot of a throw, as play/ applies it.
+fn apply_effect(balls: &mut Vec<Ball>, effect: AirEffect) {
+    let mut out = Vec::with_capacity(balls.len());
+    for b in balls.iter() {
+        let mut b = *b;
+        match effect {
+            AirEffect::Drop => b.drop_down(),
+            AirEffect::Reverse => b.reverse(),
+            AirEffect::Phase => b.phase_for(TUNE.phase_ticks),
+            AirEffect::Dive => b.dive(),
+            AirEffect::Boost => b.boost(TUNE.boost_speed),
+            AirEffect::Split => {
+                out.extend(b.split(TUNE.split_spread));
+                continue;
+            }
+        }
+        out.push(b);
+    }
+    *balls = out;
 }
 
 /// One free-flight tick, as `physics::balls` steps a shot in the air.
@@ -150,7 +181,7 @@ pub fn play_out(world: &World, s: &Shooter, plan: Plan, targets: &[Target]) -> O
         && world.projectiles.iter().all(|b| !b.alive)
         && world.debris.iter().all(|b| !b.alive);
     let bounds = Bounds::of(world, targets);
-    let mut balls = vec![launch_ball(s, plan.release_tick)];
+    let mut balls = launch_balls(s, plan.release_tick);
     let mut t = 0u32;
     let mut effect_done = false;
     if quiet {
@@ -194,9 +225,8 @@ pub fn play_out(world: &World, s: &Shooter, plan: Plan, targets: &[Target]) -> O
     while steps < tune::VERIFY_TICKS + tune::AFTER_TICKS && after < tune::AFTER_TICKS {
         if let (Some((e, at)), false) = (plan.effect, effect_done) {
             if at == t {
-                if let Some(&p) = mine.first() {
-                    mine = w.air_effect(p, e);
-                }
+                let live: Vec<usize> = mine.iter().copied().filter(|&p| w.projectiles[p].alive).collect();
+                mine = live.into_iter().flat_map(|p| w.air_effect(p, e)).collect();
                 effect_done = true;
             }
         }
@@ -229,9 +259,12 @@ pub fn play_out(world: &World, s: &Shooter, plan: Plan, targets: &[Target]) -> O
             after += 1;
         }
     }
-    for (tg, was) in targets.iter().zip(alive_before) {
+    for (i, (tg, was)) in targets.iter().zip(alive_before).enumerate() {
         if was && w.bodies.get(tg.body).is_some_and(|b| !b.alive) {
             out.killed += tg.value;
+            if i < 64 {
+                out.killed_mask |= 1 << i;
+            }
         }
     }
     out
@@ -251,7 +284,8 @@ fn quick_pass(
 ) {
     let gap = |b: &Ball| -> i64 {
         aims.iter()
-            .map(|(p, r)| ((b.pos - *p).len() - *r - b.radius).raw().max(0))
+            // below zero: overlapping, more central the lower
+            .map(|(p, r)| ((b.pos - *p).len() - *r - b.radius).raw())
             .min()
             .unwrap_or(i64::MAX)
     };
@@ -322,23 +356,50 @@ pub fn plan_shot(
     d: Difficulty,
     seed: u64,
 ) -> Plan {
+    plan_shot_avoiding(world, s, targets, effects, d, seed, &[])
+}
+
+/// As `plan_shot`, never choosing a plan in `avoid` (shots already planned
+/// against the same world that are not predicted to kill).
+pub fn plan_shot_avoiding(
+    world: &World,
+    s: &Shooter,
+    targets: &[Target],
+    effects: &[AirEffect],
+    d: Difficulty,
+    seed: u64,
+    avoid: &[Plan],
+) -> Plan {
     let a = tune::aim(d);
     let aims = live_targets(world, targets);
     let mut ranked: Vec<(i64, Plan)> = Vec::new();
-    for r in tune::RELEASE_MIN..=tune::RELEASE_MAX {
+    let ticks = release_ticks(s);
+    for &r in &ticks {
         quick_pass(world, s, r, effects, &a, &aims, &mut ranked);
     }
     // closest first; plain shots before effects, earlier ticks first on ties
+    ranked.retain(|(_, p)| !avoid.contains(p));
     ranked.sort_by_key(|(d, p)| (*d, p.effect.is_some(), p.release_tick, p.effect.map(|e| e.1)));
     let mut best: Option<(i64, Plan)> = None;
-    for (_, plan) in ranked.iter().take(a.verified.max(1)) {
+    let mut check: Vec<Plan> = ranked.iter().take(a.verified.max(1)).map(|r| r.1).collect();
+    if a.each_effect {
+        // the best plan with each effect too: the quick pass can't see walls
+        for &e in effects {
+            if let Some((_, p)) = ranked.iter().find(|(_, p)| p.effect.map(|x| x.0) == Some(e)) {
+                if !check.contains(p) {
+                    check.push(*p);
+                }
+            }
+        }
+    }
+    for plan in &check {
         let score = play_out(world, s, *plan, targets).score();
         if best.is_none_or(|(b, _)| score > b) {
             best = Some((score, *plan));
         }
     }
     let mut plan = best.map(|(_, p)| p).unwrap_or(Plan {
-        release_tick: tune::RELEASE_MIN,
+        release_tick: ticks.first().copied().unwrap_or(1),
         effect: None,
     });
     let mut rng = Rng::new(seed);
@@ -358,11 +419,21 @@ pub fn fire_and_step(world: &mut World, s: &Shooter, plan: Plan, ticks: u32) -> 
     let l = trebuchet_launch(s.base, plan.release_tick, s.power, s.facing_left);
     let p = world.fire(l, s.radius, s.mass);
     world.projectiles[p].fire = s.fire;
+    let mut live = if s.spread {
+        world.air_effect(p, AirEffect::Split)
+    } else {
+        vec![p]
+    };
     let mut events = Vec::new();
     for t in 0..ticks {
         if let Some((e, at)) = plan.effect {
             if at == t {
-                world.air_effect(p, e);
+                let now: Vec<usize> = live
+                    .iter()
+                    .copied()
+                    .filter(|&i| world.projectiles[i].alive)
+                    .collect();
+                live = now.into_iter().flat_map(|i| world.air_effect(i, e)).collect();
             }
         }
         events.extend(world.step());

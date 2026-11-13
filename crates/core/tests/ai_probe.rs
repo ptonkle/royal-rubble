@@ -63,6 +63,7 @@ fn probe_decision_time() {
         radius: Fx::ratio(1, 4),
         mass: Fx::ONE,
         fire: false,
+        spread: false,
     };
     println!("castle segments {}", w.segments.len());
     for (name, effects) in [
@@ -85,6 +86,37 @@ fn probe_decision_time() {
                 }
             }
             println!("{name} {d:?}: mean {} us, worst {worst} us", total / runs as u128);
+        }
+    }
+}
+
+/// A whole siege's plan (every shot is planned at the siege start).
+#[test]
+#[ignore]
+fn probe_siege_plan_time() {
+    use tool_core::game::upgrades::AirKind;
+    use tool_core::play::siege::{Ammo, SiegeView};
+    let (w, _) = castle();
+    let plot = tool_core::terrain::Plot::generate(1);
+    for (shots, air) in [(5u32, vec![]), (5, vec![AirKind::Drop])] {
+        for d in [Difficulty::Easy, Difficulty::Normal, Difficulty::Hard] {
+            let ammo = [(Ammo::Normal, shots)];
+            let v = SiegeView {
+                world: &w,
+                plot: &plot,
+                base: Vec2::ints(4, 0),
+                power: 0,
+                ammo: &ammo,
+                air: &air,
+                difficulty: Some(d),
+            };
+            let t0 = Instant::now();
+            let plan = tool_core::ai::planner::plan_siege(&v);
+            let ms = t0.elapsed().as_millis();
+            println!(
+                "siege {shots} shots air {air:?} {d:?}: {ms} ms, {} planned",
+                plan.len()
+            );
         }
     }
 }

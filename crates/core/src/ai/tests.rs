@@ -14,6 +14,7 @@ fn shooter() -> Shooter {
         radius: Fx::ratio(1, 4),
         mass: Fx::ONE,
         fire: false,
+        spread: false,
     }
 }
 
@@ -79,13 +80,31 @@ fn ai_hard_bot_compensates_for_wind() {
 }
 
 #[test]
-fn ai_drop_effect_lands_a_shot_between_plain_landings() {
-    // 17.0 sits between two plain landings (16.0 and 18.0); a drop puts the
-    // shot straight down onto it in one shot
-    let (mut w, targets) = lone_royal(17, Fx::ZERO);
-    let plan = plan_shot(&w, &shooter(), &targets, &[AirEffect::Drop], Difficulty::Hard, 1);
-    fire_and_step(&mut w, &shooter(), plan, 300);
-    assert!(!w.bodies[targets[0].body].alive, "{plan:?}");
+fn ai_drop_effect_reaches_a_royal_down_a_well() {
+    // a royal at the bottom of a one-unit well three units deep: plain shots
+    // come in at a slant and hit the walls; a drop falls straight in
+    let kills = |effects: &[AirEffect]| {
+        let mut w = World::new(Terrain::flat(80, Fx::ZERO));
+        let floor = w
+            .add_beam(Vec2::ints(16, 0), Vec2::ints(17, 0), Material::Wood)
+            .unwrap();
+        for x in [16, 17] {
+            for y in 0..3 {
+                w.add_beam(Vec2::ints(x, y), Vec2::ints(x, y + 1), Material::Stone)
+                    .unwrap();
+            }
+        }
+        let body = w.add_body(floor, Fx::HALF, Fx::ratio(1, 4));
+        for _ in 0..=TUNE.settle_ticks {
+            w.step();
+        }
+        let targets = [Target { body, value: 1 }];
+        let plan = plan_shot(&w, &shooter(), &targets, effects, Difficulty::Hard, 1);
+        fire_and_step(&mut w, &shooter(), plan, 300);
+        !w.bodies[body].alive
+    };
+    assert!(!kills(&[]), "a plain shot reached the bottom");
+    assert!(kills(&[AirEffect::Drop]));
 }
 
 #[test]
@@ -245,4 +264,64 @@ fn ai_castle_puts_a_producer_on_its_own_spot() {
         .iter()
         .any(|s| s.kind == SpotKind::Forest && s.cols.contains(col)));
     assert!(plan.gold <= 30);
+}
+
+// ---- Through the match (play/) ---------------------------------------------
+
+use crate::game::flow::{Seat, Settings};
+use crate::play::{Input, Play};
+
+fn match_with(seats: Vec<Seat>, seed: u64) -> Play {
+    let mut p = Play::new(Settings {
+        seats,
+        wind: false,
+        seed,
+    })
+    .unwrap();
+    p.start().unwrap();
+    p
+}
+
+#[test]
+fn ai_castle_plan_goes_through_the_match_inputs() {
+    for seed in 0..5u64 {
+        let mut play = match_with(vec![Seat::Human, Seat::Human], seed);
+        play.rules.players[0].purse.gold = 60;
+        let me = &play.rules.players[0];
+        let plan = plan_castle(&BuildAsk {
+            plot: &me.terrain,
+            level: me.purse.level,
+            gold: me.purse.gold,
+            stock: Stock::default(),
+            royals: 1,
+            buildings: &[],
+            difficulty: Difficulty::Hard,
+            seed,
+        });
+        for input in to_inputs(&plan, &[0]) {
+            assert_eq!(play.apply(0, input), Ok(()), "seed {seed}: {input:?}");
+        }
+    }
+}
+
+#[test]
+fn ai_planner_kills_a_royal_through_the_match() {
+    let mut play = match_with(vec![Seat::Human, Seat::Bot(Difficulty::Hard)], 3);
+    play.set_shot_planner(super::planner::plan_siege);
+    let plot = play.rules.terrain.clone();
+    let col = plot.buildable(1).start + 3;
+    // the ground at the column's left edge, to the nearest grid step
+    let step = crate::terrain::CELL / 4;
+    let at = crate::play::units::GridPt::new(col as i32 * 4, (plot.heights[col] + step / 2).div_euclid(step));
+    play.apply(0, Input::PlaceRoyal { index: 0, at }).unwrap();
+    play.apply(0, Input::Ready).unwrap();
+    let mut n = 0;
+    while play.last_result.is_none() {
+        play.tick();
+        n += 1;
+        assert!(n < 20_000, "stuck in {:?}", play.rules.phase);
+    }
+    let r = play.last_result.clone().unwrap();
+    let c = r.castles.iter().find(|c| c.owner == 0).unwrap();
+    assert_eq!(c.royals_killed.len(), 1);
 }
