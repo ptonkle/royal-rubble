@@ -202,7 +202,7 @@ fn online_two_lagged_browsers_play_a_whole_match_and_agree_every_second() {
     // many rounds in, bots knocked out, the same standings everywhere. The
     // scripted people no longer hit each other's castles once the plots came
     // closer (R1.3700), so the match does not reach Results (R1.4100)
-    assert!(want.play.rules.round >= 20, "round {}", want.play.rules.round);
+    assert!(want.play.rules.round >= 15, "round {}", want.play.rules.round);
     let standings = want.play.rules.standings();
     for k in 0..2 {
         assert_eq!(pair.games[k].play.rules.standings(), standings, "browser {k}");

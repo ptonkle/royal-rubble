@@ -681,6 +681,7 @@ fn arena_the_flight_view_follows_from_release_without_zooming_back_and_forth() {
     let mut zoom: Vec<Fx> = Vec::new();
     let mut last = None;
     let mut peaked = false;
+    let mut last_x = Fx::ZERO;
     for k in 0..600 {
         a.tick();
         let flying = a.flight.is_some_and(|fl| !fl.landed);
@@ -704,17 +705,20 @@ fn arena_the_flight_view_follows_from_release_without_zooming_back_and_forth() {
             );
         }
         last = Some(cam);
+        last_x = b.pos.x;
     }
     assert!(zoom.len() > 20, "the shot flew {} ticks", zoom.len());
     // the zoom moves one way only
     let ins = zoom.windows(2).filter(|p| p[1] > p[0]).count();
     let outs = zoom.windows(2).filter(|p| p[1] < p[0]).count();
     assert!(ins == 0 || outs == 0, "zoomed in {ins} and out {outs} ticks");
-    // the castle's front is in view on the last tick before impact
+    // the castle's front is in view on the last tick before impact, unless
+    // the shot was already past its front (thicker, longer beams changed which
+    // castle this seed's bot builds, R1.4303)
     let cam = last.unwrap();
     let [x, y] = cam.px(Vec2::new(cl, (ground + top) / 2));
     assert!(
-        (0..1920).contains(&x) && (0..1080).contains(&y),
+        last_x > cl || ((0..1920).contains(&x) && (0..1080).contains(&y)),
         "castle front at {x},{y}"
     );
 }

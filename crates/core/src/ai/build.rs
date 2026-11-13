@@ -551,7 +551,23 @@ pub fn plan_castle(ask: &BuildAsk) -> CastlePlan {
         }
         ok
     });
-    let buildings = place_buildings(ask.plot, level, &want, &mut segments, &floors);
+    let kept = segments.len();
+    let mut buildings = place_buildings(ask.plot, level, &want, &mut segments, &floors);
+    // a producer's own ground floor costs too: drop the last producers (and
+    // the floors laid for them) until the plan fits the gold (R1.4305)
+    let price = |segs: &[SegPlan], bs: &[BuildingPlan]| {
+        let (spent, stock) = cost(segs, u32::MAX, ask.stock, ask.have).unwrap_or((0, stock));
+        (
+            spent + bs.iter().map(|b| ledger::building_row(b.kind).cost).sum::<u32>(),
+            stock,
+        )
+    };
+    while price(&segments, &buildings).0 > ask.gold {
+        let Some(b) = buildings.pop() else { break };
+        if b.segment >= kept && b.segment + 1 == segments.len() {
+            segments.pop();
+        }
+    }
     let (spent, stock) = cost(&segments, u32::MAX, ask.stock, ask.have).unwrap_or((0, stock));
     let building_gold: u32 = buildings.iter().map(|b| ledger::building_row(b.kind).cost).sum();
     CastlePlan {
