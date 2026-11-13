@@ -123,7 +123,7 @@ fn ai_easy_misses_on_purpose_and_hard_never_does() {
     let (w, targets) = lone_royal(17, Fx::ZERO);
     let distinct = |d: Difficulty| {
         let mut ticks: Vec<u32> = (0..20u64)
-            .map(|s| plan_shot(&w, &shooter(), &targets, &[], d, s).release_tick)
+            .map(|s| plan_shot(&w, &shooter(), &targets, &[], d, s).release)
             .collect();
         ticks.sort();
         ticks.dedup();

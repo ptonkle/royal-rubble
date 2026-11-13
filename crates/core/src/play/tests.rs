@@ -758,6 +758,7 @@ fn botplan_late_shot_swings_when_ready_and_keeps_its_spacing() {
         ammo: 0,
         swing_at: 80,
         release_after: 45,
+        release_frac: 0,
         air: None,
     };
     assert_eq!(swing_tick(Some(&late), 30 + every, 100), 80 + every);

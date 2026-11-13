@@ -1090,5 +1090,26 @@
     "find": "(50, 305), (80, 305),",
     "replace": "(50, 305), (80, 120),",
     "test": "trebuchet_arm_turns_at_a_steady_speed_through_the_release_block"
+  },
+  {
+    "name": "physics trebuchet sixteenth release interpolates",
+    "file": "crates/core/src/physics/trebuchet.rs",
+    "find": "let k = Fx::ratio(f as i64, RELEASE_PARTS as i64);",
+    "replace": "let k = Fx::ZERO;",
+    "test": "trebuchet_sixteenth_release_lands_between_whole_ticks"
+  },
+  {
+    "name": "ai hard bot sixteenth refine",
+    "file": "crates/core/src/ai/tune.rs",
+    "find": "            refine: 3,",
+    "replace": "            refine: 0,",
+    "test": "ai_hard_bot_hits_a_lone_royal_within_three_shots"
+  },
+  {
+    "name": "ai hard bot sixteenth refine wind",
+    "file": "crates/core/src/ai/tune.rs",
+    "find": "            refine: 3,",
+    "replace": "            refine: 0,",
+    "test": "ai_hard_bot_compensates_for_wind"
   }
 ]

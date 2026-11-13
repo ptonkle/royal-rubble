@@ -7,7 +7,7 @@ use super::units;
 use crate::game::flow::{Difficulty, Loadout};
 use crate::game::upgrades::{AirKind, AmmoKind, Modifiers};
 use crate::game::{CastleOutcome, PlayerId, Refusal};
-use crate::physics::{trebuchet_launch, AirEffect, Event, Fuse, Fx, ShotKind, ShotMods, Vec2, World};
+use crate::physics::{trebuchet_launch_at, AirEffect, Event, Fuse, Fx, ShotKind, ShotMods, Vec2, World};
 use crate::terrain;
 
 /// One kind of shot in a shooter's bar.
@@ -52,6 +52,8 @@ pub struct PlannedShot {
     pub swing_at: u32,
     /// Ticks from swing start to release (the arc).
     pub release_after: u32,
+    /// Sixteenths of a tick past that the release is timed (R1.2100).
+    pub release_frac: u8,
     /// An air effect slot and the ticks after release to trigger it.
     pub air: Option<(u8, u32)>,
 }
@@ -135,6 +137,7 @@ pub fn simple_planner(v: &SiegeView) -> Vec<PlannedShot> {
                 ammo: slot as u8,
                 swing_at: t,
                 release_after: tune::BOT_RELEASE_TICK,
+                release_frac: 0,
                 air: None,
             });
             t += tune::BOT_SHOT_EVERY;
@@ -263,6 +266,12 @@ impl Field {
     }
 
     pub fn release(&mut self, now: u32) -> Result<(), Refusal> {
+        self.release_at(now, 0)
+    }
+
+    /// Releases on tick `now`, timed `frac` sixteenths of a tick past it
+    /// (R1.2100).
+    pub fn release_at(&mut self, now: u32, frac: u8) -> Result<(), Refusal> {
         let from = self.shooter.swing_from.ok_or(Refusal::WrongPhase)?;
         let slot = self.shooter.selected as usize;
         let (ammo, left) = self.shooter.ammo[slot];
@@ -272,7 +281,9 @@ impl Field {
         self.shooter.ammo[slot].1 -= 1;
         self.shooter.swing_from = None;
         self.shooter.thrown = Some((now - from, now));
-        let launch = trebuchet_launch(self.base, now - from, self.shooter.power, false);
+        let parts = crate::physics::RELEASE_PARTS;
+        let release = (now - from) * parts + (frac as u32).min(parts - 1);
+        let launch = trebuchet_launch_at(self.base, release, self.shooter.power, false);
         let copies = if self.shooter.fired == 0 {
             self.shooter.first_copies
         } else {
@@ -345,7 +356,7 @@ impl Field {
                 let _ = self.select(p.ammo);
                 let _ = self.swing(now);
             }
-            if p.swing_at + p.release_after == now && self.release(now).is_ok() {
+            if p.swing_at + p.release_after == now && self.release_at(now, p.release_frac).is_ok() {
                 if let Some((slot, after)) = p.air {
                     self.shooter.pending_air = Some((slot, now + after));
                 }

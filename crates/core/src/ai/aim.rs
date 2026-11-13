@@ -11,7 +11,9 @@
 
 use super::tune::{self, AimTune};
 use crate::game::flow::Difficulty;
-use crate::physics::{trebuchet_launch, AirEffect, Ball, Event, Fx, Vec2, World, TUNE};
+use crate::physics::{
+    trebuchet_launch, trebuchet_launch_at, AirEffect, Ball, Event, Fx, Vec2, World, RELEASE_PARTS, TUNE,
+};
 use crate::rng::Rng;
 
 /// The attacker's trebuchet and the shot loaded in it.
@@ -34,11 +36,12 @@ pub struct Target {
     pub value: u32,
 }
 
-/// One shot: release tick from the swing start, and an optional air effect
-/// applied just before the world step `trigger` steps after the release.
+/// One shot: release time from the swing start, in sixteenths of a tick
+/// (R1.2100), and an optional air effect applied just before the world
+/// step `trigger` steps after the release.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Plan {
-    pub release_tick: u32,
+    pub release: u32,
     pub effect: Option<(AirEffect, u32)>,
 }
 
@@ -64,16 +67,16 @@ impl Outcome {
     }
 }
 
-fn launch_ball(s: &Shooter, release_tick: u32) -> Ball {
-    let l = trebuchet_launch(s.base, release_tick, s.power, s.facing_left);
+fn launch_ball(s: &Shooter, release: u32) -> Ball {
+    let l = trebuchet_launch_at(s.base, release, s.power, s.facing_left);
     let mut b = Ball::new(l.pos, l.vel, s.radius, s.mass);
     b.fire = s.fire;
     b
 }
 
 /// The shots a release puts in the air: one, or three for spread ammo.
-fn launch_balls(s: &Shooter, release_tick: u32) -> Vec<Ball> {
-    let b = launch_ball(s, release_tick);
+fn launch_balls(s: &Shooter, release: u32) -> Vec<Ball> {
+    let b = launch_ball(s, release);
     if s.spread {
         b.split(TUNE.split_spread).to_vec()
     } else {
@@ -284,7 +287,7 @@ impl PlayOut {
             && world.projectiles.iter().all(|b| !b.alive)
             && world.debris.iter().all(|b| !b.alive);
         let bounds = Bounds::of(world, targets);
-        let mut balls = launch_balls(s, plan.release_tick);
+        let mut balls = launch_balls(s, plan.release);
         let mut t = 0u32;
         let mut effect_done = false;
         let mut cost = tune::CLONE_COST;
@@ -433,7 +436,11 @@ pub struct Search {
     /// Effects are tried only while the shot is between these x.
     lo: Fx,
     hi: Fx,
+    /// Release times tried, sixteenths: the whole ticks first, then the
+    /// fine times around the best plain shots once those are known.
     ticks: Vec<u32>,
+    /// How many of `ticks` are whole ticks (`usize::MAX`: not refined yet).
+    coarse: usize,
     ranked: Vec<(i64, Plan)>,
     stage: Stage,
 }
@@ -483,7 +490,8 @@ impl Search {
             aims,
             lo,
             hi,
-            ticks: release_ticks(&s),
+            ticks: release_ticks(&s).iter().map(|t| t * RELEASE_PARTS).collect(),
+            coarse: usize::MAX,
             ranked: Vec::new(),
             stage: Stage::Quick {
                 ti: 0,
@@ -531,7 +539,7 @@ impl Search {
     /// One unit of work; returns its cost.
     pub fn advance(&mut self, world: &World) -> u64 {
         let placeholder = Stage::Done(Plan {
-            release_tick: 0,
+            release: 0,
             effect: None,
         });
         let stage = std::mem::replace(&mut self.stage, placeholder);
@@ -559,14 +567,30 @@ impl Search {
         mut ei: usize,
         mut at: u32,
     ) -> (Stage, u64) {
-        let Some(&release_tick) = self.ticks.get(ti) else {
+        if ti == self.ticks.len() && self.coarse == usize::MAX {
+            let n = self.ranked.len() as u64;
+            self.refine();
+            if ti < self.ticks.len() {
+                return (
+                    Stage::Quick {
+                        ti,
+                        path,
+                        prefix,
+                        ei,
+                        at,
+                    },
+                    1 + n,
+                );
+            }
+        }
+        let Some(&release) = self.ticks.get(ti) else {
             let n = self.ranked.len() as u64;
             return (self.rank(), 1 + n);
         };
         let fc = fly_cost(self.aims.len());
         let stride = self.a.trigger_stride.max(1);
         if path.is_empty() {
-            let mut b = launch_ball(&self.s, release_tick);
+            let mut b = launch_ball(&self.s, release);
             let mut best = i64::MAX;
             for _ in 0..tune::FLIGHT_MAX {
                 path.push(b);
@@ -580,11 +604,22 @@ impl Search {
             self.ranked.push((
                 best,
                 Plan {
-                    release_tick,
+                    release,
                     effect: None,
                 },
             ));
             let cost = path.len() as u64 * fc;
+            if ti >= self.coarse {
+                // fine times fly the plain shot only
+                let next = Stage::Quick {
+                    ti: ti + 1,
+                    path: Vec::new(),
+                    prefix: Vec::new(),
+                    ei: 0,
+                    at: 0,
+                };
+                return (next, cost);
+            }
             let next = Stage::Quick {
                 ti,
                 path,
@@ -635,7 +670,7 @@ impl Search {
             self.ranked.push((
                 best,
                 Plan {
-                    release_tick,
+                    release,
                     effect: Some((e, at)),
                 },
             ));
@@ -650,13 +685,39 @@ impl Search {
         }
     }
 
+    /// The whole ticks are flown: queue the sixteenths within a tick either
+    /// side of the best few plain shots (R1.2100).
+    fn refine(&mut self) {
+        self.coarse = self.ticks.len();
+        let mut plain: Vec<(i64, u32)> = self
+            .ranked
+            .iter()
+            .filter(|(_, p)| p.effect.is_none())
+            .map(|(d, p)| (*d, p.release))
+            .collect();
+        plain.sort();
+        let (lo, hi) = (RELEASE_PARTS, tune::RELEASE_SCAN_MAX * RELEASE_PARTS);
+        let mut fine: Vec<u32> = Vec::new();
+        for &(_, r) in plain.iter().take(self.a.refine) {
+            for k in 1..RELEASE_PARTS {
+                for t in [r.saturating_sub(k), r + k] {
+                    if t >= lo && t <= hi && !fine.contains(&t) && !self.ticks.contains(&t) {
+                        fine.push(t);
+                    }
+                }
+            }
+        }
+        fine.sort();
+        self.ticks.extend(fine);
+    }
+
     /// The quick pass is over: rank its plans and pick the ones to verify.
     fn rank(&mut self) -> Stage {
         let avoid = &self.avoid;
         let ranked = &mut self.ranked;
         // closest first; plain shots before effects, earlier ticks first on ties
         ranked.retain(|(_, p)| !avoid.contains(p));
-        ranked.sort_by_key(|(d, p)| (*d, p.effect.is_some(), p.release_tick, p.effect.map(|e| e.1)));
+        ranked.sort_by_key(|(d, p)| (*d, p.effect.is_some(), p.release, p.effect.map(|e| e.1)));
         let mut check: Vec<Plan> = ranked.iter().take(self.a.verified.max(1)).map(|r| r.1).collect();
         if self.a.each_effect {
             // the best plan with each effect too: the quick pass can't see walls
@@ -708,7 +769,7 @@ impl Search {
     fn choose(&self, best: Option<(i64, Plan)>) -> Plan {
         let a = &self.a;
         let mut plan = best.map(|(_, p)| p).unwrap_or(Plan {
-            release_tick: self.ticks.first().copied().unwrap_or(1),
+            release: self.ticks.first().copied().unwrap_or(RELEASE_PARTS),
             effect: None,
         });
         let mut rng = Rng::new(self.seed);
@@ -717,7 +778,9 @@ impl Search {
             if rng.chance(1, 2) {
                 off = -off;
             }
-            plan.release_tick = (plan.release_tick as i32 + off).max(0) as u32;
+            // the miss stays in whole ticks
+            let r = plan.release as i32 + off * RELEASE_PARTS as i32;
+            plan.release = r.max(0) as u32;
         }
         plan
     }
@@ -726,7 +789,7 @@ impl Search {
 /// Fires `plan` in the live world and steps it `ticks` times, applying the
 /// air effect on time. For tests and for play/ to copy the convention.
 pub fn fire_and_step(world: &mut World, s: &Shooter, plan: Plan, ticks: u32) -> Vec<Event> {
-    let l = trebuchet_launch(s.base, plan.release_tick, s.power, s.facing_left);
+    let l = trebuchet_launch_at(s.base, plan.release, s.power, s.facing_left);
     let p = world.fire(l, s.radius, s.mass);
     world.projectiles[p].fire = s.fire;
     let mut live = if s.spread {

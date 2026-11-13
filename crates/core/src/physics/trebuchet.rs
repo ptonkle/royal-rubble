@@ -114,16 +114,48 @@ fn mirror(v: Vec2, facing_left: bool) -> Vec2 {
     }
 }
 
-/// Where and how fast a shot leaves a trebuchet standing at `base`.
-/// `facing_left` mirrors it for a trebuchet throwing toward smaller x.
-pub fn trebuchet_launch(base: Vec2, release_tick: u32, power: u8, facing_left: bool) -> Launch {
-    let (_, pouch, shape, speed) = sling_at(release_tick);
+/// Where and how fast a shot leaves a trebuchet standing at the origin,
+/// facing right, released on whole swing tick `t`.
+fn launch_on_tick(t: u32, power: u8) -> Launch {
+    let (_, pouch, shape, speed) = sling_at(t);
     let base_pct = TUNE.treb_power_base * 100;
     let w = speed * (TUNE.treb_power_base + power as i64) * TUNE.treb_speed_pct / base_pct;
-    let vel = shape * brads_to_radians(w);
     Launch {
-        pos: base + mirror(pouch, facing_left),
-        vel: mirror(vel, facing_left),
+        pos: pouch,
+        vel: shape * brads_to_radians(w),
+    }
+}
+
+/// Parts of a tick a release time is counted in (R1.2100).
+pub const RELEASE_PARTS: u32 = 16;
+
+/// Where and how fast a shot leaves a trebuchet standing at `base`,
+/// released on whole swing tick `release_tick`. `facing_left` mirrors it
+/// for a trebuchet throwing toward smaller x.
+pub fn trebuchet_launch(base: Vec2, release_tick: u32, power: u8, facing_left: bool) -> Launch {
+    trebuchet_launch_at(base, release_tick * RELEASE_PARTS, power, facing_left)
+}
+
+/// The same, released `release` sixteenths of a tick into the swing: the
+/// launch point and velocity are interpolated straight between the two
+/// whole ticks around it, so a slightly later release throws slightly
+/// differently (R1.2100). The shot enters the world at that point.
+pub fn trebuchet_launch_at(base: Vec2, release: u32, power: u8, facing_left: bool) -> Launch {
+    let (t, f) = (release / RELEASE_PARTS, release % RELEASE_PARTS);
+    let a = launch_on_tick(t, power);
+    let l = if f == 0 {
+        a
+    } else {
+        let b = launch_on_tick(t + 1, power);
+        let k = Fx::ratio(f as i64, RELEASE_PARTS as i64);
+        Launch {
+            pos: Vec2::lerp(a.pos, b.pos, k),
+            vel: Vec2::lerp(a.vel, b.vel, k),
+        }
+    };
+    Launch {
+        pos: base + mirror(l.pos, facing_left),
+        vel: mirror(l.vel, facing_left),
     }
 }
 

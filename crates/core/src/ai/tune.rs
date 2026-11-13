@@ -17,6 +17,9 @@ pub struct AimTune {
     pub miss_ticks: i32,
     /// Also check the best plan with each owned air effect.
     pub each_effect: bool,
+    /// Plain shots whose release is then tried at every sixteenth of a
+    /// tick either side (R1.2100).
+    pub refine: usize,
 }
 
 pub fn aim(d: Difficulty) -> AimTune {
@@ -27,6 +30,7 @@ pub fn aim(d: Difficulty) -> AimTune {
             miss_chance: (1, 2),
             miss_ticks: 2,
             each_effect: false,
+            refine: 0,
         },
         Difficulty::Normal => AimTune {
             verified: 1,
@@ -34,6 +38,7 @@ pub fn aim(d: Difficulty) -> AimTune {
             miss_chance: (1, 4),
             miss_ticks: 1,
             each_effect: false,
+            refine: 1,
         },
         Difficulty::Hard => AimTune {
             verified: 2,
@@ -41,6 +46,7 @@ pub fn aim(d: Difficulty) -> AimTune {
             miss_chance: (0, 1),
             miss_ticks: 0,
             each_effect: true,
+            refine: 3,
         },
     }
 }

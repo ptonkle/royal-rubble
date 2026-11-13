@@ -193,3 +193,76 @@ fn probe_botplan_worst_tick() {
         );
     }
 }
+
+/// R1.2100: cells a landing moves per whole release tick and per sixteenth
+/// of a tick on flat ground, and how often a hard bot kills a lone royal
+/// on a one-cell floor with its first shot and within three.
+#[test]
+#[ignore]
+fn probe_sixteenth_release() {
+    use tool_core::ai::aim::fire_and_step;
+    let land = |release: u32| {
+        let l = trebuchet_launch_at(Vec2::ZERO, release, 0, false);
+        let (mut p, mut v) = (l.pos, l.vel);
+        while p.y >= Fx::ZERO {
+            v.y -= TUNE.gravity;
+            p += v;
+        }
+        p.x.raw()
+    };
+    let u = Fx::ONE.raw();
+    for t in 59u32..=92 {
+        let (a, b) = (land(t * RELEASE_PARTS), land((t + 1) * RELEASE_PARTS));
+        let most = (1..=RELEASE_PARTS)
+            .map(|f| (land(t * RELEASE_PARTS + f) - land(t * RELEASE_PARTS + f - 1)).abs())
+            .max()
+            .unwrap();
+        println!(
+            "tick {t}: whole {} /100 cells, largest sixteenth {} /100",
+            (b - a) * 100 / u,
+            most * 100 / u
+        );
+    }
+    let s = Shooter {
+        base: Vec2::ints(4, 0),
+        facing_left: false,
+        power: 0,
+        radius: Fx::ratio(1, 4),
+        mass: Fx::ONE,
+        fire: false,
+        spread: false,
+    };
+    for wind in [Fx::ZERO, Fx::ratio(1, 4000)] {
+        let (mut first, mut three, mut n) = (0, 0, 0);
+        for x in (104..=184).step_by(4) {
+            let mut w = World::new(Terrain::flat(220, Fx::ZERO));
+            w.wind = wind;
+            let floor = w
+                .add_beam(
+                    Vec2::new(Fx::from_int(x) - Fx::HALF, Fx::ZERO),
+                    Vec2::new(Fx::from_int(x) + Fx::HALF, Fx::ZERO),
+                    Material::Wood,
+                )
+                .unwrap();
+            let body = w.add_body(floor, Fx::HALF, Fx::ratio(1, 4));
+            for _ in 0..=TUNE.settle_ticks {
+                w.step();
+            }
+            let targets = [Target { body, value: 1 }];
+            n += 1;
+            for k in 1..=3u64 {
+                let plan = plan_shot(&w, &s, &targets, &[], Difficulty::Hard, k);
+                fire_and_step(&mut w, &s, plan, 400);
+                if !w.bodies[body].alive {
+                    first += (k == 1) as u32;
+                    three += 1;
+                    break;
+                }
+            }
+        }
+        println!(
+            "wind {}: hard first-shot kills {first}/{n}, within three {three}/{n}",
+            wind.raw()
+        );
+    }
+}

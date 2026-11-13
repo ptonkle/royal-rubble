@@ -11,7 +11,7 @@
 
 use super::aim::{Plan, PlayOut, Search, Shooter, Target};
 use crate::game::flow::Difficulty;
-use crate::physics::{AirEffect, World};
+use crate::physics::{AirEffect, World, RELEASE_PARTS};
 use crate::play::siege::{air_effect, Ammo, PlanJob, PlannedShot, SiegeView};
 use crate::play::tune as play_tune;
 
@@ -173,7 +173,8 @@ impl SiegePlanner {
                 self.ready.push(PlannedShot {
                     ammo: self.slot as u8,
                     swing_at: self.swing,
-                    release_after: plan.release_tick,
+                    release_after: plan.release / RELEASE_PARTS,
+                    release_frac: (plan.release % RELEASE_PARTS) as u8,
                     air,
                 });
                 self.swing += play_tune::BOT_SHOT_EVERY;

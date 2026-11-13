@@ -560,3 +560,43 @@ fn trebuchet_counterweight_stays_clear_of_the_frame_and_the_ground() {
         }
     }
 }
+
+/// Where a plain shot released `release` sixteenths into the swing first
+/// dips below flat ground at height 0, free flight, no wind (raw Q16.16 x).
+fn sixteenth_landing(release: u32) -> i64 {
+    let l = trebuchet_launch_at(Vec2::ZERO, release, 0, false);
+    let (mut p, mut v) = (l.pos, l.vel);
+    while p.y >= Fx::ZERO {
+        v.y -= TUNE.gravity;
+        p += v;
+    }
+    p.x.raw()
+}
+
+#[test]
+fn trebuchet_sixteenth_release_lands_between_whole_ticks() {
+    // R1.2100: through the flat part of the forward window each sixteenth
+    // of a tick moves the landing a little, the same way, and none jumps
+    // more than a quarter of the whole tick's move
+    for t in [65u32, 70, 85] {
+        let a = sixteenth_landing(t * RELEASE_PARTS);
+        let b = sixteenth_landing((t + 1) * RELEASE_PARTS);
+        let whole = (b - a).abs();
+        assert!(whole > Fx::ONE.raw() * 2, "tick {t}: whole-tick move {whole}");
+        let mut prev = a;
+        for f in 1..=RELEASE_PARTS {
+            let x = sixteenth_landing(t * RELEASE_PARTS + f);
+            let step = x - prev;
+            assert!(
+                (step > 0) == (b > a) && step != 0,
+                "tick {t} part {f}: step {step}"
+            );
+            assert!(
+                step.abs() * 4 <= whole,
+                "tick {t} part {f}: step {step} of {whole}"
+            );
+            prev = x;
+        }
+        assert_eq!(prev, b);
+    }
+}
