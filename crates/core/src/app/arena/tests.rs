@@ -83,10 +83,62 @@ fn arena_a_press_and_release_in_build_places_a_wood_segment_through_play() {
     let p0 = cam.px(Vec2::new(x, g + Fx::ratio(1, 16)));
     let p1 = cam.px(Vec2::new(x, g + Fx::from_int(2)));
     let before = a.play.castles[0].geo.len();
+    // a press and release at the start places nothing
     a.down(&format!("{},{},0", p0[0], p0[1])).unwrap();
-    a.up(&format!("{},{}", p1[0], p1[1])).unwrap();
+    a.up(&format!("{},{}", p0[0], p0[1])).unwrap();
+    a.tick();
+    assert_eq!(a.play.castles[0].geo.len(), before);
+    // the second press places it, and the next segment starts at its end
+    a.down(&format!("{},{},0", p1[0], p1[1])).unwrap();
     a.tick();
     assert_eq!(a.play.castles[0].geo.len(), before + 1);
+    assert_eq!(a.drag, Some(Vec2::new(x, g + Fx::from_int(2))));
+    // a right press lets go of the start and sells nothing
+    a.down(&format!("{},{},2", p1[0], p1[1])).unwrap();
+    a.tick();
+    assert_eq!(a.drag, None);
+    assert_eq!(a.play.castles[0].geo.len(), before + 1);
+}
+
+#[test]
+fn arena_undo_sells_the_last_piece_back_for_all_it_cost() {
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    let (l, _, _) = a.zone(0);
+    let x = l + Fx::from_int(30);
+    let g = snap(a.ground(0, x));
+    let cam = a.camera();
+    let gold = a.play.rules.players[0].purse.gold;
+    for y in [g, g + Fx::from_int(2)] {
+        let p = cam.px(Vec2::new(x, y));
+        a.down(&format!("{},{},0", p[0], p[1])).unwrap();
+    }
+    a.tick();
+    assert_eq!(a.play.castles[0].geo.len(), 1);
+    a.pump(0, KEY_UNDO, None, None);
+    a.tick();
+    assert!(a.play.castles[0].geo.is_empty());
+    assert_eq!(a.play.rules.players[0].purse.gold, gold);
+}
+
+#[test]
+fn arena_ready_waits_for_every_royal_then_the_royal_tool_is_put_away() {
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    assert!(a.unplaced_royal().is_some());
+    a.act("match.ready", "").unwrap();
+    assert!(a.pending.is_empty());
+    // place the royal: the tool goes back to wood and Ready works
+    a.tool = Tool::Royal;
+    let (l, _, _) = a.zone(0);
+    let x = l + Fx::from_int(20);
+    let p = a.camera().px(Vec2::new(x, a.ground(0, x)));
+    a.down(&format!("{},{},0", p[0], p[1])).unwrap();
+    a.tick();
+    assert_eq!(a.unplaced_royal(), None);
+    assert_eq!(a.tool, Tool::Beam(BEAMS[0].0));
+    a.act("match.ready", "").unwrap();
+    assert_eq!(a.pending, vec![Input::Ready]);
 }
 
 /// Plays a whole match: Ready in every phase, and in the siege two taps of

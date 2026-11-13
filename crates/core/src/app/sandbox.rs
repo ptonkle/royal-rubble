@@ -766,28 +766,37 @@ impl Sandbox {
 }
 
 /// Where a drag from `a` toward `to` ends for a piece at most `max` long:
-/// snapped, and pulled back inside the reach.
+/// the grid point nearest the cursor when that is within reach, else the
+/// grid point within reach nearest the full-length point along the
+/// cursor's direction, so pointing past the reach always gives the longest
+/// piece that way (R1.3304).
 pub(super) fn reach_end(a: Vec2, to: Vec2, max: Fx) -> Vec2 {
-    {
-        let b = Vec2::new(snap(to.x), snap(to.y));
-        if (b - a).len() <= max {
-            return b;
-        }
-        let d = (to - a).normalized() * max;
-        let mut end = Vec2::new(toward(a.x + d.x, a.x), toward(a.y + d.y, a.y));
-        let mut guard = 0;
-        while (end - a).len() > max && guard < 64 {
-            let dx = end.x - a.x;
-            let dy = end.y - a.y;
-            if dx.abs() >= dy.abs() {
-                end.x -= if dx > Fx::ZERO { TUNE.grid } else { -TUNE.grid };
-            } else {
-                end.y -= if dy > Fx::ZERO { TUNE.grid } else { -TUNE.grid };
-            }
-            guard += 1;
-        }
-        end
+    let b = Vec2::new(snap(to.x), snap(to.y));
+    if (b - a).len() <= max {
+        return b;
     }
+    let off = to - a;
+    let aim = if off.len() > max {
+        a + off.normalized() * max
+    } else {
+        to
+    };
+    let (cx, cy) = (snap(aim.x), snap(aim.y));
+    let g = TUNE.grid;
+    let mut best: Option<(Fx, Vec2)> = None;
+    for i in -2..=2i64 {
+        for j in -2..=2i64 {
+            let p = Vec2::new(cx + g * Fx::from_int(i), cy + g * Fx::from_int(j));
+            if p == a || (p - a).len() > max {
+                continue;
+            }
+            let d = (p - aim).len2();
+            if best.is_none_or(|(bd, _)| d < bd) {
+                best = Some((d, p));
+            }
+        }
+    }
+    best.map_or(a, |(_, p)| p)
 }
 
 impl Sandbox {
@@ -993,6 +1002,7 @@ impl Sandbox {
             cues: self.cues.clone(),
             music: if build { "music_build" } else { "music_siege" },
             loops,
+            build: None,
         }
     }
 
@@ -1200,16 +1210,6 @@ impl Sandbox {
 
 /// Ticks per second.
 const TUNE_TICKS: i64 = crate::physics::tune::TICKS_PER_SECOND as i64;
-
-/// `v` on the grid, rounded toward `origin`.
-pub(super) fn toward(v: Fx, origin: Fx) -> Fx {
-    let g = TUNE.grid.0;
-    if v >= origin {
-        Fx(v.0.div_euclid(g) * g)
-    } else {
-        Fx(-((-v.0).div_euclid(g) * g))
-    }
-}
 
 pub(super) fn num(part: Option<&str>) -> Result<i32, String> {
     let p = part.ok_or("A position needs x and y.")?;

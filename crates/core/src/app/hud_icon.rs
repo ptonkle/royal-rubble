@@ -60,6 +60,7 @@ const SHAPES: &[(&str, &str)] = &[
     ("buy_shot", "<path d='M10 7 A7 7 0 1 1 10 21 A7 7 0 1 1 10 7 Z M18 1 H20 V4 H23 V6 H20 V9 H18 V6 H15 V4 H18 Z'/>"),
     ("test", "<path fill='none' stroke='black' stroke-width='2.5' stroke-linejoin='round' d='M1 13 H5 L8 5 L12 20 L15 9 L17 13 H23'/>"),
     ("scout", "<path fill-rule='evenodd' d='M1 12 C5 5 19 5 23 12 C19 19 5 19 1 12 Z M12 8 A4 4 0 1 0 12 16 A4 4 0 1 0 12 8 Z'/>"),
+    ("undo", "<path d='M9 4 L2 10 L9 16 V12 C15 12 19 14 21 20 C21 12 16 8 9 8 Z'/>"),
     ("ready", "<path d='M2 13 L5 10 L9 14 L19 4 L22 7 L9 20 Z'/>"),
     ("reroll", "<path d='M12 3 A9 9 0 0 1 20 8 L23 6 V14 H15 L18 11 A6 6 0 0 0 6 12 H3 A9 9 0 0 1 12 3 Z M12 21 A9 9 0 0 1 4 16 L1 18 V10 H9 L6 13 A6 6 0 0 0 18 12 H21 A9 9 0 0 1 12 21 Z'/>"),
     ("leave", "<path d='M3 2 H14 V8 H11 V5 H6 V19 H11 V16 H14 V22 H3 Z M14 9 V6 L21 12 L14 18 V15 H9 V9 Z'/>"),

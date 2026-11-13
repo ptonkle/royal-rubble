@@ -14,8 +14,8 @@
 use std::collections::BTreeMap;
 
 use super::field::{
-    cloth_at, ground_line, material_name, tree_marks, world_parts, world_right, Camera, Cue, Engine, Figure,
-    Flag, Frame, Inset, Preview, Ring, SpotMark,
+    cloth_at, ground_line, material_name, tree_marks, world_parts, world_right, BuildMarks, Camera, Cue,
+    Engine, Figure, Flag, Frame, Inset, Preview, Ring, SpotMark,
 };
 use super::hud_icon;
 use super::sandbox::{num, pair, reach_end};
@@ -52,11 +52,16 @@ const KEY_AIR: [(&str, u32); 4] = [
     ("KeyE", 1 << 8),
     ("KeyR", 1 << 9),
 ];
+/// Esc lets go of a segment's start; Z takes back the last piece placed.
+const KEY_CANCEL: u32 = 1 << 10;
+const KEY_UNDO: u32 = 1 << 11;
 
 /// The keys the match listens to.
 pub fn keys() -> BTreeMap<String, u32> {
     let mut k = BTreeMap::new();
     k.insert("Space".to_string(), KEY_SPACE);
+    k.insert("Escape".to_string(), KEY_CANCEL);
+    k.insert("KeyZ".to_string(), KEY_UNDO);
     for (code, bit) in KEY_DIGITS.iter().chain(KEY_AIR.iter()) {
         k.insert(code.to_string(), *bit);
     }
@@ -851,6 +856,12 @@ impl Arena {
                 self.queue(Input::Air(k as u8));
             }
         }
+        if pressed & KEY_CANCEL != 0 {
+            self.drag = None;
+        }
+        if pressed & KEY_UNDO != 0 {
+            self.undo();
+        }
         if self.driven.is_some() {
             return;
         }
@@ -965,6 +976,9 @@ impl Arena {
                 ) => {
                     self.cue("place_segment", 0);
                     changed = true;
+                    if self.tool == Tool::Royal && self.unplaced_royal().is_none() {
+                        self.tool = Tool::Beam(BEAMS[0].0);
+                    }
                 }
                 (Input::Sell(_), Ok(())) => {
                     self.cue("sell_segment", 0);
@@ -1286,11 +1300,18 @@ impl Arena {
     fn stand_point(&self, c: Vec2) -> Option<GridPt> {
         let w = self.built_world()?;
         let x = snap(c.x);
-        let mut best: Option<(Fx, Fx)> = None;
+        let (l, r, _) = self.zone(self.me);
+        if x < l || x > r {
+            return None;
+        }
+        // the nearest surface at or under the cursor (a little above counts),
+        // else the nearest above it, so a royal always lands on something
+        let mut best: Option<(bool, Fx, Fx)> = None;
         let mut consider = |y: Fx| {
+            let above = y > c.y + Fx::ONE;
             let d = (y - c.y).abs();
-            if d <= Fx::ONE && best.is_none_or(|(bd, _)| d < bd) {
-                best = Some((d, y));
+            if best.is_none_or(|(ba, bd, _)| (above, d) < (ba, bd)) {
+                best = Some((above, d, y));
             }
         };
         consider(self.ground(self.me, x));
@@ -1309,7 +1330,7 @@ impl Arena {
             }
             consider(pa.y + d.y * u);
         }
-        best.map(|(_, y)| grid_of(Vec2::new(x, y)))
+        best.map(|(_, _, y)| grid_of(Vec2::new(x, y)))
     }
 
     /// Whether royal `index` may stand at `at` (the rules' spacing check).
@@ -1323,6 +1344,7 @@ impl Arena {
         }
         let spot = castle::rule_spot(&pl.terrain, level, at);
         crate::game::royals::valid_spot(&pl.royals, index, spot, castle::rule_plot(&pl.terrain, level))
+            && self.play.royal_spaced(self.me, index, at)
     }
 
     /// The ledger id of the piece under `p`: a building, else the nearest
@@ -1354,7 +1376,9 @@ impl Arena {
         best.map(|(id, _)| id)
     }
 
-    /// A press on the field: `x,y,button` in pixels (button 2 sells).
+    /// A press on the field: `x,y,button` in pixels. A segment takes two
+    /// presses, its start then its end, and the next starts where it ended;
+    /// button 2 lets go of a start, else sells the piece under it.
     pub fn down(&mut self, value: &str) -> Result<(), String> {
         let mut parts = value.split(',');
         let x = num(parts.next())?;
@@ -1366,18 +1390,35 @@ impl Arena {
         let p = self.camera().world(x, y);
         self.cursor = Some(p);
         if button == 2 {
-            if let Some(id) = self.piece_near(p) {
-                self.queue(Input::Sell(id));
+            if self.drag.take().is_none() {
+                if let Some(id) = self.piece_near(p) {
+                    self.queue(Input::Sell(id));
+                }
             }
             return Ok(());
         }
         match self.tool {
-            Tool::Beam(_) => {
-                let s = Vec2::new(snap(p.x), snap(p.y));
-                if self.can_start(s) {
-                    self.drag = Some(s);
+            Tool::Beam(piece) => match self.drag {
+                None => {
+                    let s = Vec2::new(snap(p.x), snap(p.y));
+                    if self.can_start(s) {
+                        self.drag = Some(s);
+                    }
                 }
-            }
+                Some(a) => {
+                    let b = reach_end(a, p, self.max_len());
+                    if a == b {
+                        self.drag = None;
+                    } else if self.segment_ok(a, b) {
+                        self.queue(Input::PlaceSegment {
+                            piece,
+                            a: grid_of(a),
+                            b: grid_of(b),
+                        });
+                        self.drag = Some(b);
+                    }
+                }
+            },
             Tool::Royal => {
                 if let (Some(index), Some(at)) = (self.unplaced_royal(), self.stand_point(p)) {
                     self.queue(Input::PlaceRoyal {
@@ -1395,6 +1436,39 @@ impl Arena {
         Ok(())
     }
 
+    /// Whether a segment from `a` to `b` may be placed: both ends in the
+    /// zone and not through a royal.
+    fn segment_ok(&self, a: Vec2, b: Vec2) -> bool {
+        if a == b || !self.in_zone(a) || !self.in_zone(b) {
+            return false;
+        }
+        let (Some(w), Some(pl)) = (self.built_world(), self.play.rules.player(self.me)) else {
+            return false;
+        };
+        !self.play.castles[self.me as usize]
+            .royal_feet(w, pl)
+            .into_iter()
+            .any(|(_, f)| castle::beam_hits_royal(a, b, f))
+    }
+
+    /// Ready as sent, past the button's wait for every royal (tests of
+    /// the online wire).
+    #[cfg(test)]
+    pub(crate) fn ready_now(&mut self) {
+        self.queue(Input::Ready);
+    }
+
+    /// Takes back the newest piece placed this build, for a full refund.
+    fn undo(&mut self) {
+        if !self.building_now() {
+            return;
+        }
+        if let Some(id) = self.play.last_placed(self.me) {
+            self.drag = None;
+            self.queue(Input::Sell(id));
+        }
+    }
+
     pub fn moved(&mut self, value: &str) -> Result<(), String> {
         let (x, y) = pair(value)?;
         self.cursor = Some(self.camera().world(x, y));
@@ -1403,22 +1477,7 @@ impl Arena {
 
     pub fn up(&mut self, value: &str) -> Result<(), String> {
         let (x, y) = pair(value)?;
-        let p = self.camera().world(x, y);
-        self.cursor = Some(p);
-        let Some(a) = self.drag.take() else {
-            return Ok(());
-        };
-        let Tool::Beam(piece) = self.tool else {
-            return Ok(());
-        };
-        let b = reach_end(a, p, self.max_len());
-        if a != b && self.in_zone(b) {
-            self.queue(Input::PlaceSegment {
-                piece,
-                a: grid_of(a),
-                b: grid_of(b),
-            });
-        }
+        self.cursor = Some(self.camera().world(x, y));
         Ok(())
     }
 
@@ -1447,7 +1506,12 @@ impl Arena {
                 let k: u8 = value.parse().map_err(|_| format!("\"{value}\" is not a slot."))?;
                 self.queue(Input::Air(k));
             }
-            "match.ready" => self.queue(Input::Ready),
+            "match.ready" => {
+                if !(self.phase() == Phase::Build && self.unplaced_royal().is_some()) {
+                    self.queue(Input::Ready);
+                }
+            }
+            "match.undo" => self.undo(),
             "match.buy_xp" => self.queue(Input::BuyXp),
             "match.buy_shot" => self.queue(Input::BuyShot),
             "match.reroll" => self.queue(Input::Reroll),
@@ -1616,6 +1680,7 @@ impl Arena {
             cues: Vec::new(),
             music: "music_siege",
             loops,
+            build: None,
         }
     }
 
@@ -1704,7 +1769,59 @@ impl Arena {
             cues: self.cues.clone(),
             music: self.build_song(),
             loops: Vec::new(),
+            build: building.then(|| self.marks_over(&cam)),
         }
+    }
+
+    /// The zone's outline, the royal spacing circles and the royal about to
+    /// be placed.
+    fn marks_over(&self, cam: &Camera) -> BuildMarks {
+        let (l, r, top) = self.zone(self.me);
+        let mut edge = vec![cam.px(Vec2::new(l, top)), cam.px(Vec2::new(r, top))];
+        let (c0, c1) = (l.floor_int(), r.floor_int());
+        let mut c = c1;
+        while c >= c0 {
+            let x = Fx::from_int(c);
+            edge.push(cam.px(Vec2::new(x, self.ground(self.me, x))));
+            c -= 1;
+        }
+        edge.push(cam.px(Vec2::new(l, top)));
+        let mut marks = BuildMarks {
+            zone_edge: edge,
+            ..BuildMarks::default()
+        };
+        if self.tool != Tool::Royal {
+            return marks;
+        }
+        let Some(index) = self.unplaced_royal() else {
+            return marks;
+        };
+        let (Some(w), Some(pl)) = (self.built_world(), self.play.rules.player(self.me)) else {
+            return marks;
+        };
+        let spacing = Fx::from_int(crate::game::royals::spacing_cells() as i64);
+        for (_, f) in self.play.castles[self.me as usize].royal_feet(w, pl) {
+            let p = cam.px(f);
+            marks.keep_out.push(Ring {
+                x: p[0],
+                y: p[1],
+                r: cam.len(spacing, 4),
+                ok: false,
+            });
+        }
+        if let Some(at) = self.cursor.and_then(|c| self.stand_point(c)) {
+            let radius = crate::play::tune::ROYAL_RADIUS;
+            let p = cam.px(at.to_fx() + Vec2::new(Fx::ZERO, radius));
+            marks.ghost = Some(Figure {
+                x: p[0],
+                y: p[1],
+                r: cam.len(radius, 3),
+                tall: cam.figure_tall(),
+                rank: pl.royals.get(index).map_or("squire", |r| rank_name(r.kind)),
+                dead: false,
+            });
+        }
+        marks
     }
 
     fn empty_frame(&self) -> Frame {
@@ -1734,6 +1851,7 @@ impl Arena {
             cues: self.cues.clone(),
             music: self.build_song(),
             loops: Vec::new(),
+            build: None,
         }
     }
 
@@ -1777,17 +1895,19 @@ impl Arena {
                 (Some(preview), Some(ring))
             }
             Tool::Royal => {
-                let index = self.unplaced_royal();
+                // a ring at the ghost's feet: whether a press places it there
+                let Some(index) = self.unplaced_royal() else {
+                    return (None, None);
+                };
                 let at = self.stand_point(c);
                 let p = cam.px(at.map_or(c, |g| g.to_fx()));
-                let spacing = Fx::from_int(crate::game::royals::spacing_cells() as i64);
-                let ok = matches!((index, at), (Some(i), Some(g)) if self.royal_ok(i, g));
+                let ok = at.is_some_and(|g| self.royal_ok(index, g));
                 (
                     None,
                     Some(Ring {
                         x: p[0],
                         y: p[1],
-                        r: cam.len(spacing, 4),
+                        r: cam.len(crate::play::tune::ROYAL_RADIUS, 3),
                         ok,
                     }),
                 )
@@ -1934,8 +2054,19 @@ impl Arena {
                     me.purse.gold < shot || self.phase() != Phase::Build,
                 ));
                 bar.push(button("match.test", s.get("sandbox.test"), "test", false));
+                bar.push(button(
+                    "match.undo",
+                    s.get("hud.undo"),
+                    "undo",
+                    !self.building_now() || self.play.last_placed(self.me).is_none(),
+                ));
                 bar.push(button("match.scout", s.get("hud.scout"), "scout", false));
-                bar.push(button("match.ready", ready_text, "ready", me.ready));
+                // every royal stands before Ready (R1.3305)
+                if self.unplaced_royal().is_some() {
+                    bar.push(button("match.ready", s.get("hud.place_royals"), "ready", true));
+                } else {
+                    bar.push(button("match.ready", ready_text, "ready", me.ready));
+                }
             }
             Phase::Upgrade if alive => {
                 if self.replay.is_none() {

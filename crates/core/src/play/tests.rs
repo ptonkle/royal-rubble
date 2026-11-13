@@ -156,6 +156,85 @@ fn royal_must_stand_on_a_floor_or_the_ground() {
     );
 }
 
+/// The ground under grid column `x` (in steps), as a grid point.
+fn ground_at(plot: &Plot, x: i32) -> GridPt {
+    let h = units::physics_terrain(plot).height_at(GridPt::new(x, 0).to_fx().x);
+    let g = crate::physics::TUNE.grid.0;
+    GridPt::new(x, ((h.0 + g / 2).div_euclid(g)) as i32)
+}
+
+#[test]
+fn build_segment_through_a_royal_is_refused_and_one_touching_it_is_not() {
+    let mut play = duel(3);
+    let plot = play.rules.terrain.clone();
+    let g = ground(&plot, flat_col(&plot, 4));
+    play.apply(0, Input::PlaceRoyal { index: 0, at: g }).unwrap();
+    // across the royal's waist, one cell up
+    let waist = Input::PlaceSegment {
+        piece: WOOD,
+        a: GridPt::new(g.x - 4, g.y + 4),
+        b: GridPt::new(g.x + 4, g.y + 4),
+    };
+    assert_eq!(play.apply(0, waist), Err(Refusal::BadSpot));
+    // a floor under its feet, or a post beside its body, only touches it
+    let feet = g.to_fx();
+    let (l, r) = (
+        GridPt::new(g.x - 4, g.y).to_fx(),
+        GridPt::new(g.x + 4, g.y).to_fx(),
+    );
+    assert!(!super::castle::beam_hits_royal(l, r, feet));
+    let side = GridPt::new(g.x + 2, g.y).to_fx();
+    assert!(!super::castle::beam_hits_royal(
+        side,
+        side + Vec2::ints(0, 2),
+        feet
+    ));
+    // a post a quarter cell nearer is through its side
+    let near = GridPt::new(g.x + 1, g.y).to_fx();
+    assert!(super::castle::beam_hits_royal(
+        near,
+        near + Vec2::ints(0, 2),
+        feet
+    ));
+}
+
+#[test]
+fn royal_spacing_is_measured_between_feet_as_drawn() {
+    let mut play = duel(3);
+    let plot = play.rules.terrain.clone();
+    play.rules.players[0].royals.push(crate::game::royals::Royal {
+        kind: RoyalKind::Knight,
+        spot: None,
+    });
+    let c = flat_col(&plot, 3) as i32;
+    // the first at the right end of column c, the second at the left end of
+    // column c + 8: the columns are 8 apart, the feet 7 1/4 cells
+    let first = ground_at(&plot, c * STEPS_PER_CELL + 3);
+    play.apply(0, Input::PlaceRoyal { index: 0, at: first }).unwrap();
+    let close = ground_at(&plot, (c + 8) * STEPS_PER_CELL);
+    assert_eq!(
+        play.apply(0, Input::PlaceRoyal { index: 1, at: close }),
+        Err(Refusal::BadSpot)
+    );
+    // the right end of column c + 8 is 8 cells from the first: allowed
+    let far = ground_at(&plot, (c + 8) * STEPS_PER_CELL + 3);
+    assert_eq!(play.apply(0, Input::PlaceRoyal { index: 1, at: far }), Ok(()));
+}
+
+#[test]
+fn undo_takes_back_the_newest_piece_of_this_build() {
+    let mut play = duel(3);
+    let plot = play.rules.terrain.clone();
+    let g = ground(&plot, flat_col(&plot, 2));
+    assert_eq!(play.last_placed(0), None);
+    for b in [up(g, 2), up(right(g, 1), 1)] {
+        play.apply(0, Input::PlaceSegment { piece: WOOD, a: g, b })
+            .unwrap();
+    }
+    let newest = *play.castles[0].geo.keys().max().unwrap();
+    assert_eq!(play.last_placed(0), Some(newest));
+}
+
 #[test]
 fn strain_shows_a_cantilever_and_not_a_beam_on_the_ground() {
     let mut play = duel(3);

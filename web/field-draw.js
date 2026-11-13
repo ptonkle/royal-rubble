@@ -150,30 +150,43 @@ function beams(g, f) {
 // --- royals and buildings
 
 function royals(g, f) {
+  f.royals.forEach((r) => figure(g, f, r));
+}
+
+function figure(g, f, r) {
   const mid = half(f.size[0]);
-  f.royals.forEach((r) => {
-    const face = r.x > mid ? -1 : 1;
-    if (K.huts[r.rank]) {
-      const name = "hut-" + r.rank;
-      const tall = most(r.r * G.hut_tall_r, G.hut_min_px);
-      place(g, name, r.x, r.y + r.r * G.hut_foot_r, tall / sprites[name].tall, face);
-      return;
-    }
-    const rank = K.costumes[r.rank] ? r.rank : "squire";
-    const name = "fig-" + rank + (r.dead ? "-dead" : "");
-    const k = r.tall / sprites[name].tall;
-    if (r.dead) {
-      // fallen: turned a quarter onto the floor
-      g.save();
-      g.globalAlpha = G.dead_alpha;
-      g.translate(r.x, r.y + r.r);
-      g.transform(0, face, -face, 0, 0, 0);
-      place(g, name, 0, 0, k);
-      g.restore();
-      return;
-    }
-    place(g, name, r.x, r.y + r.r, k, face);
-  });
+  const face = r.x > mid ? -1 : 1;
+  if (K.huts[r.rank]) {
+    const name = "hut-" + r.rank;
+    const tall = most(r.r * G.hut_tall_r, G.hut_min_px);
+    place(g, name, r.x, r.y + r.r * G.hut_foot_r, tall / sprites[name].tall, face);
+    return;
+  }
+  const rank = K.costumes[r.rank] ? r.rank : "squire";
+  const name = "fig-" + rank + (r.dead ? "-dead" : "");
+  const k = r.tall / sprites[name].tall;
+  if (r.dead) {
+    // fallen: turned a quarter onto the floor
+    g.save();
+    g.globalAlpha = G.dead_alpha;
+    g.translate(r.x, r.y + r.r);
+    g.transform(0, face, -face, 0, 0, 0);
+    place(g, name, 0, 0, k);
+    g.restore();
+    return;
+  }
+  place(g, name, r.x, r.y + r.r, k, face);
+}
+
+// The zone's outline from the build marks, when there are any.
+function edgeOf(f) {
+  return f.build ? f.build.zone_edge : null;
+}
+
+function trace(g, pts) {
+  g.beginPath();
+  pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.closePath();
 }
 
 // --- the background: linen, terrain, water, the plot (cached per view)
@@ -199,7 +212,7 @@ function stroke(g, pts, wool_, w, dash, gap) {
 // on a layer only to copy it once (R1.2902).
 function background(out, slot, f) {
   const [w, h] = f.size;
-  const key = JSON.stringify([w, h, f.cloth, f.trees, f.ground, f.water, f.zone, f.grid]);
+  const key = JSON.stringify([w, h, f.cloth, f.trees, f.ground, f.water, f.zone, f.grid, edgeOf(f)]);
   let L = layers[slot];
   if (!L || L.c.width !== w || L.c.height !== h) {
     L = { c: document.createElement("canvas"), key: "", last: "" };
@@ -311,7 +324,12 @@ function paint(g, slot, f, w, h) {
   // the plot: a fine running stitch round it and a faint grid
   if (f.zone) {
     const [l, t, r, b] = f.zone;
+    const edge = edgeOf(f);
     g.save();
+    if (edge) {
+      trace(g, edge);
+      g.clip();
+    }
     if (f.grid > look.grid_min_px) {
       g.globalAlpha = G.grid_alpha;
       g.strokeStyle = color("field-grid-thread");
@@ -333,7 +351,12 @@ function paint(g, slot, f, w, h) {
     g.lineWidth = G.zone_width;
     g.lineCap = "round";
     g.setLineDash([G.zone_run, G.zone_gap]);
-    g.strokeRect(l, t, r - l, b - t);
+    if (edge) {
+      trace(g, edge);
+      g.stroke();
+    } else {
+      g.strokeRect(l, t, r - l, b - t);
+    }
     g.restore();
   }
 }
@@ -365,17 +388,27 @@ function engine(g, f) {
   drawTreb(g, f.engine, { beam, place, dashed, pattern, sprites, wool, look });
 }
 
+function ring(g, r) {
+  g.save();
+  g.beginPath();
+  g.arc(r.x, r.y, r.r, 0, look.full_turn);
+  g.setLineDash([G.trail_len, G.trail_gap]);
+  g.lineWidth = G.ring_w;
+  g.strokeStyle = r.ok ? wool.navy.mid : color("field-bad");
+  g.stroke();
+  g.restore();
+}
+
 function marks(g, f) {
-  if (f.ring) {
+  const b = f.build;
+  if (b && b.keep_out) b.keep_out.forEach((r) => ring(g, r));
+  if (b && b.ghost) {
     g.save();
-    g.beginPath();
-    g.arc(f.ring.x, f.ring.y, f.ring.r, 0, look.full_turn);
-    g.setLineDash([G.trail_len, G.trail_gap]);
-    g.lineWidth = G.ring_w;
-    g.strokeStyle = f.ring.ok ? wool.navy.mid : color("field-bad");
-    g.stroke();
+    g.globalAlpha = G.preview_alpha;
+    figure(g, f, b.ghost);
     g.restore();
   }
+  if (f.ring) ring(g, f.ring);
   if (f.preview) {
     const p = f.preview;
     g.globalAlpha = G.preview_alpha;
@@ -441,6 +474,8 @@ function draw(g, f, slot) {
 // Draws one frame on the canvas's 2D context.
 export function drawField(g, f) {
   if (!look || !sprites) return;
+  // a fresh canvas each frame, so nothing from the last frame or mode stays
+  g.clearRect(0, 0, g.canvas.width, g.canvas.height);
   draw(g, f, "main");
   inset(g, f);
 }

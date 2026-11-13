@@ -251,6 +251,23 @@ impl Castle {
         cw
     }
 
+    /// Where each placed royal's feet are in `w` (a world built without
+    /// royals): the exact point placed by hand, else its rule spot's point.
+    pub fn royal_feet(&self, w: &World, player: &Player) -> Vec<(usize, Vec2)> {
+        player
+            .royals
+            .iter()
+            .enumerate()
+            .filter_map(|(i, r)| {
+                let at = match self.royal_at.get(i).copied().flatten() {
+                    Some(g) => g.to_fx(),
+                    None => self.spot_point(w, player, r.spot?),
+                };
+                Some((i, at))
+            })
+            .collect()
+    }
+
     /// The feet point of a rule spot: the column's middle, at the floor
     /// whose height above the ground rounds to the spot's, else the ground.
     fn spot_point(&self, w: &World, player: &Player, sp: Spot) -> Vec2 {
@@ -356,4 +373,45 @@ pub fn point_fits(plot: &terrain::Plot, level: u8, p: GridPt) -> bool {
     let top = front + units::terrain_to_fx(terrain::Plot::build_height(level));
     let y = p.to_fx().y;
     y + tune::STAND_TOLERANCE >= ground && y <= top
+}
+
+/// The distance from `p` to the segment `a`-`b`.
+pub fn point_seg_dist(p: Vec2, a: Vec2, b: Vec2) -> Fx {
+    let d = b - a;
+    let l2 = d.len2();
+    if l2 == Fx::ZERO {
+        return (p - a).len();
+    }
+    let u = ((p - a).dot(d) / l2).clamp_to(Fx::ZERO, Fx::ONE);
+    (p - (a + d * u)).len()
+}
+
+fn cross(o: Vec2, a: Vec2, b: Vec2) -> i64 {
+    let (ax, ay) = ((a.x - o.x).0, (a.y - o.y).0);
+    let (bx, by) = ((b.x - o.x).0, (b.y - o.y).0);
+    (ax * by - ay * bx).signum()
+}
+
+/// The least distance between segments `a`-`b` and `c`-`d`.
+pub fn seg_seg_dist(a: Vec2, b: Vec2, c: Vec2, d: Vec2) -> Fx {
+    let d1 = cross(a, b, c);
+    let d2 = cross(a, b, d);
+    let d3 = cross(c, d, a);
+    let d4 = cross(c, d, b);
+    if d1 * d2 < 0 && d3 * d4 < 0 {
+        return Fx::ZERO;
+    }
+    point_seg_dist(c, a, b)
+        .min(point_seg_dist(d, a, b))
+        .min(point_seg_dist(a, c, d))
+        .min(point_seg_dist(b, c, d))
+}
+
+/// Does a beam from `a` to `b` pass through the body of a royal whose feet
+/// are at `feet` (R1.3302)? The body is every point within `ROYAL_RADIUS`
+/// of its upright; a floor under the feet only touches it.
+pub fn beam_hits_royal(a: Vec2, b: Vec2, feet: Vec2) -> bool {
+    let lo = feet + Vec2::new(Fx::ZERO, tune::ROYAL_RADIUS);
+    let hi = lo + Vec2::new(Fx::ZERO, tune::ROYAL_UPRIGHT);
+    seg_seg_dist(a, b, lo, hi) < tune::ROYAL_RADIUS - tune::BODY_SLACK
 }

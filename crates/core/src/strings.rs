@@ -120,6 +120,8 @@ pub const KEYS: &[&str] = &[
     "hud.scouting",
     "hud.ready",
     "hud.waiting",
+    "hud.undo",
+    "hud.place_royals",
     "hud.replay",
     "hud.skip",
     "hud.health",
