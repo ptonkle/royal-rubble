@@ -38,15 +38,15 @@ pub fn plan_siege(v: &SiegeView) -> Vec<PlannedShot> {
     // shots that miss on paper, so the next one tries something else
     let mut misses: Vec<Plan> = Vec::new();
     for (slot, (ammo, count)) in v.ammo.iter().enumerate() {
-        let row = ammo.row();
+        let row = crate::physics::ammo::shot_tune(ammo.kind());
         let s = Shooter {
             base: v.base,
             facing_left: false,
             power: v.power,
             radius: row.radius,
             mass: row.mass,
-            fire: row.fire,
-            spread: row.spread,
+            fire: row.ignites,
+            spread: row.pieces > 1,
         };
         for _ in 0..*count {
             // every royal already falls: aim at them all again
