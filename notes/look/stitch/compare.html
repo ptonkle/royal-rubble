@@ -1,0 +1,22 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Tapestry comparison</title>
+<style>html,body{margin:0;background:#1b1a19}canvas{display:block}</style></head>
+<body><canvas id="c" width="1240" height="660"></canvas>
+<script>
+// Side by side: a crop of a real tapestry photo and the same-size crop of
+// the v2 close-up render, for judging the stitch texture.
+const REF = { src: "/ctc-journal/img/look/ref/ref03.jpg", x: 760, y: 760, w: 600, h: 600 };
+const OURS = { src: "../tapestry-v2-detail.png", x: 230, y: 40, w: 600, h: 600 };
+const load = s => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = s; });
+(async () => {
+  const g = document.getElementById("c").getContext("2d");
+  g.fillStyle = "#1b1a19"; g.fillRect(0, 0, 1240, 660);
+  const [a, b] = await Promise.all([load(REF.src), load(OURS.src)]);
+  g.drawImage(a, REF.x, REF.y, REF.w, REF.h, 13, 13, 600, 600);
+  g.drawImage(b, OURS.x, OURS.y, OURS.w, OURS.h, 627, 13, 600, 600);
+  g.fillStyle = "#d3c8be"; g.font = "18px Georgia, serif";
+  g.fillText("Bayeux tapestry (photo, ref03)", 16, 640);
+  g.fillText("Royal Rubble v2 render (zoom 3)", 630, 640);
+  window.DONE = true;
+})();
+</script></body></html>
