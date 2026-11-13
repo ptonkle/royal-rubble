@@ -895,3 +895,30 @@ fn arena_a_segment_you_cannot_afford_shows_the_gold_you_lack() {
     a.play.rules.players[0].purse.gold = price;
     assert_eq!(a.marks_over(&cam).need, None);
 }
+
+#[test]
+fn arena_test_runs_your_castle_live_then_drops_the_copy() {
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    let (l, _, _) = a.zone(0);
+    let x = l + Fx::from_int(30);
+    let g = snap(a.ground(0, x));
+    a.queue(Input::PlaceSegment {
+        piece: Piece::Segment(ledger::Material::Wood),
+        a: grid_of(Vec2::new(x, g)),
+        b: grid_of(Vec2::new(x, g + Fx::from_int(2))),
+    });
+    a.tick();
+    a.act("match.test", "").unwrap();
+    assert_eq!(a.trial.as_ref().map(|t| t.0.world.tick), Some(0));
+    for _ in 0..10 {
+        a.tick();
+    }
+    // the copy steps once a tick while the match runs on
+    assert_eq!(a.trial.as_ref().map(|t| t.0.world.tick), Some(10));
+    for _ in 10..crate::play::tune::TEST_RUN_TICKS {
+        a.tick();
+    }
+    assert!(a.trial.is_none());
+    assert!(a.testing);
+}

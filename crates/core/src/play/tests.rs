@@ -109,11 +109,11 @@ fn build_too_long_or_out_of_span_is_refused_for_free() {
     let plot = play.rules.terrain.clone();
     let g = ground(&plot, flat_col(&plot, 2));
     let gold = play.rules.players[0].purse.gold;
-    // wood's longest is 2 cells
+    // wood's longest is 3 cells: 13 quarter steps is 3.25 (R1.4303)
     let long = Input::PlaceSegment {
         piece: WOOD,
         a: g,
-        b: GridPt::new(g.x, g.y + 9),
+        b: GridPt::new(g.x, g.y + 13),
     };
     assert_eq!(play.apply(0, long), Err(Refusal::BadSpot));
     let pad = ground(&plot, plot.launch_col);

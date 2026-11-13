@@ -1706,5 +1706,12 @@
     "find": "        (self.ppu.0 >> 8) as i32",
     "replace": "        (self.ppu.0 >> 16) as i32",
     "test": "camera_zoom_counts_pixels_per_unit_in_256ths"
+  },
+  {
+    "name": "r4304 test runs live",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "            for _ in 0..n {\n                cw.world.step();\n            }",
+    "replace": "            for _ in 0..n {}",
+    "test": "arena_test_runs_your_castle_live_then_drops_the_copy"
   }
 ]

@@ -56,7 +56,8 @@ fn nodes_on_the_ground_are_anchored() {
 fn a_segment_longer_than_its_material_allows_is_refused() {
     let mut w = flat_world();
     let a = w.add_node(Vec2::ints(0, 0));
-    let b = w.add_node(Vec2::ints(3, 0));
+    // wood reaches 3, metal 4 (R1.4303)
+    let b = w.add_node(Vec2::ints(4, 0));
     assert_eq!(w.add_segment(a, b, Material::Wood), Err(BuildError::TooLong));
     assert!(w.add_segment(a, b, Material::Metal).is_ok());
 }

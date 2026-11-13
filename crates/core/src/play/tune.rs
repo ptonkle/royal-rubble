@@ -71,3 +71,7 @@ pub const SNAP_STEP: Fx = Fx::ratio(1, 2);
 pub const NODE_PULL: Fx = Fx::ratio(1, 4);
 /// Placed nodes within this of the cursor are ringed while you build.
 pub const NODE_NEAR: Fx = Fx::from_int(3);
+
+/// The Test button runs your castle's physics live for this many ticks
+/// (3 seconds) so you see what sags or falls, then drops the copy (R1.4303).
+pub const TEST_RUN_TICKS: u32 = 180;

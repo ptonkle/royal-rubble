@@ -387,6 +387,9 @@ pub struct Arena {
     /// Strain colors on (the Test button).
     pub testing: bool,
     strain: Option<Vec<Fx>>,
+    /// The Test's live run: a copy of your castle stepping each tick, and
+    /// the ticks it has left (R1.4303).
+    trial: Option<(CastleWorld, u32)>,
     /// Your castle as built, for drawing and placing (rebuilt on change).
     built: Option<CastleWorld>,
     /// The castle being scouted in the build phase, if not your own.
@@ -481,6 +484,7 @@ impl Arena {
             pending: Vec::new(),
             testing: false,
             strain: None,
+            trial: None,
             built: None,
             scout: None,
             clock: None,
@@ -602,6 +606,7 @@ impl Arena {
         let pl = &self.play.rules.players[self.me as usize];
         self.built = Some(self.play.castles[self.me as usize].world(pl, true));
         self.strain = None;
+        self.trial = None;
         if self.testing {
             self.measure();
         }
@@ -1133,6 +1138,16 @@ impl Arena {
                 self.replay = None;
             }
         }
+        if let Some((cw, left)) = &mut self.trial {
+            let n = ran.min(*left);
+            for _ in 0..n {
+                cw.world.step();
+            }
+            *left -= n;
+            if *left == 0 || !self.building_now() {
+                self.trial = None;
+            }
+        }
         let phase = self.view_phase();
         let round = self.play.rules.round;
         let moved = phase != self.seen_phase || round != self.seen_round;
@@ -1625,6 +1640,11 @@ impl Arena {
             "match.test" => {
                 self.testing = !self.testing;
                 self.rebuild();
+                if self.testing {
+                    let pl = &self.play.rules.players[self.me as usize];
+                    let cw = self.play.castles[self.me as usize].world(pl, true);
+                    self.trial = Some((cw, crate::play::tune::TEST_RUN_TICKS));
+                }
             }
             "match.scout" => self.next_scout(),
             "match.skip" => self.replay = None,
@@ -1840,7 +1860,7 @@ impl Arena {
         let building = self.building_now();
         let owned_world;
         let (world, bodies): (&World, &[BodyOwner]) = if p == self.me {
-            match &self.built {
+            match self.trial.as_ref().map(|t| &t.0).or(self.built.as_ref()) {
                 Some(cw) => (&cw.world, &cw.bodies),
                 None => return self.empty_frame(),
             }
@@ -1851,7 +1871,7 @@ impl Arena {
         };
         let plot = self.plot(p);
         let (ground, water) = ground_line(plot, &cam);
-        let strain = if building && self.testing {
+        let strain = if building && self.testing && self.trial.is_none() {
             self.strain.as_deref()
         } else {
             None
