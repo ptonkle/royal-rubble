@@ -84,15 +84,16 @@ for (const name of B.tiles) {
 // segment strips: laid along the length, outlined top and bottom
 for (const [mat, M] of Object.entries(K.materials)) {
   const L = B.strip_len, H = B.strip_h, pad = 0, c = canvas(L, H);
-  const lineW = H * G.beam_line, ym = H / 2;
+  const lineW = H * B.strip_line, ym = H / 2;
   if (M.rope) {
     S.stem([[-H, ym], [L + H, ym]], M.rope, { w: H * G.rope_w, slant: G.rope_slant });
   } else {
     S.couch(S.poly([[0, 0], [L, 0], [L, H], [0, H]]), M.fill, { angle: 0, scale: G.beam_scale * B.strip_scale, phase: 0 });
     if (M.grain) S.stem([[-H, ym], [L + H, ym]], M.grain, { w: H * G.beam_wood_grain });
     if (M.courses) for (let x = H * G.beam_course / 2; x < L; x += H * G.beam_course) S.stem([[x, 0], [x, H]], M.courses, { w: lineW / 2 });
-    S.stem([[-H, lineW / 2], [L + H, lineW / 2]], M.line, { w: lineW });
-    S.stem([[-H, H - lineW / 2], [L + H, H - lineW / 2]], M.line, { w: lineW });
+    // centered on the edges, half clipped, so the fill shows between (R1.2700)
+    S.stem([[-H, 0], [L + H, 0]], M.line, { w: lineW });
+    S.stem([[-H, H], [L + H, H]], M.line, { w: lineW });
     if (M.rivets) for (let x = H * G.rivet_every / 2; x < L; x += H * G.rivet_every) S.knot(x, ym, M.rivets, H * G.rivet_r);
   }
   save("beam-" + mat, c, { line: M.line ? palette.wool[M.line].dark : palette.wool[M.rope].dark });
