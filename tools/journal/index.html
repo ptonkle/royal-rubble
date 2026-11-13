@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{TITLE}} Journal</title>
+<style>
+/* The design journal: a row of pages (hash-routed), each a run of entries,
+   newest first, dated on a left rail. Pictures open full-window; the arrow
+   keys step through an entry's pictures. System fonts, so the page works
+   opened from disk with no network. tools/journal/ENTRIES.md says what each
+   kind of entry holds. */
+:root {
+  --bg: #f4f5f2; --panel: #ffffff; --fg: #1e2a2f; --muted: #5c676c;
+  --line: #d5dad3; --accent: #2b62a0; --mark: #b8452f; --you: #f1dc8a;
+  --shade: rgba(10, 14, 18, .94);
+  --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12171a; --panel: #1a2125; --fg: #e3e9e6; --muted: #9ba7ac; --line: #2c373c;
+  --accent: #86b2e4; --mark: #ec8b74; --you: #c9ae4c; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12171a; --panel: #1a2125; --fg: #e3e9e6; --muted: #9ba7ac; --line: #2c373c;
+  --accent: #86b2e4; --mark: #ec8b74; --you: #c9ae4c; color-scheme: dark }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body);
+  padding: 24px max(16px, env(safe-area-inset-right, 0px)) 64px max(16px, env(safe-area-inset-left, 0px)); }
+.wrap { max-width: 1600px; margin: 0 auto; display: grid; gap: 28px; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+code { font-family: var(--mono); font-size: .88em; overflow-wrap: anywhere; }
+header { display: grid; gap: 8px; border-bottom: 2px solid var(--fg); padding-bottom: 12px; }
+header h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); line-height: 1.1; }
+header h1 a { color: inherit; text-decoration: none; }
+header p { margin: 0; color: var(--muted); max-width: 80ch; }
+nav { display: flex; flex-wrap: wrap; gap: 6px; }
+nav a { font-weight: 600; font-size: 14px; color: var(--fg); text-decoration: none; padding: 6px 12px; border: 1px solid var(--line); background: var(--panel); border-radius: 4px; }
+nav a[aria-current="page"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.page { display: grid; gap: 32px; }
+.page-head { display: grid; gap: 6px; }
+.page-head h2 { margin: 0; font-size: clamp(28px, 4vw, 42px); line-height: 1.08; }
+.page-head p { margin: 0; max-width: 80ch; }
+.status { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.status b { color: var(--mark); font-weight: 500; }
+.entry { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 20px; border-top: 1px solid var(--line); padding-top: 22px; }
+.stamp { font-family: var(--mono); font-size: 13px; color: var(--muted); display: grid; gap: 4px; align-content: start; position: sticky; top: 12px; }
+.stamp time { color: var(--fg); font-size: 14px; }
+.stamp span { color: var(--mark); text-transform: uppercase; letter-spacing: .04em; }
+.stamp span.you { color: var(--fg); background: var(--you); padding: 0 5px; justify-self: start; }
+.entry-body { display: grid; gap: 16px; min-width: 0; }
+.entry h3 { margin: 0; font-size: 22px; line-height: 1.2; }
+.entry h4 { margin: 6px 0 -4px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.entry p { margin: 0; max-width: 90ch; }
+.entry ul, .entry ol { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.blank { color: var(--muted); font-style: italic; }
+blockquote { margin: 0; padding: 10px 16px; border-left: 4px solid var(--you); font-style: italic; max-width: 90ch; }
+blockquote cite { display: block; font-style: normal; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 6px; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 12px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+ol.qs { list-style: none; padding: 0; display: grid; gap: 10px; }
+ol.qs li { border: 1px solid var(--line); background: var(--panel); padding: 10px 14px; border-radius: 4px; }
+ol.qs strong { display: block; }
+ol.qs em { display: block; font-style: normal; font-family: var(--mono); font-size: 12.5px; color: var(--accent); margin-top: 4px; }
+/* Answer chips: drawn by tools/journal/decisions.py from decisions.json. */
+.decide-bar { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.act { font: 600 14px var(--body); color: var(--fg); background: var(--panel); border: 1px solid var(--fg); border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+.where { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.copyout { width: 100%; font-family: var(--mono); font-size: 13px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); padding: 8px; }
+.decide { border: 1px solid var(--line); background: var(--panel); border-radius: 4px; padding: 12px 14px; display: grid; gap: 8px; margin-bottom: 10px; }
+.decide.done { border-color: var(--accent); }
+.dq { font-weight: 700; }
+.qid { font-family: var(--mono); font-weight: 500; font-size: 12.5px; color: var(--mark); margin-right: 6px; }
+.dx { color: var(--muted); font-size: 15px; }
+.blocks { display: block; font-family: var(--mono); font-size: 12px; color: var(--accent); margin-top: 4px; }
+.opt { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; align-items: start; text-align: left; width: 100%; font: inherit; font-size: 15px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; cursor: pointer; }
+.opt b { font-family: var(--mono); font-weight: 500; display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--fg); border-radius: 3px; }
+.opt[aria-pressed="true"] { border-color: var(--fg); background: color-mix(in srgb, var(--you) 40%, var(--panel)); }
+.opt[aria-pressed="true"] b { background: var(--fg); color: var(--bg); }
+.dflt { font-style: normal; font-family: var(--mono); font-size: 11.5px; color: var(--mark); text-transform: uppercase; margin-left: 6px; white-space: nowrap; }
+details.note summary { cursor: pointer; color: var(--muted); font-family: var(--mono); font-size: 12.5px; }
+details.note textarea { width: 100%; margin-top: 6px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); padding: 6px 8px; }
+.saved { font-family: var(--mono); font-size: 12px; color: var(--accent); min-height: 1em; margin: 0; }
+/* Live now: rewritten on every deploy; journal_check.py matches data-commit to the newest live entry. */
+.live-now { border: 2px solid var(--fg); background: var(--panel); padding: 14px 16px; display: grid; gap: 8px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr)); gap: 14px; }
+figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+figure button { all: unset; cursor: zoom-in; display: block; width: 100%; }
+figure img { display: block; width: 100%; height: auto; }
+figcaption { padding: 8px 12px 10px; font-size: 14px; color: var(--muted); }
+figcaption b { color: var(--fg); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.card { display: grid; gap: 4px; text-decoration: none; color: inherit; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px; }
+.card strong { font-size: 19px; }
+.card span { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.timeline { list-style: none; margin: 0; padding: 0; }
+.timeline li { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 20px; padding: 8px 0; border-top: 1px solid var(--line); }
+.timeline time { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.timeline em { font-style: normal; color: var(--muted); }
+.lb { position: fixed; inset: 0; z-index: 10; background: var(--shade); display: grid; grid-template-rows: minmax(0, 1fr) auto; padding: 16px; gap: 10px; }
+.lb img { width: 100%; height: 100%; object-fit: contain; cursor: zoom-out; }
+.lb p { margin: 0 auto; max-width: 90ch; color: #dde4ea; text-align: center; }
+.lb button { position: absolute; width: 44px; height: 44px; font-size: 22px; color: #fff; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.3); border-radius: 4px; cursor: pointer; }
+.lb .x { top: 12px; right: 12px; } .lb .prev { left: 12px; top: 50%; } .lb .next { right: 12px; top: 50%; }
+@media (max-width: 640px) {
+  .entry, .timeline li { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .stamp { position: static; display: flex; gap: 12px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><a href="#home">{{TITLE}} Journal</a></h1>
+    <p>Where the person reads this project's work: what was asked, how the agent read it, what was decided and on what default, what the build looks like, what changed from the plan, and what is still the person's to judge. Entries are newest first and never removed. The repository's <code>BRIEF.md</code>, <code>PLAN.md</code>, <code>SECOND-ORDER.md</code>, <code>TRIAGE.md</code> and <code>HANDOFF.md</code> stay the record; entries cite their rows.</p>
+    <nav aria-label="Pages">
+      <a href="#home">All entries</a>
+      <a href="#reading">How I read this</a>
+      <a href="#now">Live now</a>
+      <!-- One link per page added later: one page per major update, level or feature. -->
+    </nav>
+  </header>
+
+  <main>
+  <section class="page" id="home" data-page>
+    <div class="page-head">
+      <h2>{{TITLE}}</h2>
+      <p class="blank">One or two sentences: what the project is, for whom, and where it runs.</p>
+    </div>
+    <div class="cards">
+      <a class="card" href="#reading"><strong>How I read this</strong><span>1 entry · not started</span></a>
+    </div>
+    <ol class="timeline">
+      <!-- One row per entry, newest first: <li><time>YYYY-MM-DD</time><span><a href="#page">Title</a> <em>· Page · kind</em></span></li> -->
+    </ol>
+  </section>
+
+  <section class="page" id="reading" data-page hidden>
+    <div class="page-head">
+      <h2>How I read this</h2>
+      <p>Before planning, the agent reads Builder and the brief back to the person, and turns that reading into numbered rules, an ID scheme and stop points the person can correct. The person's answers then move into <code>CLAUDE.md</code> and tests, which every later session reads.</p>
+    </div>
+
+    <!-- The opening entry. Fill every part, then remove data-blank;
+         scripts/journal_check.py fails while it is still here. -->
+    <article class="entry" id="opening" data-kind="reading" data-blank>
+      <div class="stamp"><time datetime="YYYY-MM-DD">YYYY-MM-DD</time><span class="you">for review</span></div>
+      <div class="entry-body">
+        <h3>How I read Builder, and how I will build {{TITLE}}</h3>
+        <h4>What Builder asks of me</h4>
+        <p class="blank">In your own words: where each kind of code lives and what holds it there; the nine stages, which are the person's and which are yours; what you will stop for.</p>
+        <h4>What this project adds or changes</h4>
+        <p class="blank">Any row in BUILDER-SPEC.md's change table, any kit copied, anything the brief allows that the reference defaults do not.</p>
+        <h4>Measured before any edit</h4>
+        <p class="blank">The result of ./scripts/check.sh on the untouched copy, the test count, and any fact about an existing repository the plan depends on.</p>
+        <h4>Rules I will hold to</h4>
+        <div class="tbl"><table>
+          <tr><th>#</th><th>Rule</th><th>Held by</th></tr>
+          <tr><td class="blank">XX-1</td><td class="blank">A rule specific to this project, in one sentence</td><td class="blank">a test that exists, a test to write, CLAUDE.md, or this journal only</td></tr>
+        </table></div>
+        <h4>Numbers</h4>
+        <p class="blank">The two-letter prefix for this project's questions (XX-Q1 …); requests become numbered TRIAGE.md rows, and notebook rows keep Builder's round numbers.</p>
+        <h4>Where I stop</h4>
+        <p class="blank">After the plan, unless BRIEF.md approves it in advance; before any deploy, push or other step outside this machine unless BRIEF.md grants it.</p>
+        <h4>Questions for you</h4>
+        <p class="blank">Each question goes in decisions.json with a default, then python3 tools/journal/decisions.py draws it here as answer chips.</p>
+        <div class="decide-bar"><button type="button" class="act" data-defaults>Go with the defaults for the rest</button><button type="button" class="act" data-copy>Copy answers</button><span class="where" data-where></span></div>
+        <textarea class="copyout" data-copyout rows="2" readonly hidden aria-label="Your answers as text"></textarea>
+        <div class="decisions"><!--DECIDE page=reading-->
+<!--/DECIDE--></div>
+      </div>
+    </article>
+  </section>
+  <section class="page" id="now" data-page hidden>
+    <div class="page-head">
+      <h2>Live now</h2>
+      <p>What is deployed, from which commit, and what changed since the deploy before. Rewritten on every deploy; the live entries below it keep the history.</p>
+    </div>
+    <div class="live-now" data-commit="">
+      <p><b>Nothing is deployed yet.</b></p>
+      <p class="blank">On each deploy: the address, the commit (also in data-commit above), the date, the checks run against the live address, what changed since the last deploy with its T rows, and a screenshot of each change.</p>
+    </div>
+  </section>
+  </main>
+</div>
+
+<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Picture">
+  <img id="lb-img" alt="">
+  <p id="lb-cap"></p>
+  <button class="x" id="lb-x" aria-label="Close">×</button>
+  <button class="prev" id="lb-prev" aria-label="Previous picture">‹</button>
+  <button class="next" id="lb-next" aria-label="Next picture">›</button>
+</div>
+
+<script>
+const pages = [...document.querySelectorAll("[data-page]")];
+const links = [...document.querySelectorAll("nav a")];
+function show() {
+  const want = location.hash.slice(1) || "home";
+  const page = pages.find(p => p.id === want) || pages[0];
+  pages.forEach(p => { p.hidden = p !== page; });
+  links.forEach(a => a.getAttribute("href") === "#" + page.id ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
+}
+addEventListener("hashchange", () => { show(); scrollTo(0, 0); });
+show();
+
+// Pictures: click to open full-window; arrow keys step through the entry's pictures.
+const lb = document.getElementById("lb"), lbImg = document.getElementById("lb-img"), lbCap = document.getElementById("lb-cap");
+let set = [], at = 0, opener = null;
+function open(i) { at = (i + set.length) % set.length; const f = set[at]; lbImg.src = f.querySelector("img").src; lbCap.textContent = f.querySelector("figcaption")?.textContent || ""; lb.hidden = false; }
+function close() { lb.hidden = true; opener?.focus(); }
+document.addEventListener("click", e => {
+  const b = e.target.closest("figure button");
+  if (!b) return;
+  opener = b; set = [...b.closest(".entry").querySelectorAll("figure")]; open(set.indexOf(b.closest("figure")));
+});
+document.getElementById("lb-x").onclick = close; lbImg.onclick = close;
+document.getElementById("lb-prev").onclick = () => open(at - 1);
+document.getElementById("lb-next").onclick = () => open(at + 1);
+addEventListener("keydown", e => {
+  if (lb.hidden) return;
+  if (e.key === "Escape") close();
+  if (e.key === "ArrowLeft") open(at - 1);
+  if (e.key === "ArrowRight") open(at + 1);
+});
+// Answer chips: saved in this browser; also in the page's store when the host
+// gives it one (a claude.ai artifact's db); "Copy answers" gives a line for any agent.
+(function () {
+  const qs = [...new Set([...document.querySelectorAll(".opt[data-q]")].map(b => b.dataset.q))];
+  if (!qs.length) return;
+  const KEY = "journal-answers:" + document.title;
+  let ans = {}, db = null;
+  try { ans = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { ans = {}; }
+  const where = [...document.querySelectorAll("[data-where]")];
+  const dflt = q => document.querySelector('.opt[data-q="' + q + '"][data-default]')?.dataset.a || "";
+  function render() {
+    for (const q of qs) {
+      const a = ans[q] || {};
+      document.querySelectorAll('.opt[data-q="' + q + '"]').forEach(b => b.setAttribute("aria-pressed", String(a.choice === b.dataset.a)));
+      const n = document.querySelector('[data-note="' + q + '"]');
+      if (n && document.activeElement !== n) n.value = a.note || "";
+      const s = document.querySelector('[data-saved="' + q + '"]');
+      if (s) s.textContent = a.choice ? "Answered " + a.choice + (a.byDefault ? " (the default)" : "") : (a.note ? "Note saved" : "");
+      document.getElementById("dec-" + q)?.classList.toggle("done", !!a.choice);
+    }
+    const n = qs.filter(q => ans[q]?.choice).length;
+    where.forEach(w => { w.textContent = n + " of " + qs.length + " answered, " + (db ? "saved to this page" : "saved in this browser; use Copy answers to send them"); });
+  }
+  function store(q) {
+    try { localStorage.setItem(KEY, JSON.stringify(ans)); } catch (e) {}
+    if (db) db.collection("answers").doc(q).set({ choice: ans[q]?.choice || "", note: ans[q]?.note || "", byDefault: !!ans[q]?.byDefault, at: new Date().toISOString() }).catch(() => {});
+  }
+  document.querySelectorAll(".opt[data-q]").forEach(b => b.addEventListener("click", () => {
+    const q = b.dataset.q, a = ans[q] || {};
+    ans[q] = { ...a, choice: a.choice === b.dataset.a ? "" : b.dataset.a, byDefault: false }; store(q); render();
+  }));
+  const timers = {};
+  document.querySelectorAll("[data-note]").forEach(n => n.addEventListener("input", () => {
+    const q = n.dataset.note; ans[q] = { ...(ans[q] || {}), note: n.value };
+    clearTimeout(timers[q]); timers[q] = setTimeout(() => { store(q); render(); }, 600);
+  }));
+  document.querySelectorAll("[data-defaults]").forEach(b => b.addEventListener("click", () => {
+    for (const q of qs) if (!ans[q]?.choice) { ans[q] = { ...(ans[q] || {}), choice: dflt(q), byDefault: true }; store(q); }
+    render();
+  }));
+  document.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => {
+    const line = qs.map(q => q + ": " + (ans[q]?.choice || "-") + (ans[q]?.note ? " (" + ans[q].note.replace(/\s+/g, " ").trim() + ")" : "")).join("; ");
+    const out = b.closest(".entry-body")?.querySelector("[data-copyout]");
+    if (out) { out.value = line; out.hidden = false; }
+    const pick = () => { out?.focus(); out?.select(); };
+    try { navigator.clipboard.writeText(line).then(() => where.forEach(w => { w.textContent = "Copied. Paste it to the agent."; }), pick); } catch (e) { pick(); }
+  }));
+  render();
+  if (window.claude?.use) window.claude.use("db").then(async d => {
+    if (!d) return; db = d;
+    try { for (const doc of (await db.collection("answers").get()).docs) ans[doc.id] = { ...(ans[doc.id] || {}), ...(doc.data() || {}) }; } catch (e) {}
+    render();
+  }, () => {});
+})();
+</script>
+</body>
+</html>

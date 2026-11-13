@@ -1,0 +1,61 @@
+# Which check steps a change to which files needs. Read by scripts/quick_check.py.
+#
+# Each [[rule]] names the files it covers (globs, from the project's root;
+# ** crosses folders) and the steps of ./scripts/check.sh a change to them
+# must run. A changed file that no rule covers runs the whole check, and the
+# guard (quick_check.py --guard, run by check.sh) fails while any file in the
+# project is covered by no rule, so a new file gets a rule when it is added.
+# When unsure, give a file the wider rule: a quick check is only as safe as
+# its rules. ./scripts/check.sh stays the check before a handoff or a deploy.
+#
+# Steps: fmt, clippy, core, build, wasm, art, notebook, journal, browser, all.
+# After Peter's quick check in Ape Race, Honey Hole and Crabble.
+
+ignore = [".gitignore", "notes/**", ".claude/**", "LICENSE*", "README.md", "LICENSES.md", "MEASUREMENTS.md", "DECISIONS.md"]
+
+[[rule]]
+name = "the core and the shim"
+files = ["crates/**", "Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "rustfmt.toml"]
+steps = ["fmt", "clippy", "core", "build", "wasm", "browser"]
+
+[[rule]]
+name = "the page and its data"
+# the boundary and copy tests read web/ and data/, so the core suite runs too
+files = ["web/**", "data/**"]
+steps = ["core", "build", "wasm", "browser"]
+
+[[rule]]
+name = "the words"
+files = ["GLOSSARY.md", "TONE.md"]
+steps = ["core"]
+
+[[rule]]
+name = "the art pipeline"
+files = ["styles/**", "tools/art/**", "tests/art_check.py"]
+steps = ["art"]
+
+[[rule]]
+name = "the records"
+files = ["BRIEF.md", "PLAN.md", "SECOND-ORDER.md", "TRIAGE.md", "HANDOFF.md", "CLAUDE.md", "AGENTS.md", "BUILDER-SPEC.md"]
+steps = ["notebook", "journal"]
+
+[[rule]]
+name = "the journal's tools"
+files = ["tools/journal/**", "scripts/journal_check.py"]
+steps = ["journal"]
+
+[[rule]]
+name = "the browser check"
+files = ["tests/browser/**"]
+steps = ["build", "browser"]
+
+[[rule]]
+name = "the breaks"
+files = ["tests/breaks.json", "scripts/break_tests.py"]
+steps = ["core"]
+
+[[rule]]
+name = "the checks themselves"
+# a change to a script that runs or builds the checks runs everything
+files = ["scripts/**", "tests/tags.toml"]
+steps = ["all"]
