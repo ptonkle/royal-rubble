@@ -360,3 +360,4 @@ body[data-screen="match"] .panel.field-bar > #match\.buy_xp .icon { background-c
 .panel.how .button:not(.quiet) { border-color: var(--hud-chosen); }
 .panel.how .button .icon { background-color: var(--hud-chosen); }
 .panel.upgrades > .button { flex: none; }
+.panel.how .button.with-icon { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
