@@ -31,7 +31,7 @@ pub fn royal_targets(v: &SiegeView) -> Vec<Target> {
         .bodies
         .iter()
         .enumerate()
-        .filter(|(_, b)| b.alive && b.radius == play_tune::ROYAL_RADIUS)
+        .filter(|(_, b)| b.alive && b.radius == play_tune::ROYAL_RADIUS && b.tall == play_tune::ROYAL_UPRIGHT)
         .map(|(body, _)| Target { body, value: 1 })
         .collect()
 }

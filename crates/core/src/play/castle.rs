@@ -125,9 +125,9 @@ fn surface_below(w: &World, p: Vec2) -> Surface {
     }
 }
 
-/// Puts a body on a surface.
-fn stand(w: &mut World, surface: Surface, x: Fx, radius: Fx) -> usize {
-    match surface {
+/// Puts a body on a surface: its foot circle and its upright (`tall`).
+fn stand(w: &mut World, surface: Surface, x: Fx, radius: Fx, tall: Fx) -> usize {
+    let i = match surface {
         Surface::Floor(s, u) => w.add_body(s, u, radius),
         Surface::Ground => {
             let pos = Vec2::new(x, w.terrain.height_at(x) + radius);
@@ -135,13 +135,16 @@ fn stand(w: &mut World, surface: Surface, x: Fx, radius: Fx) -> usize {
                 pos,
                 prev: pos,
                 radius,
+                tall: Fx::ZERO,
                 attached: None,
                 peak_y: pos.y,
                 alive: true,
             });
             w.bodies.len() - 1
         }
-    }
+    };
+    w.bodies[i].tall = tall;
+    i
 }
 
 /// Adds a straight beam as pieces no longer than the material allows,
@@ -226,7 +229,7 @@ impl Castle {
                 },
             };
             let s = surface_at(&cw.world, at).unwrap_or_else(|| surface_below(&cw.world, at));
-            stand(&mut cw.world, s, at.x, tune::BUILDING_RADIUS);
+            stand(&mut cw.world, s, at.x, tune::BUILDING_RADIUS, Fx::ZERO);
             cw.bodies.push(BodyOwner::Building(e.id));
         }
         if with_royals {
@@ -239,7 +242,7 @@ impl Castle {
                     },
                 };
                 let s = surface_at(&cw.world, at).unwrap_or_else(|| surface_below(&cw.world, at));
-                stand(&mut cw.world, s, at.x, tune::ROYAL_RADIUS);
+                stand(&mut cw.world, s, at.x, tune::ROYAL_RADIUS, tune::ROYAL_UPRIGHT);
                 cw.bodies.push(BodyOwner::Royal(i));
             }
         }

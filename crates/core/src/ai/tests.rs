@@ -465,6 +465,7 @@ fn ai_siege_targets_carry_each_royals_damage() {
         pos: crate::physics::Vec2::ints(x, 30),
         prev: crate::physics::Vec2::ints(x, 30),
         radius: Fx::ratio(1, 4),
+        tall: Fx::ZERO,
         attached: None,
         peak_y: Fx::from_int(30),
         alive: true,

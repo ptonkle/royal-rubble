@@ -3,20 +3,24 @@
 
 use crate::physics::Fx;
 
-/// Body radius of a royal and of a building, in cells.
-pub const ROYAL_RADIUS: Fx = Fx::ratio(1, 4);
+/// Body radius of a royal and of a building, in cells. A royal's body is
+/// its figure's shape (R1.2500): every point within `ROYAL_RADIUS` of an
+/// upright `ROYAL_UPRIGHT` tall, its feet on the bottom of the lower
+/// circle, so it reaches `FIGURE_TALL` and is as wide as the figure's torso.
+pub const ROYAL_RADIUS: Fx = Fx::ratio(5, 16);
+pub const ROYAL_UPRIGHT: Fx = Fx::ratio(7, 8);
 pub const BUILDING_RADIUS: Fx = Fx::ratio(1, 2);
 
-/// Head room under cover (R1.2400): one floor height (a cell, the bots'
-/// `ai::tune::FLOOR_UNITS`) less half the thickest beam (stone) below the
-/// royal's feet and half above its head.
-pub const HEAD_ROOM: Fx = Fx::ratio(3, 4);
-/// A royal's figure as drawn, in cells: its feet on the bottom of the body
-/// circle, centered on it, at most this tall and this wide (the baked
-/// figures reach about 0.6 of their height with an arm out), so it stands
-/// under any floor above it (R1.2400).
-pub const FIGURE_TALL: Fx = Fx::ratio(11, 16);
-pub const FIGURE_WIDE: Fx = Fx::ratio(1, 2);
+/// Head room under cover (R1.2500): a room one segment (2 cells) tall,
+/// the bots' `ai::tune::ROOM_UNITS`, less half the thickest beam (stone)
+/// below the royal's feet and half above its head.
+pub const HEAD_ROOM: Fx = Fx::ratio(7, 4);
+/// A royal's figure as drawn, in cells: its feet on the bottom of the body,
+/// centered on it, at most this tall, and its body this wide (an arm held
+/// out may reach past an upright and is drawn in front of it), so it stands
+/// under any floor one room above it (R1.2500, R1.2400).
+pub const FIGURE_TALL: Fx = Fx::ratio(3, 2);
+pub const FIGURE_WIDE: Fx = Fx::ratio(3, 4);
 /// The least a figure is drawn, in pixels, when the view is zoomed far out
 /// (the corner inset); never more than the head room at that zoom.
 pub const FIGURE_MIN_PX: i32 = 12;

@@ -266,3 +266,70 @@ fn probe_sixteenth_release() {
         );
     }
 }
+
+/// R1.2500: royals killed per siege when two hard bots play each other
+/// (their own castles and shot planner), seeds 1-4, rounds 1-6.
+#[test]
+#[ignore]
+fn probe_bot_kills_per_siege() {
+    use tool_core::ai::build::bot_turn;
+    use tool_core::game::flow::{Phase, Seat, Settings};
+    use tool_core::play::{Input, Play};
+    let (mut sieges, mut kills, mut placed) = (0u32, 0u32, 0u32);
+    for seed in 1u64..=4 {
+        let mut play = Play::new(Settings {
+            seats: vec![Seat::Bot(Difficulty::Hard), Seat::Bot(Difficulty::Hard)],
+            wind: false,
+            seed,
+        })
+        .unwrap();
+        play.start().unwrap();
+        play.set_shot_planner(tool_core::ai::planner::plan_siege_job);
+        let mut last = (0, Phase::Lobby);
+        let mut n = 0u64;
+        let mut per = Vec::new();
+        while play.rules.round <= 6 && play.rules.phase != Phase::Results {
+            let now = (play.rules.round, play.rules.phase);
+            if now != last && now.1 == Phase::Build {
+                if let Some(r) = play.last_result.take() {
+                    for c in &r.castles {
+                        sieges += 1;
+                        kills += c.royals_killed.len() as u32;
+                        per.push(c.royals_killed.len());
+                    }
+                }
+                for p in [0u8, 1] {
+                    for input in bot_turn(&play, p) {
+                        let _ = play.apply(p, input);
+                    }
+                    placed += play.rules.players[p as usize]
+                        .royals
+                        .iter()
+                        .filter(|r| r.spot.is_some())
+                        .count() as u32;
+                }
+            }
+            last = now;
+            if now.1 != Phase::Siege {
+                for p in [0u8, 1] {
+                    let _ = play.apply(p, Input::Ready);
+                }
+            }
+            play.tick();
+            n += 1;
+            assert!(n < 2_000_000);
+        }
+        if let Some(r) = play.last_result.take() {
+            for c in &r.castles {
+                sieges += 1;
+                kills += c.royals_killed.len() as u32;
+                per.push(c.royals_killed.len());
+            }
+        }
+        println!("seed {seed}: kills per siege {per:?}");
+    }
+    println!(
+        "hard bot vs hard bot: {kills} kills in {sieges} sieges ({} per 100 sieges), {placed} royals placed",
+        kills * 100 / sieges.max(1)
+    );
+}

@@ -199,10 +199,10 @@ impl World {
             d <= b.radius + m.thickness / 2 + FUSE_SLACK
         });
         hits_beam
-            || self.bodies.iter().any(|body| {
-                let rr = b.radius + body.radius + FUSE_SLACK;
-                body.alive && (body.pos - b.pos).len2() <= rr * rr
-            })
+            || self
+                .bodies
+                .iter()
+                .any(|body| body.alive && body.touches(b.pos, b.radius + FUSE_SLACK))
     }
 
     /// Sets off every fuse whose shot touched something this tick; keeps the
@@ -261,8 +261,7 @@ impl World {
             }
         }
         for (bi, body) in self.bodies.iter_mut().enumerate() {
-            let rr = radius + body.radius;
-            if body.alive && (body.pos - at).len2() < rr * rr {
+            if body.alive && body.touches(at, radius) {
                 body.alive = false;
                 blast.bodies.push(bi);
             }

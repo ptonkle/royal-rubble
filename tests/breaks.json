@@ -1192,8 +1192,8 @@
   {
     "name": "royal figure fits under cover",
     "file": "crates/core/src/play/tune.rs",
-    "find": "pub const FIGURE_TALL: Fx = Fx::ratio(11, 16);",
-    "replace": "pub const FIGURE_TALL: Fx = Fx::ratio(15, 16);",
+    "find": "pub const FIGURE_TALL: Fx = Fx::ratio(3, 2);",
+    "replace": "pub const FIGURE_TALL: Fx = Fx::ratio(15, 8);",
     "test": "ai_bot_royal_figures_fit_under_their_cover"
   }
 ]

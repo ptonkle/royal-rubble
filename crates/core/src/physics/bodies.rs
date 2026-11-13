@@ -11,11 +11,29 @@ pub struct Body {
     pub pos: Vec2,
     pub prev: Vec2,
     pub radius: Fx,
+    /// A royal stands taller than it is wide: its shape is every point
+    /// within `radius` of the upright from `pos` to `pos + (0, tall)`, so
+    /// the feet stay on the circle's bottom (R1.2500). 0 for a building.
+    pub tall: Fx,
     /// The segment it stands on and where along it (0..1), or `None` falling.
     pub attached: Option<(usize, Fx)>,
     /// Highest point since it last stood still.
     pub peak_y: Fx,
     pub alive: bool,
+}
+
+impl Body {
+    /// The point of the body's upright nearest `p`: hits measure from here.
+    pub fn nearest(&self, p: Vec2) -> Vec2 {
+        Vec2::new(self.pos.x, p.y.clamp_to(self.pos.y, self.pos.y + self.tall))
+    }
+
+    /// True when a circle of radius `r` at `p` touches the body.
+    pub fn touches(&self, p: Vec2, r: Fx) -> bool {
+        let rr = r + self.radius;
+        let d = p - self.nearest(p);
+        d.x.abs() <= rr && d.y.abs() <= rr && d.len2() < rr * rr
+    }
 }
 
 impl World {
@@ -32,6 +50,7 @@ impl World {
             pos,
             prev: pos,
             radius,
+            tall: Fx::ZERO,
             attached: Some((s, u)),
             peak_y: pos.y,
             alive: true,

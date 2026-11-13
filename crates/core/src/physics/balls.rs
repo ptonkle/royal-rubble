@@ -295,9 +295,7 @@ impl World {
             if !body.alive {
                 continue;
             }
-            let rr = ball.radius + body.radius;
-            let d = ball.pos - body.pos;
-            if d.x.abs() > rr || d.y.abs() > rr || d.len2() >= rr * rr {
+            if !body.touches(ball.pos, ball.radius) {
                 continue;
             }
             if !debris {

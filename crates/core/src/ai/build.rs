@@ -111,8 +111,17 @@ struct Block {
     floors: i64,
 }
 
-/// The blocks of a template for width parameter `w` and height `f`.
+/// The blocks of a template for width parameter `w` and height `f`, in
+/// rooms of `ROOM_ROWS` rows each (R1.2500).
 fn blocks(t: Template, w: i64, f: i64) -> Vec<Block> {
+    let mut bl = rooms(t, w, f);
+    for b in &mut bl {
+        b.floors *= tune::ROOM_ROWS;
+    }
+    bl
+}
+
+fn rooms(t: Template, w: i64, f: i64) -> Vec<Block> {
     match t {
         Template::Keep => vec![Block {
             x0: 0,
@@ -143,7 +152,7 @@ fn blocks(t: Template, w: i64, f: i64) -> Vec<Block> {
             Block {
                 x0: 0,
                 bays: w,
-                floors: (f - 2).max(1),
+                floors: (f - 1).max(1),
             },
             Block {
                 x0: w,
@@ -238,6 +247,8 @@ fn lay_out(plot: &Plot, col0: usize, bl: &[Block], column: Material) -> (Vec<Seg
                 push_seg(&mut segs, Vec2::new(x, row(k)), Vec2::new(x, row(k + 1)), column);
             }
         }
+        // a floor every room (R1.2500) and on the top row
+        let floored = |r: i64| r % tune::ROOM_ROWS == 0 || r == b.floors;
         for i in b.x0..b.x0 + b.bays {
             let (xl, xr) = (x_of(i), x_of(i + 1));
             for k in 0..b.floors {
@@ -248,14 +259,16 @@ fn lay_out(plot: &Plot, col0: usize, bl: &[Block], column: Material) -> (Vec<Seg
                         Vec2::new(x, row(k))
                     }
                 };
-                if let Some(s) = push_seg(
-                    &mut segs,
-                    Vec2::new(xl, row(k + 1)),
-                    Vec2::new(xr, row(k + 1)),
-                    Material::Wood,
-                ) {
-                    if !floors.iter().any(|(f, _)| *f == s) {
-                        floors.push((s, k + 1));
+                if floored(k + 1) {
+                    if let Some(s) = push_seg(
+                        &mut segs,
+                        Vec2::new(xl, row(k + 1)),
+                        Vec2::new(xr, row(k + 1)),
+                        Material::Wood,
+                    ) {
+                        if !floors.iter().any(|(f, _)| *f == s) {
+                            floors.push((s, k + 1));
+                        }
                     }
                 }
                 // on a slope the preferred diagonal can be too long for one
@@ -267,7 +280,9 @@ fn lay_out(plot: &Plot, col0: usize, bl: &[Block], column: Material) -> (Vec<Seg
                 } else {
                     (right, left)
                 };
-                if push_seg(&mut segs, first.0, first.1, Material::Wood).is_none() {
+                // no floor on top: braced both ways, so the uprights' middle
+                // knots hold without one
+                if push_seg(&mut segs, first.0, first.1, Material::Wood).is_none() || !floored(k + 1) {
                     push_seg(&mut segs, second.0, second.1, Material::Wood);
                 }
             }
@@ -336,22 +351,41 @@ pub fn plan_castle(ask: &BuildAsk) -> CastlePlan {
             .filter(|m| *m <= top)
             .collect()
     };
-    for n in 0..TEMPLATES.len() {
+    // the keep with the gold producers leave, then, while a royal is left
+    // out of cover, with the producers' gold too (rooms cost more than the
+    // old one-row floors, R1.2500)
+    for (pass, n) in (0..2).flat_map(|p| (0..TEMPLATES.len()).map(move |n| (p, n))) {
+        if pass == 1 && n == 0 && best.iter().flatten().any(|b| (b.0 >> 44) as usize >= ask.royals) {
+            break;
+        }
+        let budget = if pass == 0 { gold } else { shelter_gold };
         let t = TEMPLATES[(start + n) % TEMPLATES.len()];
-        for f in (1..=max_floors).rev() {
+        for f in (1..=max_floors / tune::ROOM_ROWS).rev() {
             for w in (1..=tune::MAX_BAYS).rev() {
                 let bl = blocks(t, w, f);
                 let bays = width(&bl);
+                // one room: a framed hall (posts, roof, an end strut each
+                // side) where the ground is level enough, as a hut is
+                // (R1.2500); else braced rows
+                let terrain = units::physics_terrain(ask.plot);
+                let sites =
+                    || (span.start + setback..span.end).take_while(|c| c + bays as usize + 1 < span.end);
+                let hall = (f == 1)
+                    .then(|| sites().find_map(|c| frame(&terrain, c, bays, Material::Wood).map(|_| c)))
+                    .flatten();
                 // nearest the front with ground level enough
-                let Some(col0) = (span.start + setback..span.end)
-                    .take_while(|c| c + bays as usize + 1 < span.end)
-                    .find(|&c| rise(ask.plot, c, bays) <= max_rise)
+                let Some(col0) = hall.or_else(|| sites().find(|&c| rise(ask.plot, c, bays) <= max_rise))
                 else {
                     continue;
                 };
                 for &m in &mats {
-                    let (main, main_floors) = lay_out(ask.plot, col0, &bl, m);
-                    if cost(&main, gold, ask.stock, ask.have).is_none() {
+                    let (main, main_floors) = match hall.and_then(|c| frame(&terrain, c, bays, m)) {
+                        Some((segs, roofs)) => {
+                            (segs, roofs.into_iter().map(|r| (r, tune::ROOM_ROWS)).collect())
+                        }
+                        None => lay_out(ask.plot, col0, &bl, m),
+                    };
+                    if cost(&main, budget, ask.stock, ask.have).is_none() {
                         continue;
                     }
                     // huts for the royals the keep cannot shelter, as many
@@ -416,6 +450,34 @@ pub fn plan_castle(ask: &BuildAsk) -> CastlePlan {
             break;
         }
     }
+    // no keep affordable (a room costs more than the first round's gold):
+    // huts alone, as many as the gold allows (R1.2500)
+    if best.iter().all(|b| b.is_none()) {
+        let (_, huts) = huts(ask.plot, span, setback, &[], &[], ask.royals);
+        for h in (1..=huts.len()).rev() {
+            let mut segs: Vec<SegPlan> = huts[..h].iter().flat_map(|x| x.segs.iter().copied()).collect();
+            let mut floors = Vec::new();
+            let mut base = 0;
+            for hut in &huts[..h] {
+                floors.push((base + hut.floor, 1));
+                base += hut.segs.len();
+            }
+            for hv in ask.have {
+                if !segs
+                    .iter()
+                    .any(|s| same(s, &hv.seg) || (s.a == hv.seg.a && s.b == hv.seg.b))
+                {
+                    segs.push(hv.seg);
+                }
+            }
+            let Some((_, used)) = cost(&segs, shelter_gold, ask.stock, ask.have) else {
+                continue;
+            };
+            let royals: Vec<RoyalPlan> = huts[..h].iter().map(|x| x.royal).collect();
+            best[mats.len() - 1] = Some((0, segs, floors, used, royals));
+            break;
+        }
+    }
     // the strongest material whose castle is worth at least half the best
     let top = best.iter().flatten().map(|b| b.0).max().unwrap_or(0);
     let pick = best.into_iter().flatten().find(|b| {
@@ -457,7 +519,7 @@ fn place_royals(plot: &Plot, segs: &[SegPlan], floors: &[(usize, i64)], n: usize
         .map(|&(s, k)| (Some(s), k, Vec2::lerp(segs[s].a, segs[s].b, Fx::HALF)))
         .collect();
     for &(s, k) in floors {
-        if k != 1 {
+        if k > tune::ROOM_ROWS {
             continue;
         }
         let mid = Vec2::lerp(segs[s].a, segs[s].b, Fx::HALF);
@@ -476,7 +538,7 @@ fn place_royals(plot: &Plot, segs: &[SegPlan], floors: &[(usize, i64)], n: usize
                     .min()
                     .unwrap_or(Fx::from_int(1_000));
                 // inside: some segment passes over it (as the siege sees it)
-                let inside = sheltered(segs, at);
+                let inside = roofed(segs, at);
                 (apart(plot, at, &out), inside, k, gap, s, at)
             })
             .max_by_key(|&(ok, inside, k, gap, s, _)| {
@@ -531,7 +593,7 @@ fn shelters(plot: &Plot, span: crate::terrain::ColRange, segs: &[SegPlan]) -> Ve
     let mut out: Vec<RoyalPlan> = Vec::new();
     for (i, s) in segs.iter().enumerate() {
         let at = Vec2::lerp(s.a, s.b, Fx::HALF);
-        if s.a.y == s.b.y && units::grid_pt(at).to_fx() == at && sheltered(segs, at) {
+        if s.a.y == s.b.y && units::grid_pt(at).to_fx() == at && roofed(segs, at) {
             out.push(RoyalPlan {
                 segment: Some(i),
                 u: Fx::HALF,
@@ -543,7 +605,7 @@ fn shelters(plot: &Plot, span: crate::terrain::ColRange, segs: &[SegPlan]) -> Ve
     for c in span.start..span.end {
         let mid = units::col_x(c) + units::col_width() / 2;
         let at = Vec2::new(mid, snap(terrain.height_at(mid)));
-        if sheltered(segs, at) {
+        if roofed(segs, at) {
             out.push(RoyalPlan {
                 segment: None,
                 u: Fx::HALF,
@@ -556,10 +618,12 @@ fn shelters(plot: &Plot, span: crate::terrain::ColRange, segs: &[SegPlan]) -> Ve
     out
 }
 
-/// Some segment passes over `at`: strictly across its x, both ends above.
-fn sheltered(segs: &[SegPlan], at: Vec2) -> bool {
+/// A floor passes over `at` at least a hut's height above it (R1.2500): a
+/// level segment strictly across its x, so the royal's figure fits under it.
+fn roofed(segs: &[SegPlan], at: Vec2) -> bool {
+    let room = Fx::ratio(tune::HUT_TALL_QUARTERS, 4);
     segs.iter()
-        .any(|s| s.a.x.min(s.b.x) < at.x && at.x < s.a.x.max(s.b.x) && s.a.y.min(s.b.y) > at.y)
+        .any(|s| s.a.y == s.b.y && s.a.x.min(s.b.x) < at.x && at.x < s.a.x.max(s.b.x) && s.a.y - at.y >= room)
 }
 
 /// A one-bay braced hut on its own patch of ground: its segments, which of
@@ -594,20 +658,28 @@ fn huts(
     let lo = segs.iter().map(|s| s.a.x.min(s.b.x)).min().unwrap_or(Fx::ZERO);
     let hi = segs.iter().map(|s| s.a.x.max(s.b.x)).max().unwrap_or(Fx::ZERO);
     let terrain = units::physics_terrain(plot);
-    let hut = [Block {
-        x0: 0,
-        bays: 1,
-        floors: 1,
-    }];
     let mut out: Vec<Hut> = Vec::new();
     let mut placed = kept.clone();
     // back to front over the first level's span, then out over the land
     // later levels add, so a site never moves when the plot widens
     let first = span.start + crate::terrain::tune::PLOT_MIN_W.min(span.len());
-    let order = (span.start + setback..first.saturating_sub(2))
+    // with no keep yet, its front site stays free for the keep to come
+    let front = span.start
+        + setback
+        + if segs.is_empty() {
+            crate::game::royals::spacing_cells() as usize
+        } else {
+            0
+        };
+    let order = (front..first.saturating_sub(2))
         .rev()
         .chain(first.saturating_sub(2)..span.end.saturating_sub(2));
-    for c in order {
+    // framed huts first (five beams), then braced rooms on slopes
+    let order: Vec<usize> = order.collect();
+    for (slope, &c) in [false, true]
+        .into_iter()
+        .flat_map(|p| order.iter().map(move |c| (p, c)))
+    {
         if placed.len() >= n {
             break;
         }
@@ -615,10 +687,9 @@ fn huts(
         let clear = segs.is_empty() || xr + Fx::ONE <= lo || xl >= hi + Fx::ONE;
         let mid = xl + units::col_width() / 2;
         let at = Vec2::new(mid, snap(terrain.height_at(mid)));
-        if clear && rise(plot, c, 1) <= tune::MAX_RISE_RAW && apart(plot, at, &placed) {
-            let (hs, hf) = lay_out(plot, c, &hut, Material::Wood);
-            if let Some(&(floor, _)) = hf.first() {
-                if sheltered(&hs, at) {
+        if clear && apart(plot, at, &placed) {
+            if let Some((hs, floor)) = hut_frame(plot, &terrain, c, slope) {
+                if roofed(&hs, at) {
                     let royal = RoyalPlan {
                         segment: None,
                         u: Fx::HALF,
@@ -636,6 +707,61 @@ fn huts(
         }
     }
     (kept, out)
+}
+
+/// A hut over terrain column `c` (R1.2500): a one-bay `frame`, or on a
+/// slope too steep for one, a braced room one bay wide. Returns the
+/// segments and which is the roof.
+fn hut_frame(
+    plot: &Plot,
+    terrain: &physics::Terrain,
+    c: usize,
+    slope: bool,
+) -> Option<(Vec<SegPlan>, usize)> {
+    if let Some((segs, roofs)) = frame(terrain, c, 1, Material::Wood) {
+        return (!slope).then_some((segs, roofs[0]));
+    }
+    if !slope || rise(plot, c, 1) > tune::MAX_RISE_RAW {
+        return None;
+    }
+    let room = [Block {
+        x0: 0,
+        bays: 1,
+        floors: tune::ROOM_ROWS,
+    }];
+    let (segs, floors) = lay_out(plot, c, &room, Material::Wood);
+    floors.first().map(|&(f, _)| (segs, f))
+}
+
+/// A one-room hall `bays` wide from terrain column `c` (R1.2500): a post
+/// (in `post` material) at every bay edge, the roof between their tops and
+/// a strut from each end post's top out to the ground, each a whole beam;
+/// `None` where the ground makes a beam too long. Returns the segments and
+/// which are the roof.
+fn frame(
+    terrain: &physics::Terrain,
+    c: usize,
+    bays: i64,
+    post: Material,
+) -> Option<(Vec<SegPlan>, Vec<usize>)> {
+    let q = |n: i64| Fx::ratio(n, 4);
+    let x = |i: i64| units::col_x(c) + Fx::from_int(tune::BAY_UNITS) * i;
+    let ground = |x: Fx| Vec2::new(x, snap(terrain.height_at(x)));
+    let top = (0..=bays).map(|i| ground(x(i)).y).max()?;
+    let roof = top + q(tune::HUT_TALL_QUARTERS);
+    let at = |i: i64| Vec2::new(x(i), roof);
+    let reach = q(tune::HUT_STRUT_QUARTERS);
+    let mut segs = Vec::new();
+    let mut roofs = Vec::new();
+    for i in 0..=bays {
+        push_seg(&mut segs, ground(x(i)), at(i), post)?;
+    }
+    for i in 0..bays {
+        roofs.push(push_seg(&mut segs, at(i), at(i + 1), Material::Wood)?);
+    }
+    push_seg(&mut segs, ground(x(0) - reach), at(0), Material::Wood)?;
+    push_seg(&mut segs, ground(x(bays) + reach), at(bays), Material::Wood)?;
+    Some((segs, roofs))
 }
 
 /// Producers on their spots: on the lowest castle floor over the column, or
@@ -692,7 +818,9 @@ pub fn to_world(plan: &CastlePlan, plot: &Plot) -> (World, Vec<usize>) {
         match r.segment {
             Some(seg) => {
                 if let Some(s) = ids[seg] {
-                    royals.push(w.add_body(s, r.u, tune::royal_radius()));
+                    let b = w.add_body(s, r.u, tune::royal_radius());
+                    w.bodies[b].tall = crate::play::tune::ROYAL_UPRIGHT;
+                    royals.push(b);
                 }
             }
             None => {
@@ -702,6 +830,7 @@ pub fn to_world(plan: &CastlePlan, plot: &Plot) -> (World, Vec<usize>) {
                     pos,
                     prev: pos,
                     radius,
+                    tall: crate::play::tune::ROYAL_UPRIGHT,
                     attached: None,
                     peak_y: pos.y,
                     alive: true,
@@ -712,7 +841,7 @@ pub fn to_world(plan: &CastlePlan, plot: &Plot) -> (World, Vec<usize>) {
     }
     for b in &plan.buildings {
         if let Some(s) = ids[b.segment] {
-            w.add_body(s, Fx::HALF, tune::royal_radius());
+            w.add_body(s, Fx::HALF, crate::play::tune::BUILDING_RADIUS);
         }
     }
     (w, royals)

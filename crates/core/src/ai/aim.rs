@@ -168,12 +168,21 @@ impl Bounds {
     }
 }
 
-fn live_targets(world: &World, targets: &[Target]) -> Vec<(Vec2, Fx)> {
+/// A live target: its body's foot circle center, radius and upright.
+type Aim = (Vec2, Fx, Fx);
+
+/// How far a ball's edge is from a target's (below zero: overlapping).
+fn edge_gap(b: &Ball, &(q, rad, tall): &Aim) -> Fx {
+    let near = Vec2::new(q.x, b.pos.y.clamp_to(q.y, q.y + tall));
+    (b.pos - near).len() - rad - b.radius
+}
+
+fn live_targets(world: &World, targets: &[Target]) -> Vec<Aim> {
     targets
         .iter()
         .filter_map(|t| world.bodies.get(t.body))
         .filter(|b| b.alive)
-        .map(|b| (b.pos, b.radius))
+        .map(|b| (b.pos, b.radius, b.tall))
         .collect()
 }
 
@@ -361,8 +370,8 @@ impl PlayOut {
             if !b.alive {
                 continue;
             }
-            for (q, rad) in &aims {
-                let d = ((b.pos - *q).len() - *rad - b.radius).raw().max(0);
+            for a in &aims {
+                let d = edge_gap(&b, a).raw().max(0);
                 r.out.closest = r.out.closest.min(d);
             }
         }
@@ -371,7 +380,7 @@ impl PlayOut {
                 let seg = &r.w.segments[segment];
                 let mid = Vec2::lerp(r.w.nodes[seg.a].pos, r.w.nodes[seg.b].pos, Fx::HALF);
                 let near = Fx::from_int(tune::NEAR_UNITS);
-                if aims.iter().any(|(q, _)| (mid - *q).len() <= near) {
+                if aims.iter().any(|(q, _, _)| (mid - *q).len() <= near) {
                     r.out.near_breaks += 1;
                 }
             }
@@ -432,7 +441,7 @@ pub struct Search {
     avoid: Vec<Plan>,
     seed: u64,
     a: AimTune,
-    aims: Vec<(Vec2, Fx)>,
+    aims: Vec<Aim>,
     /// Effects are tried only while the shot is between these x.
     lo: Fx,
     hi: Fx,
@@ -478,8 +487,8 @@ impl Search {
     ) -> Search {
         let aims = live_targets(world, targets);
         let reach = Fx::from_int(tune::TRIGGER_REACH_UNITS);
-        let lo = aims.iter().map(|(p, _)| p.x).min().unwrap_or(Fx::ZERO) - reach;
-        let hi = aims.iter().map(|(p, _)| p.x).max().unwrap_or(Fx::ZERO) + reach;
+        let lo = aims.iter().map(|(p, _, _)| p.x).min().unwrap_or(Fx::ZERO) - reach;
+        let hi = aims.iter().map(|(p, _, _)| p.x).max().unwrap_or(Fx::ZERO) + reach;
         Search {
             s,
             targets: targets.to_vec(),
@@ -531,7 +540,7 @@ impl Search {
         self.aims
             .iter()
             // below zero: overlapping, more central the lower
-            .map(|(p, r)| ((b.pos - *p).len() - *r - b.radius).raw())
+            .map(|a| edge_gap(b, a).raw())
             .min()
             .unwrap_or(i64::MAX)
     }

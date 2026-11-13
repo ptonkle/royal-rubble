@@ -96,6 +96,15 @@ pub const METAL_LEVEL: u8 = 7;
 /// World units between two columns of a castle, and one floor's height.
 pub const BAY_UNITS: i64 = 1;
 pub const FLOOR_UNITS: i64 = 1;
+/// Rows of a room: a castle lays a floor every this many rows (and on its
+/// top), so a room is one segment tall and a royal fits under the floor
+/// above (R1.2500). A row with no floor is braced both ways below it.
+pub const ROOM_ROWS: i64 = 2;
+/// A hut (R1.2500): posts this many quarter units tall over the higher
+/// ground, each held by a strut out to the ground this many quarters
+/// beyond it, so five wood beams make a stiff shelter a royal fits under.
+pub const HUT_TALL_QUARTERS: i64 = 7;
+pub const HUT_STRUT_QUARTERS: i64 = 3;
 
 /// Columns kept clear between the plot's front edge and the castle.
 pub const FRONT_SETBACK: usize = 4;
@@ -108,9 +117,9 @@ pub const MAX_BAYS: i64 = 20;
 /// least this share (num, den) of the best castle in any material.
 pub const STRONGER_SHARE: (u32, u32) = (1, 2);
 
-/// A royal's radius (the physics tests' body size).
+/// A royal's foot-circle radius, as the match stands it.
 pub fn royal_radius() -> crate::physics::Fx {
-    crate::physics::Fx::ratio(1, 4)
+    crate::play::tune::ROYAL_RADIUS
 }
 
 /// Floors a template may rise to, by level (index level - 1).
