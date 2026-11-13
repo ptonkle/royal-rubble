@@ -19,3 +19,6 @@ One row per run of ./scripts/quick-check.sh, newest last. A quick check skips re
 | 2026-11-13 01:20 | 7767851 | quick | fmt=0.2 clippy=0.1 core=25.5 build=5.5 wasm=0.1 notebook=0.0 | 31.4 | FAIL at notebook |
 | 2026-11-13 01:22 | 86b645e | quick | fmt=0.2 clippy=0.1 core=25.9 build=0.2 wasm=0.1 notebook=0.0 journal=0.0 browser=41.7 | 68.2 | pass |
 | 2026-11-13 01:48 | 1e850c9 | quick | fmt=0.2 clippy=2.5 core=3.8 | 6.5 | FAIL at core |
+| 2026-11-13 01:49 | 6c722f0 | quick | fmt=0.2 clippy=0.8 core=4.1 | 5.1 | FAIL at core |
+| 2026-11-13 01:50 | 6c722f0+ | quick | fmt=0.2 clippy=0.7 core=4.1 build=6.1 wasm=0.1 notebook=0.0 | 11.2 | FAIL at notebook |
+| 2026-11-13 01:51 | 6c722f0+ | quick | fmt=0.2 clippy=0.1 core=4.1 build=0.2 wasm=0.1 notebook=0.0 journal=0.0 browser=48.0 | 52.7 | pass |

@@ -440,11 +440,9 @@ fn bot_rounds(seed: u64) -> Vec<(u32, usize, usize, usize)> {
 
 #[test]
 fn ai_bot_castle_grows_every_round_and_stands() {
-    let all: Vec<_> = (1u64..=6).map(|s| (s, bot_rounds(s))).collect();
-    for (seed, seen) in &all {
-        eprintln!("seed {seed}: {seen:?}");
-    }
-    for (seed, seen) in all {
+    // (round, segments, covered, placed) per seed are in the failure message
+    for seed in 1u64..=6 {
+        let seen = bot_rounds(seed);
         assert!(seen.len() >= 8, "seed {seed}: {seen:?}");
         // a castle from round 1, never smaller, and much bigger by round 8
         assert!(seen[0].1 >= 4, "seed {seed}: {seen:?}");
