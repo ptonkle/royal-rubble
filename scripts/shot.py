@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Screenshots of the built game at 1920x1080: the menu and a hosted lobby.
+"""Screenshots of the built game at 1920x1080: the menu, settings, What's New
+and a hosted lobby.
 
     BUILDER_PYTHON=... $BUILDER_PYTHON scripts/shot.py [OUT_DIR]   (default notes/shots)
 
@@ -70,6 +71,15 @@ def main():
         page.goto(url)
         page.wait_for_selector("body[data-ready='true']", state="attached")
         shot("shell-menu")
+        page.click(by_id("menu.settings"))
+        page.wait_for_selector("body[data-screen='settings']", state="attached")
+        shot("shell-settings")
+        page.click(by_id("menu.back"))
+        page.click("#version")
+        page.wait_for_selector("body[data-screen='notes']", state="attached")
+        shot("shell-notes")
+        page.click(by_id("menu.back"))
+        page.wait_for_selector("body[data-screen='title']", state="attached")
         page.click(by_id("menu.host"))
         page.wait_for_selector("body[data-screen='lobby']", state="attached")
         page.fill(by_id("lobby.players"), "5")

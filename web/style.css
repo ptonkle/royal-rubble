@@ -14,12 +14,26 @@ body {
   overflow-x: hidden;
 }
 
+/* the look's border band along the top and bottom of the window */
+body::before, body::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: var(--strip-height);
+  background: var(--strip-image) repeat-x left center / auto 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+body::before { top: 0; }
+body::after { bottom: 0; transform: scaleX(-1); }
+
 #menus {
   min-height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem 16px;
+  padding: calc(var(--strip-height) + 1.5rem) 16px;
 }
 
 .panels {
@@ -35,18 +49,20 @@ body {
   width: min(100%, 26rem);
   padding: var(--panel-pad);
   background: var(--panel-bg);
-  border: 1px solid var(--panel-edge);
+  border: var(--panel-edge-width) solid var(--panel-edge);
   border-radius: var(--panel-radius);
   box-shadow: var(--panel-shadow);
+  outline: var(--panel-stitch-width) dashed var(--panel-stitch);
+  outline-offset: var(--panel-stitch-inset);
 }
 
 .panel.title { width: min(100%, 30rem); text-align: center; }
 .panel.notes { width: min(100%, 36rem); max-height: calc(100vh - 6rem); overflow-y: auto; }
 .panel.seats { width: min(100%, 32rem); }
 
-h1, h2 { margin: 0 0 1rem; font-weight: 400; font-family: var(--font-title); }
-h1 { font-size: var(--title-size); line-height: 1.1; margin-bottom: 1.5rem; }
-h2 { font-size: var(--heading-size); padding-bottom: 0.5rem; border-bottom: 1px solid var(--panel-edge); }
+h1, h2 { margin: 0 0 1rem; font-family: var(--font-title); text-transform: var(--heading-case); }
+h1 { font-size: var(--title-size); font-weight: var(--title-weight); letter-spacing: var(--title-spacing); color: var(--title-ink); line-height: 1.1; margin-bottom: 1.5rem; }
+h2 { font-size: var(--heading-size); font-weight: var(--heading-weight); letter-spacing: var(--heading-spacing); color: var(--heading-ink); padding-bottom: 0.5rem; border-bottom: 1px dashed var(--rule); }
 .sub { margin: 0 0 1rem; color: var(--page-ink-dim); }
 
 /* ---- buttons ---- */
@@ -56,20 +72,31 @@ h2 { font-size: var(--heading-size); padding-bottom: 0.5rem; border-bottom: 1px 
   width: 100%;
   margin: 0.5rem 0;
   padding: 0.7rem 1rem;
-  font: 600 1rem/1.2 var(--font-body);
+  font: var(--button-weight) var(--button-size)/1.2 var(--font-body);
+  letter-spacing: var(--button-spacing);
   color: var(--button-ink);
   background: var(--button-bg);
-  border: 1px solid var(--button-edge);
+  border: var(--button-edge-width) solid var(--button-edge);
   border-radius: var(--button-radius);
   cursor: pointer;
+  position: relative;
 }
+/* the stem stitch's lighter twist, just inside the edge */
+.button::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border: 1px dashed var(--button-stitch);
+  pointer-events: none;
+}
+.button.quiet::after { border-color: var(--button-quiet-stitch); }
 .button.quiet {
   color: var(--button-quiet-ink);
   background: var(--button-quiet-bg);
   border-color: var(--button-quiet-edge);
   font-weight: 400;
 }
-.button:hover:not(:disabled) { filter: brightness(1.08); }
+.button:hover:not(:disabled) { filter: var(--button-hover); }
 .button:disabled { opacity: 0.45; cursor: not-allowed; }
 .button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--focus);
@@ -118,6 +145,7 @@ h2 { font-size: var(--heading-size); padding-bottom: 0.5rem; border-bottom: 1px 
   margin: 0.4rem 0;
   padding: 0.5rem 0.75rem;
   background: var(--seat-bg);
+  border: 1px solid var(--seat-edge);
   border-radius: var(--button-radius);
 }
 .seat[data-me="on"] { background: var(--seat-me); }
@@ -132,7 +160,7 @@ h2 { font-size: var(--heading-size); padding-bottom: 0.5rem; border-bottom: 1px 
 #message {
   position: fixed;
   left: 50%;
-  bottom: 1rem;
+  bottom: calc(var(--strip-height) + 0.5rem);
   transform: translateX(-50%);
   margin: 0;
   max-width: calc(100% - 32px);
@@ -144,7 +172,8 @@ h2 { font-size: var(--heading-size); padding-bottom: 0.5rem; border-bottom: 1px 
 #version {
   position: fixed;
   right: 1rem;
-  bottom: 1rem;
+  bottom: calc(var(--strip-height) + 0.5rem);
+  z-index: 2;
   color: var(--page-ink-dim);
   background: none;
   border: 0;
@@ -153,3 +182,6 @@ h2 { font-size: var(--heading-size); padding-bottom: 0.5rem; border-bottom: 1px 
 }
 #version:disabled { cursor: default; }
 #version:hover:not(:disabled) { color: var(--page-ink); text-decoration: underline; }
+
+/* the playfield draws its own frame */
+body[data-screen="play"]::before, body[data-screen="play"]::after { display: none; }
