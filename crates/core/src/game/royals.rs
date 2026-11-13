@@ -174,10 +174,11 @@ mod tests {
     #[test]
     fn spacing_needs_four_segment_lengths() {
         let a = Spot { x: 0, y: 0 };
-        assert!(!spaced(Spot { x: 15, y: 0 }, &[a]));
-        assert!(spaced(Spot { x: 16, y: 0 }, &[a]));
-        assert!(!spaced(Spot { x: 11, y: 11 }, &[a]));
-        assert!(spaced(Spot { x: 12, y: 12 }, &[a]));
+        // four segment lengths of 2 cells each (R1.700): 8 cells
+        assert!(!spaced(Spot { x: 7, y: 0 }, &[a]));
+        assert!(spaced(Spot { x: 8, y: 0 }, &[a]));
+        assert!(!spaced(Spot { x: 5, y: 5 }, &[a]));
+        assert!(spaced(Spot { x: 6, y: 6 }, &[a]));
     }
 
     #[test]

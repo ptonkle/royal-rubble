@@ -152,10 +152,10 @@ impl Player {
     }
 
     pub fn plot(&self) -> Plot {
-        let row = economy::level_row(self.purse.level);
+        let level = self.purse.level;
         Plot {
-            width: row.plot_width,
-            height: row.plot_height,
+            width: self.terrain.buildable(level).len() as i32,
+            height: terrain::Plot::build_height(level) / terrain::CELL,
         }
     }
 
