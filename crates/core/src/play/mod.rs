@@ -376,7 +376,7 @@ impl Play {
             let permille = if broke {
                 1000
             } else {
-                (s * 1000 >> 16).min(1000) as u32
+                ((s * 1000) >> 16).min(1000) as u32
             };
             match out.iter_mut().find(|(k, _)| k == id) {
                 Some(e) => e.1 = e.1.max(permille),
