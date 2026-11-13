@@ -427,18 +427,68 @@ fn fire_spreads_through_touching_wood_but_not_stone() {
     assert!(w.segments[lit].hp < TUNE.wood.hp);
 }
 
-#[test]
-fn air_hover_hangs_still_then_falls() {
-    let (mut w, p) = flying();
-    let at = w.projectiles[p].pos;
-    w.air_effect(p, AirEffect::Hover);
-    for _ in 0..TUNE.hover_ticks {
-        w.step();
+/// A light shot flying level into a braced stone tower at x = 2; returns
+/// its sideways speed on the first tick it is no longer heading right, and
+/// whether Bounce is still armed then.
+fn into_stone_wall(armed: bool) -> (Fx, bool) {
+    let mut w = flat_world();
+    tower_of(&mut w, 5, Material::Stone);
+    w.build();
+    let p = w.fire(
+        shot(Vec2::ints(0, 3), Vec2::new(Fx::HALF, Fx::ZERO)),
+        Fx::ratio(1, 4),
+        Fx::ratio(1, 10),
+    );
+    if armed {
+        w.air_effect(p, AirEffect::Bounce);
     }
-    assert_eq!(w.projectiles[p].pos, at);
-    w.step();
-    // falls from rest: straight down, one tick of gravity
-    assert_eq!(w.projectiles[p].pos, Vec2::new(at.x, at.y - TUNE.gravity));
+    for _ in 0..20 {
+        w.step();
+        let b = w.projectiles[p];
+        if b.vel.x <= Fx::ZERO {
+            return (b.vel.x, b.bounce);
+        }
+    }
+    panic!("the shot never reached the wall");
+}
+
+#[test]
+fn air_bounce_skips_off_a_wall_keeping_most_of_its_speed() {
+    // came in at 1/2 a tick: Bounce keeps 4/5 of it, about 2/5 back the
+    // other way; a plain hit keeps about 1/4 of it, 1/8 back
+    let (armed, _) = into_stone_wall(true);
+    let (plain, _) = into_stone_wall(false);
+    assert!(armed < -Fx::ratio(3, 10), "armed {armed:?}");
+    assert!(plain > -Fx::ratio(1, 5), "plain {plain:?}");
+}
+
+#[test]
+fn air_bounce_is_spent_after_one_contact() {
+    let (_, still_armed) = into_stone_wall(true);
+    assert!(!still_armed);
+    // the ground then takes it as a plain landing: speed lost, not kept
+    let mut w = flat_world();
+    let p = w.fire(
+        shot(Vec2::ints(5, 1), Vec2::new(Fx::ZERO, -Fx::HALF)),
+        Fx::ratio(1, 4),
+        Fx::ONE,
+    );
+    w.air_effect(p, AirEffect::Bounce);
+    // the upward speed at the start of each rebound off the ground
+    let mut rebounds = Vec::new();
+    let mut rising = false;
+    for _ in 0..400 {
+        w.step();
+        let vy = w.projectiles[p].vel.y;
+        if vy > Fx::ZERO && !rising {
+            rebounds.push(vy);
+        }
+        rising = vy > Fx::ZERO;
+    }
+    assert!(rebounds.len() >= 2, "{rebounds:?}");
+    // first off the ground: about 4/5 of 1/2; second: about 1/4 of that
+    assert!(rebounds[0] > Fx::ratio(3, 10), "{rebounds:?}");
+    assert!(rebounds[1] < Fx::ratio(3, 20), "{rebounds:?}");
 }
 
 #[test]

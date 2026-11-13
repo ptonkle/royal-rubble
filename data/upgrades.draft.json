@@ -179,17 +179,16 @@
       }
     },
     {
-      "id": "kestrel",
-      "name": "Kestrel",
+      "id": "skipping_stone",
+      "name": "Skipping Stone",
       "tier": "silver",
       "category": "Tricks",
-      "text": "Trick: hang still for 1 second. 2 uses per round",
+      "text": "Trick: the next hit bounces off. 2 uses per round",
       "first_playable": false,
       "effect": {
         "kind": "air_effect",
-        "effect": "hover",
-        "uses": 2,
-        "ticks": 60
+        "effect": "bounce",
+        "uses": 2
       }
     },
     {

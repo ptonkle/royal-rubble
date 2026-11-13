@@ -93,7 +93,7 @@
   "ammo.meteor": "Meteor",
   "air.dive": "Dive",
   "air.boost": "Boost",
-  "air.hover": "Hover",
+  "air.bounce": "Bounce",
   "phase.upgrade": "Upgrade",
   "phase.build": "Build",
   "phase.siege": "Siege",
@@ -161,7 +161,7 @@
   "tip.air.split": "Break into three",
   "tip.air.dive": "Dive straight down",
   "tip.air.boost": "Speed up",
-  "tip.air.hover": "Hang still",
+  "tip.air.bounce": "Bounce off",
   "pause.heading": "Paused",
   "pause.resume": "Resume",
   "pause.leave": "Leave match"

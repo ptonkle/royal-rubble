@@ -110,7 +110,8 @@ fn apply_effect(balls: &mut Vec<Ball>, effect: AirEffect) {
             AirEffect::Phase => b.phase_for(TUNE.phase_ticks),
             AirEffect::Dive => b.dive(),
             AirEffect::Boost => b.boost(TUNE.boost_speed),
-            AirEffect::Hover => b.hover_for(TUNE.hover_ticks),
+            // armed for the real world's contacts; free flight ignores it
+            AirEffect::Bounce => b.arm_bounce(),
             AirEffect::Split => {
                 out.extend(b.split(TUNE.split_spread));
                 continue;

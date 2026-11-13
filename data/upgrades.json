@@ -48,9 +48,9 @@
       "name": "Spur",
       "text": "Trick: +50% speed. 2 uses per round"
     },
-    "kestrel": {
-      "name": "Kestrel",
-      "text": "Trick: hang still for 1 second. 2 uses per round"
+    "skipping_stone": {
+      "name": "Skipping Stone",
+      "text": "Trick: the next hit bounces off. 2 uses per round"
     },
     "ghost_stone": {
       "name": "Ghost Stone",

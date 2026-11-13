@@ -241,6 +241,10 @@ A building that gives you an extra shot next round if it survives the siege.
 
 A trick: the shot speeds up along its path.
 
+### Bounce
+
+A trick: the shot's next hit bounces it off hard instead of stopping it. One hit, then it flies as normal.
+
 ### Carpenter
 
 A building that gives you wood each round it survives.
@@ -260,10 +264,6 @@ An exploding shot, on the ammo bar.
 ### Gold
 
 What you spend on segments, buildings, XP and shots. Also the middle tier of upgrade cards.
-
-### Hover
-
-A trick: the shot hangs still for a moment.
 
 ### Level
 

@@ -763,11 +763,18 @@
     "test": "sandbox_siege_camera_aims_at_the_trebuchet_then_settles_on_the_castle"
   },
   {
-    "name": "wire: hover hangs still",
+    "name": "bounce rebound keeps the plain restitution",
     "file": "crates/core/src/physics/balls.rs",
-    "find": "AirEffect::Hover => ball.hover_for(TUNE.hover_ticks),",
-    "replace": "AirEffect::Hover => ball.drop_down(),",
-    "test": "air_hover_hangs_still_then_falls"
+    "find": "self.vel -= n * (vn * (Fx::ONE + TUNE.bounce_restitution));",
+    "replace": "self.vel -= n * (vn * (Fx::ONE + TUNE.restitution));",
+    "test": "air_bounce_skips_off_a_wall_keeping_most_of_its_speed"
+  },
+  {
+    "name": "bounce never spent",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "        }\n        self.bounce = false;\n    }",
+    "replace": "        }\n    }",
+    "test": "air_bounce_is_spent_after_one_contact"
   },
   {
     "name": "trebuchet a late release throws into the ground",

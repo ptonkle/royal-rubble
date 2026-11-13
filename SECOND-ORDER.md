@@ -270,6 +270,12 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R1.3205 | divergence | "Don't let them start another shot until the camera has gone back to the trebuchet" | `Arena::camera_home`: no flight, not resting on the castle, and the eye within a unit and a sixteenth of the zoom of the aim view; Space before then is ignored (no message, no new string) | `app/arena.rs` `space` | `arena_the_next_swing_waits_for_the_view_to_come_back_to_the_trebuchet` | done |
 | R1.3100 | finding | The late match ended right after round 8 | It did not. A core run of the same match (8 seats, the human only picks card 0 and readies, 7 Normal bots, the real bot castles and shot planner) runs to round 16 and ends with one player standing (seed 4: health 78-88 at round 8 as on screen, first knockouts in round 14, bot 7 wins at 31). `play_late.py` shoots only rounds 5-8 (`ROUNDS = range(5, 9)`) and then plays on unseen until Results, so the results shot looked like it followed round 8. The human placed a royal in the open each round, so going out first fits. The health list was current; nothing in the core or page changed | `game/flow.rs` tests `eight_seats_play_on_while_two_players_have_health`, `eight_seats_end_when_one_player_is_left` | | done |
 | R1.3101 | worklist | The late script says which round Results came in | `play_late.py` could print the round reached (or shoot a frame each later round) so a results shot is not read as following round 8. Left to the agent editing `scripts/play_*.py` | `scripts/play_late.py` | | open |
+| R1.3900 | divergence | Hover stays as the hover trick | The person found Hover useless and chose Bounce: the shot's next contact with a beam, the ground or a body reflects its velocity (relative to the surface) about the contact normal, keeping 4/5 of its speed into the surface and all of it along the surface, then Bounce is spent | `AirEffect::Bounce` and `Ball::bounce` replace Hover; `hover_ticks`, its strings, glossary entry and AI use are gone | `physics/balls.rs` `Ball::bounce_off`, `TUNE.bounce_restitution`; tests `air_bounce_*` in `physics/tests.rs` | done |
+| R1.3901 | finding | A Bounce hit might do more damage | On a beam the damage and the push on the beam come from the plain restitution impulse; only the shot's own rebound uses Bounce's restitution. The shot rebounds even when the hit breaks the beam. A body is still killed on touch and the shot rebounds off its upright | Rebound computed from the incoming velocity after the plain impulse | `physics/balls.rs` `collide_beams`, `collide_bodies` | done |
+| R1.3902 | finding | The ground has a normal to bounce off | Ground contact uses a flat normal, like the plain ground bounce, with no ground friction | If the ball-slope fix lands a terrain normal, Bounce should use it too | `physics/balls.rs` `step_ball` | open |
+| R1.3903 | worklist | Kestrel still fits | A hovering bird no longer fits the card. Renamed `skipping_stone`, "Skipping Stone", text "Trick: the next hit bounces off. 2 uses per round". Still silver, 2 uses, dealable. The person reads the name and text | `data/upgrades.json`, `data/upgrades.draft.json`, `game/upgrades.rs` | | person |
+| R1.3904 | finding | Bots need a costlier search for Bounce | `ai/aim.rs` arms Bounce like any other trick. Its quick free-flight scan ignores contacts, so a Bounce plan scores as a plain shot there and only the real-world verify sees the rebound; bots rarely prefer it | Left as is; modeling a rebound in the quick scan would cost more per tick | `ai/aim.rs` `apply_effect` | done |
+| R1.3905 | finding | The new tests need a narrow tag | They sit under `lib:physics::tests::`, which balls.rs already maps (to all) | No new tag | `tests/tags.toml` | done |
 
 | R1.3700 | divergence | 0.2.8: plot front 112-148 columns out, a 1.8 s swing, a release window on the castle box of 8-11 ticks at level 1 | The person: "Trebuchet still just too hard to hit. Probably need to make the distance less overall. The difficulty of shooting the trebuchet should not be hitting the enemy castle at all, it should be hitting it in the weak spots." | Plot front 60-80 columns out (`terrain::tune::DIST`), front rise 3-9 cells, open-country hills and dips about half as big. The arm turns at half speed (152 brads a tick, swing 220 ticks, about 3.7 s) with `treb_speed_pct` 377, and level power 100-122 percent (was 100-115), so the best plain throw lands 109 percent of the farthest level-1 plot back and 110 percent at level 9. Castle-box window: level 1 28-32 ticks (was 8-11), level 9 47-54 (was 16-22); MEASUREMENTS.md. A slower swing is the main lever; if 3.7 s feels sluggish, 2/3 speed gives about 2.4 times instead of 3 | `crates/core/src/physics/tune.rs`, `crates/core/src/game/tune.rs` LEVELS, test `trebuchet_level_one_castle_box_window_is_at_least_24_ticks` | open |
 | R1.3702 | divergence | Shot radius 1/3 | The person asked for a bigger projectile, about 1.5 times | Every ammo radius is 1.5 times: normal 1/2, heavy 3/4, spread 1/4, meteor 1. Damage to a beam is the impulse (mass times closing speed), so the radius does not change it per hit; it widens the band a shot touches and makes a direct royal hit easier. The shorter range lowers launch speed, so beam damage per hit falls about 20 percent at level 1 and 15 percent at level 9 (speed scales by 152x377 / 305x234 = 0.80, times 122/115 at level 9). Mass unchanged; raise `NORMAL.mass` if castles feel too sturdy | `crates/core/src/physics/ammo.rs` | open |
@@ -348,12 +354,12 @@ Each reader-visible string the agent wrote, with its key, for the person to read
 | tool.priced / stocked / royals | {name} {n}; {name} {n} free; Royals {n} |
 | tool.carpenter / quarry / armory / mine | Carpenter, Quarry, Armory, Mine |
 | ammo.exploding / chain / meteor | Exploding, Chain, Meteor |
-| air.dive / boost / hover | Dive, Boost, Hover |
+| air.dive / boost / bounce | Dive, Boost, Bounce |
 | tier.silver / gold / prismatic | Silver, Gold, Prismatic |
 | results.heading / place / again / menu | Results; {n}. {name}; Play again; Menu |
 | results.lobby | Back to lobby |
 | online.desync | Out of sync |
-| GLOSSARY.md | Armory, Boost, Carpenter, Chain, Dive, Exploding, Gold, Hover, Level, Meteor, Mine, Prismatic, Quarry, Ready, Reroll, Results, Round, Scout, Silver, Target, XP |
+| GLOSSARY.md | Armory, Boost, Carpenter, Chain, Dive, Exploding, Bounce, Gold, Level, Meteor, Mine, Prismatic, Quarry, Ready, Reroll, Results, Round, Scout, Silver, Target, XP |
 | hud.buy_xp | +{x} XP · {n} gold |
 | hud.buy_shot | Extra shot · {n} gold |
 | hud.reroll_plain | Reroll |
@@ -387,7 +393,7 @@ Each reader-visible string the agent wrote, with its key, for the person to read
 | tip.air.split | Break into three |
 | tip.air.dive | Dive straight down |
 | tip.air.boost | Speed up |
-| tip.air.hover | Hang still |
+| tip.air.bounce | Bounce off |
 | lobby.flat | Flat map |
 | pause.heading / resume / leave | Paused; Resume; Leave match |
 | data/bot-names.json | 40 bot names (R1.3502) |
