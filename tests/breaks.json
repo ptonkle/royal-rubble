@@ -1036,11 +1036,25 @@
     "test": "arena_the_first_siege_tick_shows_the_trebuchet_and_the_ground_under_it"
   },
   {
-    "name": "arena a high shot widens the view",
+    "name": "r4200 a high shot keeps the aim zoom",
     "file": "crates/core/src/app/arena.rs",
-    "find": "            .min(Fx::from_int(CAM_FLY_TALL_W))",
-    "replace": "            .min(Fx::from_int(CAM_AIM_MIN_W))",
-    "test": "arena_a_high_shot_widens_the_view_and_keeps_the_ground_in_it"
+    "find": "                width: self.aim_width(f, self.size.0, self.size.1),",
+    "replace": "                width: self.aim_width(f, self.size.0, self.size.1) * 2,",
+    "test": "arena_a_high_shot_is_followed_at_the_aim_zoom"
+  },
+  {
+    "name": "r4200 a shot thrown back stays in view",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "            let back = home.min(b.pos.x - m);",
+    "replace": "            let back = home;",
+    "test": "arena_a_high_shot_is_followed_at_the_aim_zoom"
+  },
+  {
+    "name": "r4200 aim view reaches the castle front",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "        let front = (cl + m * 3 - home).min(Fx::from_int(CAM_AIM_MAX_W));",
+    "replace": "        let front = Fx::from_int(CAM_AIM_MIN_W);",
+    "test": "arena_the_aim_view_shows_the_trebuchet_and_the_castle_front_up_close"
   },
   {
     "name": "the cloth offset follows the camera",
