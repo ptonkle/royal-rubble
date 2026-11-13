@@ -6,6 +6,7 @@
 use super::economy;
 use super::flow::{Difficulty, Player};
 use super::ledger::{self, BuildingKind, Material, Piece};
+use super::sites;
 use super::tune;
 use super::upgrades::{Effect, Offer, UPGRADES};
 
@@ -13,6 +14,8 @@ use super::upgrades::{Effect, Offer, UPGRADES};
 pub enum BotAction {
     BuyXp,
     Place(Piece),
+    /// Place a building at a terrain column.
+    PlaceAt(Piece, usize),
     BuyShot,
     Reroll,
     Pick(usize),
@@ -109,7 +112,9 @@ impl BotPolicy for SimpleBot {
             let cost = ledger::building_row(kind).cost;
             if level >= ledger::unlock_level(piece) && !me.ledger.has_building(kind) && gold >= reserve + cost
             {
-                out.push(BotAction::Place(piece));
+                let taken: Vec<usize> = me.ledger.entries.iter().filter_map(|e| e.col).collect();
+                let col = sites::best_column(&me.terrain, level, kind, &taken);
+                out.push(BotAction::PlaceAt(piece, col));
                 gold -= cost;
             }
         }

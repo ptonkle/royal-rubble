@@ -14,21 +14,47 @@ Where slush comes out. Each line has up to {line.spouts} spouts.
 Not: tap, dispenser, nozzle
 -->
 
+### Armory ruin
+
+A spot on the map. A building standing on it gives you an extra shot each round it survives.
+
+### Forecast
+
+Next round's wind, seen early by whoever holds the watchtower hill.
+
 ### Ghost
 
 A copy of another player's castle, attacked when the player count is odd. Royals killed in a ghost cost its owner no health.
 
 Not: clone, mirror
 
+### Gold vein
+
+A spot on the map. A building standing on it pays you gold each round it survives.
+
+### Holy well
+
+A spot on the map. A building standing on it heals you a little each round it survives.
+
 ### Interest
 
 Extra gold each round for gold you have banked.
+
+### Old ruins
+
+A spot on the map with stone walls already standing. Everyone starts with them free; they sell for nothing.
 
 ### Royal
 
 A noble you place in your castle. Each royal killed in a siege costs you health.
 
 Not: VIP, unit
+
+### Spot
+
+A place on the map worth defending, such as a deposit, forest or holy well. A building counts as on it when it stands inside both the spot and your plot.
+
+Not: tile, node
 
 ### Stockpile
 
@@ -41,3 +67,7 @@ Not: inventory, storage
 A card you pick in the upgrade phase. It lasts for the rest of the match.
 
 Not: augment, perk
+
+### Watchtower hill
+
+A spot on the map. While a building on it survives, you see the forecast.
