@@ -1,5 +1,5 @@
 {
- "_about": "The hand-painted look's drawing numbers (R1.3600), read by web/field-draw.js: multiples of what the core gives (a beam's width, a shot's radius) or screen pixels. The baked pictures are in data/look/paint/, their sizes in data/paint-sprites.json.",
+ "_about": "The hand-painted look's drawing numbers (R1.3600), read by web/field-draw.js: multiples of what the core gives (a beam's width, a shot's radius) or screen pixels. The baked pictures are in data/look/paint/, their sizes in data/paint-sprites.json. tile_k and vein_k are the texture scales at tile_zoom, the view's pixels per world unit in 256ths (R1.4201); the textures scale with the view from there.",
  "beam_k": 1.5,
  "beam_end": 0.14,
  "ball_k": 1.15,
@@ -7,6 +7,7 @@
  "ground_bands": [["grass", 0, 16], ["dirt", 16, 58], ["rock", 58, 120]],
  "ground_fill": "deep",
  "tile_k": 0.6,
+ "tile_zoom": 11264,
  "grass_edge": "#3f6a22",
  "grass_lit": "#8fbf4e",
  "grass_edge_w": 7,

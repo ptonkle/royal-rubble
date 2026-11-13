@@ -1028,6 +1028,7 @@ impl Sandbox {
             mode: if build { "build" } else { "siege" },
             size: [self.size.0, self.size.1],
             cloth: cloth_at(&cam),
+            zoom: cam.zoom(),
             ground,
             water,
             trees: tree_marks(&self.plot, &cam),

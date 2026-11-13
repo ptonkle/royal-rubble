@@ -200,7 +200,7 @@ function trace(g, pts) {
 // on a layer only to copy it once (R1.2902).
 function background(out, slot, f) {
   const [w, h] = f.size;
-  const key = JSON.stringify([w, h, f.cloth, f.trees, f.ground, f.water, f.zone, f.grid, edgeOf(f)]);
+  const key = JSON.stringify([w, h, f.cloth, f.zoom, f.trees, f.ground, f.water, f.zone, f.grid, edgeOf(f)]);
   let L = layers[slot];
   if (!L || L.c.width !== w || L.c.height !== h) {
     L = { c: document.createElement("canvas"), key: "", last: "" };
@@ -226,10 +226,13 @@ function background(out, slot, f) {
 }
 
 // A terrain tile's pattern, laid from the core's origin point so it moves
-// with the ground.
-function tiled(g, name, cx, cy) {
+// with the ground, and scaled with the view so it stays put on the ground
+// as the view zooms instead of sliding over it (R1.4201).
+function tiled(g, name, f) {
   const pat = pattern(g, "ground-" + name);
-  pat.setTransform(new DOMMatrix([P.tile_k, 0, 0, P.tile_k, cx, cy]));
+  const [cx, cy] = f.cloth;
+  const k = (P.tile_k * f.zoom) / P.tile_zoom;
+  pat.setTransform(new DOMMatrix([k, 0, 0, k, cx, cy]));
   return pat;
 }
 
@@ -241,7 +244,6 @@ function path(g, pts) {
 function paint(g, slot, f, w, h) {
   // the sky is laid to the screen, so it holds still while the view moves
   g.drawImage(images.sky, 0, 0, w, h);
-  const [cx, cy] = f.cloth;
   // scenery trees, their feet tucked under the ground's edge
   (f.trees || []).forEach((t) => {
     const name = "tree-" + t.look;
@@ -258,14 +260,14 @@ function paint(g, slot, f, w, h) {
     g.lineTo(first, h);
     g.closePath();
     g.clip();
-    g.fillStyle = tiled(g, P.ground_fill, cx, cy);
+    g.fillStyle = tiled(g, P.ground_fill, f);
     g.fillRect(0, 0, w, h);
     for (const [name, a, b] of P.ground_bands.slice().reverse()) {
       const top = pts.map(([x, y]) => [x, y + a]);
       const bot = pts.map(([x, y]) => [x, y + b]);
       path(g, top.concat(bot.slice().reverse()));
       g.closePath();
-      g.fillStyle = tiled(g, name, cx, cy);
+      g.fillStyle = tiled(g, name, f);
       g.fill();
       path(g, bot);
       g.strokeStyle = P.band_line;
@@ -283,7 +285,7 @@ function paint(g, slot, f, w, h) {
       g.closePath();
       g.clip();
       g.globalAlpha = P.water_alpha;
-      g.fillStyle = tiled(g, "water", cx, cy);
+      g.fillStyle = tiled(g, "water", f);
       g.fillRect(ax, ay, bx - ax, h - ay);
       g.globalAlpha = 1;
       path(g, [[ax, ay], [bx, ay]]);
@@ -480,7 +482,8 @@ function spots(g, f) {
       path(g, [[ax, ay + top], [bx, by + top], [bx - ins, by + deep], [ax + ins, ay + deep]]);
       g.closePath();
       const pat = pattern(g, "vein-" + vein);
-      pat.setTransform(new DOMMatrix([P.vein_k, 0, 0, P.vein_k, cx, cy]));
+      const vk = (P.vein_k * f.zoom) / P.tile_zoom;
+      pat.setTransform(new DOMMatrix([vk, 0, 0, vk, cx, cy]));
       g.fillStyle = pat;
       g.fill();
       g.strokeStyle = P.vein_edge;
