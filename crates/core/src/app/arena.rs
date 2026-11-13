@@ -1826,6 +1826,7 @@ impl Arena {
             disabled,
             tip: String::new(),
             icon: hud_icon::url(icon),
+            cost: String::new(),
         };
         let rules = &self.play.rules;
         let Some(me) = rules.player(self.me) else {
@@ -1914,25 +1915,30 @@ impl Arena {
                 }
                 bar.push(self.tool_bar(s));
                 let xp_cost = crate::game::tune::XP_BUY_COST;
-                bar.push(button(
+                let mut buy_xp = button(
                     "match.buy_xp",
                     s.fill(
                         "hud.buy_xp",
-                        &[
-                            ("x", crate::game::tune::XP_BUY_AMOUNT.to_string()),
-                            ("n", xp_cost.to_string()),
-                        ],
+                        &[("x", crate::game::tune::XP_BUY_AMOUNT.to_string())],
                     ),
                     "xp",
                     me.purse.xp_needed().is_none() || me.purse.gold < xp_cost,
-                ));
+                );
+                if let Item::Button { cost, .. } = &mut buy_xp {
+                    *cost = xp_cost.to_string();
+                }
+                bar.push(buy_xp);
                 let shot = me.mods.shot_price();
-                bar.push(button(
+                let mut buy_shot = button(
                     "match.buy_shot",
-                    s.fill("hud.buy_shot", &[("n", shot.to_string())]),
+                    s.get("hud.buy_shot"),
                     "buy_shot",
                     me.purse.gold < shot || self.phase() != Phase::Build,
-                ));
+                );
+                if let Item::Button { cost, .. } = &mut buy_shot {
+                    *cost = shot.to_string();
+                }
+                bar.push(buy_shot);
                 bar.push(button("match.test", s.get("sandbox.test"), "test", false));
                 bar.push(button("match.scout", s.get("hud.scout"), "scout", false));
                 bar.push(button("match.ready", ready_text, "ready", me.ready));
@@ -2212,6 +2218,7 @@ impl Arena {
                 disabled: offer.picked.is_some() || me.purse.gold < cost,
                 tip: s.get("tip.reroll"),
                 icon: hud_icon::url("reroll"),
+                cost: String::new(),
             });
         }
         Panel::new("cards", s.get("phase.upgrade"), items)
@@ -2245,6 +2252,7 @@ impl Arena {
                     Item::Button {
                         tip: String::new(),
                         icon: String::new(),
+                        cost: String::new(),
                         id: "play.lobby".into(),
                         text: s.get("results.lobby"),
                         quiet: false,
@@ -2254,6 +2262,7 @@ impl Arena {
                     Item::Button {
                         tip: String::new(),
                         icon: String::new(),
+                        cost: String::new(),
                         id: "match.again".into(),
                         text: s.get("results.again"),
                         quiet: false,
@@ -2263,6 +2272,7 @@ impl Arena {
                 Item::Button {
                     tip: String::new(),
                     icon: String::new(),
+                    cost: String::new(),
                     id: "play.leave".into(),
                     text: s.get("results.menu"),
                     quiet: true,

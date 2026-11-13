@@ -75,6 +75,11 @@ function button(item) {
     b.append(icon(item.icon, ""));
   }
   b.append(make("span", "button-text", item.text));
+  if (item.cost) {
+    const cost = make("span", "bar-cost");
+    cost.append(make("span", "coin"), make("span", "", item.cost));
+    b.append(cost);
+  }
   b.type = "button";
   b.id = item.id;
   b.disabled = item.disabled === true;
@@ -410,11 +415,12 @@ function patch(old, fresh) {
     return;
   }
   [...old.attributes].forEach((a) => {
-    if (!fresh.hasAttribute(a.name)) old.removeAttribute(a.name);
+    if (a.name !== "style" && !fresh.hasAttribute(a.name)) old.removeAttribute(a.name);
   });
   [...fresh.attributes].forEach((a) => {
-    if (old.getAttribute(a.name) !== a.value) old.setAttribute(a.name, a.value);
+    if (a.name !== "style" && old.getAttribute(a.name) !== a.value) old.setAttribute(a.name, a.value);
   });
+  patchStyle(old.style, fresh.style);
   patchChildren(old, fresh);
   // the live state, after the children (a select's value needs its options)
   if (old.tagName === "INPUT" || old.tagName === "SELECT" || old.tagName === "TEXTAREA") {
@@ -424,6 +430,18 @@ function patch(old, fresh) {
     if (old.checked !== fresh.checked) old.checked = fresh.checked;
   }
   if (old.disabled !== undefined && old.disabled !== fresh.disabled) old.disabled = fresh.disabled;
+}
+
+// Inline styles are copied through the CSSOM, property by property: the
+// CSP (style-src 'self') refuses a style attribute set as text.
+function patchStyle(old, fresh) {
+  [...old].forEach((name) => {
+    if (!fresh.getPropertyValue(name)) old.removeProperty(name);
+  });
+  [...fresh].forEach((name) => {
+    const value = fresh.getPropertyValue(name);
+    if (old.getPropertyValue(name) !== value) old.setProperty(name, value);
+  });
 }
 
 function patchChildren(old, fresh) {
