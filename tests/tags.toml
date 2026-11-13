@@ -29,6 +29,7 @@ page = "the app and its door: app.rs, api.rs, view.rs, icon.rs, the shim, web/"
 saves = "the save and the settings it keeps: save.rs, the storage fence"
 notes = "the version and What's New: patch_notes.rs, data/patch-notes.json"
 copy = "reader-visible words: GLOSSARY.md, TONE.md, data/strings.json, strings.rs, glossary.rs"
+match = "the match glue: play/ (build, siege, units) and its probe"
 
 # A hit tag on the left also hits the tags on the right, transitively.
 [implies]
@@ -60,6 +61,8 @@ tags = ["boundary"]
 "lib:strings" = ["copy"]
 "lib:rng" = ["foundation"]
 "lib:ticks" = ["foundation"]
+"lib:play" = ["match"]
+"test:play_probe" = ["match"]
 
 [[rule]]
 name = "the core and the shim"
@@ -146,3 +149,10 @@ name = "the sound tools"
 # they write data/sound*.json, which crates/core/tests/sound.rs reads
 files = ["tools/sound/**"]
 steps = ["core"]
+
+[[rule]]
+name = "tests of the match glue"
+# game/, physics/ and terrain/ stay on the wide core rule: play's tests read them
+files = ["crates/core/src/play/**", "crates/core/tests/play_probe.rs"]
+steps = ["core"]
+tags = ["match"]
