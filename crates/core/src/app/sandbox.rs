@@ -60,8 +60,7 @@ const MAX_CATCH_UP: i64 = 4;
 const TRAIL_EVERY: u32 = 2;
 /// Ticks a Test runs the castle for.
 const TEST_TICKS: u32 = 240;
-/// A royal's body radius.
-const ROYAL_RADIUS: Fx = Fx::ratio(1, 4);
+use crate::play::tune::{ROYAL_RADIUS, ROYAL_UPRIGHT};
 /// One segment length, for the royal spacing (wood's longest, as play/ has it).
 const SEGMENT_LENGTH: Fx = Fx::from_int(2);
 /// Breaks in one frame that sound as a collapse.
@@ -371,7 +370,8 @@ impl Sandbox {
         self.ranks.clear();
         for seat in &self.royals {
             if let Some(Some(s)) = index.get(seat.beam) {
-                w.add_body(*s, seat.u, ROYAL_RADIUS);
+                let b = w.add_body(*s, seat.u, ROYAL_RADIUS);
+                w.bodies[b].tall = ROYAL_UPRIGHT;
                 self.ranks.push(seat.rank);
             }
         }
@@ -836,11 +836,12 @@ impl Sandbox {
     }
 
     fn sell(&mut self, p: Vec2) {
-        if let Some(k) = self
-            .royals
-            .iter()
-            .position(|s| (self.seat_pos(s) - p).len() <= ROYAL_RADIUS)
-        {
+        if let Some(k) = self.royals.iter().position(|s| {
+            // the royal's capsule (R1.2504): its feet on the seat
+            let foot = self.seat_pos(s) + Vec2::new(Fx::ZERO, ROYAL_RADIUS);
+            let near = Vec2::new(foot.x, p.y.clamp_to(foot.y, foot.y + ROYAL_UPRIGHT));
+            (near - p).len() <= ROYAL_RADIUS
+        }) {
             self.royals.remove(k);
         } else if let Some((i, _)) = self.beam_near(p, false) {
             self.beams.remove(i);

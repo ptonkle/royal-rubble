@@ -100,11 +100,15 @@ pub const FLOOR_UNITS: i64 = 1;
 /// top), so a room is one segment tall and a royal fits under the floor
 /// above (R1.2500). A row with no floor is braced both ways below it.
 pub const ROOM_ROWS: i64 = 2;
-/// A hut (R1.2500): posts this many quarter units tall over the higher
-/// ground, each held by a strut out to the ground this many quarters
-/// beyond it, so five wood beams make a stiff shelter a royal fits under.
-pub const HUT_TALL_QUARTERS: i64 = 7;
+/// A hut (R1.2500): two posts down to the ground, a level roof between
+/// them and a strut from each post's top to the ground, out to this many
+/// quarter units beyond it where a beam reaches, so five wood beams make a
+/// stiff shelter a royal fits under.
 pub const HUT_STRUT_QUARTERS: i64 = 3;
+/// Head room a hut's or hall's roof leaves over the ground at each bay's
+/// middle, in eighths: the figure (3/2) and half a wood beam, rounded up
+/// to the grid (R1.2502).
+pub const HUT_ROOM_EIGHTHS: i64 = 13;
 
 /// Columns kept clear between the plot's front edge and the castle.
 pub const FRONT_SETBACK: usize = 4;

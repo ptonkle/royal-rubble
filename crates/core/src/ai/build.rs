@@ -621,7 +621,7 @@ fn shelters(plot: &Plot, span: crate::terrain::ColRange, segs: &[SegPlan]) -> Ve
 /// A floor passes over `at` at least a hut's height above it (R1.2500): a
 /// level segment strictly across its x, so the royal's figure fits under it.
 fn roofed(segs: &[SegPlan], at: Vec2) -> bool {
-    let room = Fx::ratio(tune::HUT_TALL_QUARTERS, 4);
+    let room = Fx::ratio(tune::HUT_ROOM_EIGHTHS, 8);
     segs.iter()
         .any(|s| s.a.y == s.b.y && s.a.x.min(s.b.x) < at.x && at.x < s.a.x.max(s.b.x) && s.a.y - at.y >= room)
 }
@@ -747,10 +747,19 @@ fn frame(
     let q = |n: i64| Fx::ratio(n, 4);
     let x = |i: i64| units::col_x(c) + Fx::from_int(tune::BAY_UNITS) * i;
     let ground = |x: Fx| Vec2::new(x, snap(terrain.height_at(x)));
-    let top = (0..=bays).map(|i| ground(x(i)).y).max()?;
-    let roof = top + q(tune::HUT_TALL_QUARTERS);
+    // level roof the head room over every bay's middle, on the grid; the
+    // posts reach down to the ground each side, of different lengths on a
+    // slope (R1.2502)
+    let need = (0..bays)
+        .map(|i| ground(x(i) + Fx::from_int(tune::BAY_UNITS) / 2).y)
+        .max()?
+        + Fx::ratio(tune::HUT_ROOM_EIGHTHS, 8);
+    let roof = if snap(need) < need {
+        snap(need) + q(1)
+    } else {
+        snap(need)
+    };
     let at = |i: i64| Vec2::new(x(i), roof);
-    let reach = q(tune::HUT_STRUT_QUARTERS);
     let mut segs = Vec::new();
     let mut roofs = Vec::new();
     for i in 0..=bays {
@@ -759,8 +768,24 @@ fn frame(
     for i in 0..bays {
         roofs.push(push_seg(&mut segs, at(i), at(i + 1), Material::Wood)?);
     }
-    push_seg(&mut segs, ground(x(0) - reach), at(0), Material::Wood)?;
-    push_seg(&mut segs, ground(x(bays) + reach), at(bays), Material::Wood)?;
+    // a strut from each end post's top to the ground: outward as far as a
+    // beam reaches, else inward under the roof
+    for (end, out) in [(0, -1i64), (bays, 1)] {
+        let reaches = (1..=tune::HUT_STRUT_QUARTERS)
+            .rev()
+            .map(|k| k * out)
+            .chain((1..=tune::HUT_STRUT_QUARTERS).map(|k| -k * out));
+        let mut ok = false;
+        for k in reaches {
+            if push_seg(&mut segs, ground(x(end) + q(k)), at(end), Material::Wood).is_some() {
+                ok = true;
+                break;
+            }
+        }
+        if !ok {
+            return None;
+        }
+    }
     Some((segs, roofs))
 }
 
