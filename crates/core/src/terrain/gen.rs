@@ -202,10 +202,17 @@ fn between_ground(
     smooth(&mut h, 3);
     smooth(&mut h, 2);
     clamp_slope_from(&mut h, pad_end, BETWEEN_STEP);
+    // capped, then blurred so a capped crest stays round, then capped again
     let launch_h = pad[launch_col];
+    let cap = |i: usize| arc_cap(launch_col, launch_h, plot_start, front, PAD_W + i);
+    for _ in 0..2 {
+        for (i, v) in h.iter_mut().enumerate() {
+            *v = (*v).min(cap(i)).max(4 * CELL);
+        }
+        smooth(&mut h, 2);
+    }
     for (i, v) in h.iter_mut().enumerate() {
-        let cap = arc_cap(launch_col, launch_h, plot_start, front, PAD_W + i);
-        *v = (*v).min(cap).max(4 * CELL);
+        *v = (*v).min(cap(i)).max(4 * CELL);
     }
     h
 }

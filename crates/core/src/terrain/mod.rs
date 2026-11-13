@@ -1,8 +1,9 @@
 //! Seeded terrain: one plot layout, in profile, that every player gets a copy
 //! of. From the left: the launch pad (flat-ish, where the trebuchet stands),
-//! open country with hills and dips the shot must clear, the gap (a moat, river or valley with water in it), then the castle plot,
-//! which is generated at its widest (level 9) and opened up by level from its
-//! front edge at the gap.
+//! open country with hills and dips the shot must clear, the gap (a moat,
+//! river or valley with water in it), then the castle plot, which is
+//! generated at its widest (level 9) and opened up by level from its front
+//! edge at the gap.
 //!
 //! Units: the ground is a list of columns, each [`COL_W`] wide; heights are in
 //! the same fixed-point units, [`CELL`] to one grid cell. No floats.
@@ -46,7 +47,7 @@ pub mod tune {
     /// Ground between the pad and the gap: a bump's height in cells (negative is a dip),
     /// its half-width in columns, and the steepest rise per column.
     pub const BETWEEN_HILL_H: (i32, i32) = (8, 20);
-    pub const BETWEEN_HILL_HALF_W: (i32, i32) = (10, 22);
+    pub const BETWEEN_HILL_HALF_W: (i32, i32) = (14, 24);
     pub const BETWEEN_DIP_H: (i32, i32) = (4, 10);
     pub const BETWEEN_STEP: i32 = CELL * 5 / 4;
     /// The between-ground never rises above the line from the launch column to the plot

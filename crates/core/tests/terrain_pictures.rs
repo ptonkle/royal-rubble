@@ -11,10 +11,11 @@
 
 use std::fs;
 use std::path::Path;
-use tool_core::terrain::{Plot, SpotKind, CELL};
+use tool_core::terrain::{GapKind, Plot, SpotKind, CELL};
 
-const PX_COL: i32 = 3;
-const PX_CELL: i32 = 3;
+/// Pixels per column and per cell, in the grid of twelve and in the large pictures.
+const PX: i32 = 3;
+const PX_LARGE: i32 = 7;
 const PANEL_W: i32 = 820;
 const PANEL_H: i32 = 270;
 const COLS: i32 = 2;
@@ -62,43 +63,43 @@ fn spot_color(k: SpotKind) -> [u8; 3] {
     }
 }
 
-fn draw(img: &mut Image, p: &Plot, ox: i32, oy: i32) {
-    let base = oy + PANEL_H - 24;
+fn draw(img: &mut Image, p: &Plot, (ox, oy): (i32, i32), (pw, ph): (i32, i32), px: i32) {
+    let base = oy + ph - 24;
     // the lowest ground sits a few cells above the panel's foot
     let floor = p.heights.iter().copied().min().unwrap_or(0) - 4 * CELL;
-    let y_of = |h: i32| base - (h - floor) * PX_CELL / CELL;
-    img.rect(ox, oy, ox + PANEL_W, oy + PANEL_H, [200, 225, 245]);
+    let y_of = |h: i32| base - (h - floor) * px / CELL;
+    img.rect(ox, oy, ox + pw, oy + ph, [200, 225, 245]);
     for (c, &h) in p.heights.iter().enumerate() {
-        let x = ox + 4 + c as i32 * PX_COL;
+        let x = ox + 4 + c as i32 * px;
         let c_us = c;
         if p.water.cols.contains(c_us) {
-            img.rect(x, y_of(p.water.level), x + PX_COL, y_of(h), [40, 90, 200]);
+            img.rect(x, y_of(p.water.level), x + px, y_of(h), [40, 90, 200]);
         }
-        img.rect(x, y_of(h), x + PX_COL, base, [120, 85, 50]);
+        img.rect(x, y_of(h), x + px, base, [120, 85, 50]);
     }
     // the arc cap over the open country, dotted
     for c in (p.between.start..p.between.end).step_by(2) {
-        let x = ox + 4 + c as i32 * PX_COL;
+        let x = ox + 4 + c as i32 * px;
         let y = y_of(p.arc_cap(c));
         img.rect(x, y, x + 2, y + 2, [240, 140, 40]);
     }
-    let lx = ox + 4 + p.launch_col as i32 * PX_COL;
+    let lx = ox + 4 + p.launch_col as i32 * px;
     let lh = y_of(p.heights[p.launch_col]);
     img.rect(lx, lh - 16, lx + 3, lh, [220, 30, 30]);
     for s in &p.spots {
         let top = s.cols.start..s.cols.end;
         let hi = top.map(|c| p.heights[c]).max().unwrap_or(0);
-        let x0 = ox + 4 + s.cols.start as i32 * PX_COL;
-        let x1 = ox + 4 + s.cols.end as i32 * PX_COL;
+        let x0 = ox + 4 + s.cols.start as i32 * px;
+        let x1 = ox + 4 + s.cols.end as i32 * px;
         img.rect(x0, y_of(hi) - 6, x1, y_of(hi) - 1, spot_color(s.kind));
         for seg in &s.segments {
-            let pt = |n: tool_core::terrain::Node| (ox + 4 + n.x * PX_COL / CELL, y_of(n.y));
+            let pt = |n: tool_core::terrain::Node| (ox + 4 + n.x * px / CELL, y_of(n.y));
             img.line(pt(seg.a), pt(seg.b), [90, 90, 90]);
         }
     }
     let one = p.buildable(1);
     let all = p.buildable(9);
-    let bx = |c: usize| ox + 4 + c as i32 * PX_COL;
+    let bx = |c: usize| ox + 4 + c as i32 * px;
     img.rect(bx(all.start), base + 6, bx(all.end), base + 14, [190, 190, 120]);
     img.rect(bx(one.start), base + 6, bx(one.end), base + 14, [90, 90, 40]);
 }
@@ -246,11 +247,41 @@ fn terrain_pictures_of_twelve_seeds() {
         draw(
             &mut img,
             &p,
-            (i % COLS) * (PANEL_W + gap),
-            (i / COLS) * (PANEL_H + gap),
+            ((i % COLS) * (PANEL_W + gap), (i / COLS) * (PANEL_H + gap)),
+            (PANEL_W, PANEL_H),
+            PX,
         );
     }
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../notes/terrain");
     fs::create_dir_all(&dir).expect("notes/terrain");
     fs::write(dir.join("seeds.png"), png(&img)).expect("write seeds.png");
+}
+
+#[test]
+#[ignore = "writes notes/terrain/large-*.png; run on purpose"]
+fn terrain_pictures_large_one_per_gap_kind() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../notes/terrain");
+    fs::create_dir_all(&dir).expect("notes/terrain");
+    for (kind, name) in [
+        (GapKind::Moat, "moat"),
+        (GapKind::River, "river"),
+        (GapKind::Valley, "valley"),
+    ] {
+        let p = (0..100u64)
+            .map(Plot::generate)
+            .find(|p| p.gap_kind == kind)
+            .expect("a seed with this gap");
+        let lo = p.heights.iter().copied().min().unwrap_or(0);
+        let cap = (p.between.start..p.between.end).map(|c| p.arc_cap(c)).max();
+        let hi = p.heights.iter().copied().max().unwrap_or(0).max(cap.unwrap_or(0));
+        let w = p.heights.len() as i32 * PX_LARGE + 8;
+        let h = (hi - lo) / CELL * PX_LARGE + 8 * PX_LARGE + 60;
+        let mut img = Image {
+            w,
+            h,
+            px: vec![[255, 255, 255]; (w * h) as usize],
+        };
+        draw(&mut img, &p, (0, 0), (w, h), PX_LARGE);
+        fs::write(dir.join(format!("large-{name}-seed-{}.png", p.seed)), png(&img)).expect("write");
+    }
 }
