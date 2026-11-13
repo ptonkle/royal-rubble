@@ -82,6 +82,7 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R1.958 | finding | Secret Passage and kill gold | A spared royal also pays the attacker nothing and counts as neither a kill nor a loss; it is the first in `royals_killed` order, so the play layer should list kills in the order they happened | `Match::apply_siege` | | open |
 | R1.959 | worklist | New enum variants for the play layer | `AmmoKind` gained Chain and Meteor, `AirKind` gained Hover, `Loadout` gained `air_uses`, `UpgradeRow.effect` became `effects`. A play/ match on these needs the new arms at merge | `game/upgrades.rs`, `game/flow.rs` | | open |
 | R1.960 | finding | Tags | New test tags `upgrades` and `ammo` with narrow rules; `crates/**` still pulls in every test, as R1.215. `scripts/tags.py guard` already failed on untagged terrain, sound and probe tests before this change | `tests/tags.toml` | | done |
+| R1.961 | finding | Break test on the blast | The first blast test still passed with blast damage removed: the shot's own hit breaks a wood beam. Its break row now points at `a_blast_wears_beams_down_by_distance`, which calls `World::explode` directly (1 unit from a 2-unit blast takes half of 2 hp) | `physics/ammo.rs` tests | | done |
 
 ## Strings written by the agent
 

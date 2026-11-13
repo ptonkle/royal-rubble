@@ -550,7 +550,7 @@
     "file": "crates/core/src/physics/ammo.rs",
     "find": "seg.hp = (seg.hp - damage * share).max(Fx::ZERO);",
     "replace": "",
-    "test": "an_exploding_shot_blows_up_a_wall_it_touches"
+    "test": "a_blast_wears_beams_down_by_distance"
   },
   {
     "name": "ammo blast kills bodies",

@@ -366,6 +366,22 @@ mod tests {
     }
 
     #[test]
+    fn a_blast_wears_beams_down_by_distance() {
+        let mut w = flat();
+        let near = w
+            .add_beam(Vec2::ints(8, 0), Vec2::ints(8, 2), Material::Stone)
+            .unwrap();
+        let far = w
+            .add_beam(Vec2::ints(12, 0), Vec2::ints(12, 2), Material::Stone)
+            .unwrap();
+        let b = w.explode(Vec2::ints(7, 1), Fx::from_int(2), Fx::from_int(2), Fx::ZERO);
+        // 1 unit from a 2-unit blast: half of 2 hp
+        assert_eq!(w.segments[near].hp, Fx::ONE);
+        assert_eq!(w.segments[far].hp, Fx::from_int(2));
+        assert_eq!(b.segments, vec![near]);
+    }
+
+    #[test]
     fn a_blast_kills_bodies_in_reach() {
         let mut w = flat();
         let floor = w
