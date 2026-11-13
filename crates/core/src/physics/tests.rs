@@ -516,3 +516,29 @@ fn trebuchet_pose_holds_the_shot_until_release_then_the_arm_rocks_and_rests() {
     let done = trebuchet::ROCK_TICKS + trebuchet::WINCH_TICKS;
     assert_eq!(pose(base, Phase::After { at: t, since: done }, false), rest);
 }
+
+/// Whether segments a0-a1 and b0-b1 cross.
+fn crosses(a0: Vec2, a1: Vec2, b0: Vec2, b1: Vec2) -> bool {
+    let side = |p: Vec2, q: Vec2, r: Vec2| (q - p).cross(r - p).raw().signum();
+    side(a0, a1, b0) * side(a0, a1, b1) < 0 && side(b0, b1, a0) * side(b0, b1, a1) < 0
+}
+
+#[test]
+fn trebuchet_counterweight_stays_clear_of_the_frame_and_the_ground() {
+    // R1.1800: the box drops through the middle of the A-frame
+    let base = Vec2::ints(0, 0);
+    for t in 0..=trebuchet::SWING_END {
+        let p = pose(base, Phase::Swing(t), false);
+        let b = p.box_;
+        for k in 0..4 {
+            let (c0, c1) = (b[k], b[(k + 1) % 4]);
+            assert!(c0.y > p.base[0].y, "tick {t}: corner {c0:?} below the base beam");
+            for foot in p.base {
+                assert!(
+                    !crosses(c0, c1, foot, p.pivot),
+                    "tick {t}: box {b:?} crosses the frame"
+                );
+            }
+        }
+    }
+}

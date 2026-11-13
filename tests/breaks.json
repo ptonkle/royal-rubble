@@ -1034,5 +1034,19 @@
     "find": "                    .min(Fx::from_int(CAM_FLY_TALL_W)),",
     "replace": "                    .min(Fx::ZERO),",
     "test": "arena_a_high_shot_widens_the_view_and_keeps_the_ground_in_it"
+  },
+  {
+    "name": "physics trebuchet counterweight clears the frame",
+    "file": "crates/core/src/physics/tune.rs",
+    "find": "treb_hinge: Fx::ratio(3, 2),",
+    "replace": "treb_hinge: Fx::ratio(1, 2),",
+    "test": "trebuchet_counterweight_stays_clear_of_the_frame_and_the_ground"
+  },
+  {
+    "name": "arena camera holds on the trebuchet after release",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "let held = flying.is_some_and(|b| b.age < CAM_HOLD);",
+    "replace": "let held = flying.is_some_and(|b| b.age < 0);",
+    "test": "arena_the_view_keeps_the_trebuchet_in_just_after_release"
   }
 ]

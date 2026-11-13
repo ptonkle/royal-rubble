@@ -40,7 +40,7 @@ export function drawTreb(g, e, kit) {
   kit.beam(g, e.weight, e.tip, e.arm_w, arm, "arm");
   kit.place(g, "knot-ochre", e.pivot[0], e.pivot[1], e.arm_w / kit.sprites["knot-ochre"].r);
   kit.place(g, "knot-navy", e.weight[0], e.weight[1], e.rope_w / kit.sprites["knot-navy"].r);
-  kit.dashed(g, e.sling, kit.wool.tan.dark, kit.wool.tan.light, e.rope_w, e.rope_w, 0);
+  kit.dashed(g, e.sling, kit.wool.tan.dark, kit.wool.tan.light, e.sling_w, e.sling_w, 0);
   if (e.loaded) {
     const s = e.loaded;
     kit.place(g, s.hot ? "ball-hot" : "ball", s.x, s.y, s.r / kit.sprites.ball.r);

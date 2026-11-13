@@ -194,3 +194,34 @@ fn arena_a_high_shot_widens_the_view_and_keeps_the_ground_in_it() {
         a.camera()
     );
 }
+
+#[test]
+fn arena_the_view_keeps_the_trebuchet_in_just_after_release() {
+    // R1.1800: the whip and follow-through are seen before the view follows
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    to_siege(&mut a);
+    let t = crate::physics::SWING_END * 2 / 3;
+    a.space();
+    for _ in 0..t {
+        a.tick();
+    }
+    a.space();
+    let base = a.my_field().unwrap().base;
+    let top = base + Vec2::new(Fx::ZERO, Fx::from_int(8));
+    // the shot ages one tick as it leaves
+    for k in 0..CAM_HOLD - 1 {
+        a.tick();
+        assert!(
+            on_screen(&a, base) && on_screen(&a, top),
+            "tick {k}: {:?}",
+            a.camera()
+        );
+        // still the aiming view, not the wider flight view
+        let target = a.camera_target();
+        assert!(
+            target.width() <= Fx::from_int(CAM_AIM_MAX_W),
+            "tick {k}: {target:?}"
+        );
+    }
+}
