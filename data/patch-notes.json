@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.2.5",
+    "date": "2026-11-13",
+    "notes": [
+      "Royals are bigger, about a room tall, so you can see who is who.",
+      "Bots build huts that fit their royals, even on slopes."
+    ]
+  },
+  {
     "version": "0.2.4",
     "date": "2026-11-13",
     "notes": [
