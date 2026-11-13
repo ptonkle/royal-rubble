@@ -43,6 +43,8 @@ fn the_title_offers_bots_host_join_and_settings_and_the_version_opens_whats_new(
             "menu.host",
             "menu.join",
             "menu.sandbox",
+            "menu.how",
+            "menu.upgrades",
             "menu.settings"
         ]
     );
@@ -277,4 +279,79 @@ fn volume_sample_plays_on_each_slider_move() {
     a.act("settings.volume", "40").unwrap();
     a.act("settings.music", "20").unwrap();
     assert_eq!(a.ui().samples, 2);
+}
+
+/// The panel item with id `id` on the screen, as JSON.
+fn item(app: &App, id: &str) -> Option<serde_json::Value> {
+    let v = serde_json::to_value(app.ui()).unwrap();
+    v["panels"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|p| p["items"].as_array().unwrap().clone())
+        .find(|i| i["id"] == id)
+}
+
+#[test]
+fn how_to_play_opens_on_build_and_a_tab_shows_its_own_lines() {
+    let mut a = app();
+    a.act("menu.how", "").unwrap();
+    assert_eq!(a.ui().screen, "how");
+    assert!(item(&a, "how.build").is_some());
+    let tabs = item(&a, "how.tab").unwrap();
+    let values: Vec<&str> = tabs["options"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|o| o["value"].as_str().unwrap())
+        .collect();
+    assert_eq!(values, ["build", "siege", "upgrades", "winning"]);
+    a.act("how.tab", "siege").unwrap();
+    assert!(item(&a, "how.build").is_none());
+    let siege = item(&a, "how.siege").unwrap();
+    assert_eq!(siege["rows"][0]["text"], "how.siege.throw");
+    assert!(a.act("how.tab", "nope").is_err());
+    assert_eq!(a.ui().escape, "menu.back");
+    a.act("menu.back", "").unwrap();
+    assert_eq!(a.ui().screen, "title");
+}
+
+#[test]
+fn the_upgrade_list_filters_by_tier_and_shows_each_cards_icon() {
+    let mut a = app();
+    a.act("data.upgrades", include_str!("../../../../data/upgrades.json"))
+        .unwrap();
+    a.act("menu.upgrades", "").unwrap();
+    assert_eq!(a.ui().screen, "upgrades");
+    let list = item(&a, "upgrades.list").unwrap();
+    let fire = list["entries"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|e| e["id"] == "upgrades.firebrand")
+        .unwrap()
+        .clone();
+    assert_eq!(fire["name"], "Firebrand");
+    assert_eq!(fire["look"], "silver");
+    // a fire-shot upgrade wears the fire shot's icon, as its card does
+    assert_eq!(fire["icon"], hud_icon::url("fire"));
+    a.act("upgrades.tier", "gold").unwrap();
+    let list = item(&a, "upgrades.list").unwrap();
+    let entries = list["entries"].as_array().unwrap();
+    assert!(!entries.is_empty());
+    assert!(entries.iter().all(|e| e["look"] == "gold"));
+    assert!(a.act("upgrades.tier", "bronze").is_err());
+}
+
+#[test]
+fn back_from_the_upgrade_list_returns_to_how_to_play_then_the_title() {
+    let mut a = app();
+    a.act("menu.how", "").unwrap();
+    a.act("how.tab", "upgrades").unwrap();
+    a.act("menu.upgrades", "").unwrap();
+    assert_eq!(a.ui().screen, "upgrades");
+    a.act("menu.back", "").unwrap();
+    assert_eq!(a.ui().screen, "how");
+    a.act("menu.back", "").unwrap();
+    assert_eq!(a.ui().screen, "title");
 }

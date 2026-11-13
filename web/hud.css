@@ -267,3 +267,96 @@ body[data-screen="match"] .panel.field-bar > #match\.ready:not(:disabled) { bord
 body[data-screen="match"] .panel.field-bar > #match\.ready:not(:disabled) .icon { background-color: var(--hud-good); }
 body[data-screen="match"] .panel.field-bar > .button .icon { background-color: var(--hud-ink); }
 body[data-screen="match"] .panel.field-bar > #match\.buy_xp .icon { background-color: var(--icon-xp); }
+
+/* ---- How to Play and the upgrade list: the HUD's slate panels ---- */
+.panel.how, .panel.upgrades {
+  background: var(--hud-bg);
+  color: var(--hud-ink);
+  border: 1px solid var(--hud-edge);
+  border-radius: 0.5rem;
+  box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.45);
+  outline: none;
+  font: var(--hud-font);
+}
+.panel.how::before, .panel.how::after, .panel.upgrades::before, .panel.upgrades::after { display: none; }
+.panel.how { width: min(100%, 36rem); }
+.panel.upgrades {
+  width: min(100%, 60rem);
+  /* only the list scrolls, never the page */
+  max-height: calc(100vh - 2 * (var(--strip-height) + 1.5rem));
+  display: flex;
+  flex-direction: column;
+}
+.panel.how h2, .panel.upgrades h2 { color: var(--hud-ink); border-bottom: 1px solid var(--hud-slot-edge); }
+
+/* tabs and the tier filter: a row of slate slots, the chosen one gold-edged */
+.panel.how .bar, .panel.upgrades .bar { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0 0 1rem; }
+.panel.how .bar-option, .panel.upgrades .bar-option {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  color: var(--hud-dim);
+  background: var(--hud-slot);
+  border: 1px solid var(--hud-slot-edge);
+  border-radius: 0.35rem;
+  font: var(--hud-font);
+  cursor: pointer;
+}
+.panel.how .bar-key:empty, .panel.how .bar-cost:empty,
+.panel.upgrades .bar-key:empty, .panel.upgrades .bar-cost:empty { display: none; }
+.panel.how .bar-option:hover, .panel.upgrades .bar-option:hover { border-color: var(--hud-dim); }
+.panel.how .bar-option[data-selected="on"], .panel.upgrades .bar-option[data-selected="on"] {
+  color: var(--hud-ink);
+  border-color: var(--hud-chosen);
+  background: rgba(240, 196, 25, 0.12);
+}
+
+.pairs { margin: 0 0 1rem; }
+.pair { display: grid; grid-template-columns: 7.5rem 1fr; gap: 0.75rem; padding: 0.45rem 0; border-bottom: 1px solid var(--hud-slot-edge); }
+.pair:last-child { border-bottom: none; }
+.pair dt { color: var(--hud-chosen); }
+.pair dd { margin: 0; font-weight: 400; }
+
+.entries {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 0.5rem;
+}
+.entry {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+  column-gap: 0.75rem;
+  align-items: start;
+  padding: 0.6rem 0.75rem;
+  background: var(--hud-slot);
+  border: 1px solid var(--hud-slot-edge);
+  border-left: 3px solid var(--icon-stone);
+  border-radius: 0.35rem;
+}
+.entry[data-tier="gold"] { border-left-color: var(--icon-gold); }
+.entry[data-tier="prismatic"] { border-left-color: var(--icon-trick); }
+.entry .icon { grid-row: 1 / 3; width: 2.25rem; height: 2.25rem; background-color: var(--hud-ink); }
+.entry[data-tier="gold"] .icon { background-color: var(--icon-gold); }
+.entry[data-tier="prismatic"] .icon { background-color: var(--icon-trick); }
+.entry-head { display: flex; justify-content: space-between; gap: 0.5rem; }
+.entry-tier { color: var(--hud-dim); font-size: 0.8rem; font-weight: 400; }
+.entry-text { color: var(--hud-dim); font-weight: 400; font-size: 0.9rem; }
+
+.panel.how .button, .panel.upgrades .button {
+  color: var(--hud-ink);
+  background: var(--hud-slot);
+  border: 1px solid var(--hud-slot-edge);
+  border-radius: 0.35rem;
+  font: var(--hud-font);
+}
+.panel.how .button::before, .panel.how .button::after,
+.panel.upgrades .button::before, .panel.upgrades .button::after { display: none; }
+.panel.how .button:not(.quiet) { border-color: var(--hud-chosen); }
+.panel.how .button .icon { background-color: var(--hud-chosen); }
+.panel.upgrades > .button { flex: none; }

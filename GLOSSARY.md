@@ -329,6 +329,10 @@ The commonest tier of upgrade cards.
 
 The castle you attack this round.
 
+### Tier
+
+How rare an upgrade card is: Silver, Gold or Prismatic.
+
 ### XP
 
 Experience toward your next level. You get some each round and can buy more with gold.

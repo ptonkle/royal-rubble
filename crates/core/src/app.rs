@@ -7,6 +7,7 @@ pub mod arena;
 mod bot_names;
 pub mod demo;
 pub mod field;
+mod guide;
 pub mod hud_icon;
 mod lobby_view;
 pub mod sandbox;
@@ -47,6 +48,10 @@ enum Screen {
     Play,
     /// The playfield with no rules: build, test and throw.
     Sandbox,
+    /// How to Play, a tab at a time.
+    How,
+    /// Every upgrade with its icon, filtered by tier.
+    Upgrades,
 }
 
 impl Screen {
@@ -60,6 +65,8 @@ impl Screen {
             Screen::Lobby => "lobby",
             Screen::Play => "play",
             Screen::Sandbox => "sandbox",
+            Screen::How => "how",
+            Screen::Upgrades => "upgrades",
         }
     }
 }
@@ -79,6 +86,10 @@ pub struct App {
     notes: Vec<patch_notes::Entry>,
     hints: Vec<Hint>,
     screen: Screen,
+    /// How to Play's open tab, a value from `guide::HOW_TABS`.
+    how_tab: &'static str,
+    /// The upgrade list's tier filter, a value from `guide::TIER_FILTERS`.
+    tier_filter: &'static str,
     /// Where Back goes from Settings and What's New.
     back: Screen,
     save: Save,
@@ -166,6 +177,8 @@ impl App {
             notes,
             hints,
             screen: Screen::Title,
+            how_tab: guide::HOW_TABS[0].0,
+            tier_filter: guide::TIER_FILTERS[0],
             back: Screen::Title,
             save: save::new_game(),
             keep_refused: String::new(),
@@ -345,7 +358,36 @@ impl App {
                 }
             }
             "menu.settings" => self.open(Screen::Settings),
-            "menu.back" => self.screen = self.back,
+            "menu.back" => {
+                self.screen = self.back;
+                // How to Play is a level below the title, whichever screen
+                // came back to it
+                if self.screen == Screen::How {
+                    self.back = Screen::Title;
+                }
+            }
+            "menu.how" => {
+                self.how_tab = guide::HOW_TABS[0].0;
+                self.open(Screen::How);
+            }
+            "how.tab" => {
+                self.how_tab = guide::HOW_TABS
+                    .iter()
+                    .map(|t| t.0)
+                    .find(|t| *t == value)
+                    .ok_or_else(|| format!("\"{value}\" is not a How to Play tab."))?;
+            }
+            "menu.upgrades" => {
+                self.tier_filter = guide::TIER_FILTERS[0];
+                self.open(Screen::Upgrades);
+            }
+            "upgrades.tier" => {
+                self.tier_filter = guide::TIER_FILTERS
+                    .iter()
+                    .copied()
+                    .find(|t| *t == value)
+                    .ok_or_else(|| format!("\"{value}\" is not a tier."))?;
+            }
             "version" => {
                 if self.screen != Screen::Notes {
                     self.open(Screen::Notes);
@@ -554,6 +596,8 @@ impl App {
                 self.button("menu.host", "menu.host"),
                 self.button("menu.join", "menu.join"),
                 self.button("menu.sandbox", "menu.sandbox"),
+                self.quiet("menu.how", "menu.how"),
+                self.quiet("menu.upgrades", "menu.upgrades"),
                 self.quiet("menu.settings", "menu.settings"),
             ],
         )]
@@ -604,7 +648,12 @@ impl App {
     fn menu_backdrop(&self) -> bool {
         matches!(
             self.screen,
-            Screen::Title | Screen::Settings | Screen::Notes | Screen::Online
+            Screen::Title
+                | Screen::Settings
+                | Screen::Notes
+                | Screen::Online
+                | Screen::How
+                | Screen::Upgrades
         ) && self.room.is_none()
     }
 
@@ -617,7 +666,9 @@ impl App {
             }
             (Screen::Play, Pause::Menu) => "pause.resume",
             (Screen::Play, Pause::Settings) => "pause.back",
-            (Screen::Settings | Screen::Notes | Screen::Online, _) => "menu.back",
+            (Screen::Settings | Screen::Notes | Screen::Online | Screen::How | Screen::Upgrades, _) => {
+                "menu.back"
+            }
             _ => "",
         }
     }
@@ -692,6 +743,8 @@ impl App {
             (Screen::Settings, _) => self.settings_panels(),
             (Screen::Notes, _) => self.notes_panels(),
             (Screen::Online, _) => self.online_panels(),
+            (Screen::How, _) => guide::how_panels(&self.strings, self.how_tab),
+            (Screen::Upgrades, _) => guide::upgrades_panels(&self.strings, &self.cards, self.tier_filter),
             (Screen::Paste, r) => self.paste_panels(r),
             (Screen::Lobby, Some(r)) => self.lobby_panels(r),
             (Screen::Play, Some(r)) if self.arena.is_some() && r.out_of_sync() => self.out_of_sync_panels(),
