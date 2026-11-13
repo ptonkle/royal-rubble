@@ -31,7 +31,7 @@ The volume fractions should come from the core or settings, not be computed in p
 | --- | --- |
 | Build or upgrade phase starts | `play("horn_build"); music("music_build")` |
 | Siege phase starts | `play("horn_siege"); music("music_siege")` |
-| Last 10 seconds of a phase | `play("tick")` each second, `play("tick_last")` on the final one; in a siege also `urgent(true)` (the next `music(...)` turns it off) |
+| Last 10 seconds of a phase | The core cues the war drum: `drum_count` each new second from 10 to 4, `drum_close` (harder, with a second beat close behind) from 3 to 1 (R1.3800, `drum_beat` in `app/arena.rs`). `urgent(true)` is not yet wired |
 | Trebuchet swing starts / release | `play("trebuchet_creak")` / `play("trebuchet_release")` |
 | Shot in the air / lands | `startLoop("shot_whoosh", shotId)` / `stopLoop(shotId)` |
 | Hit by material | `play("impact_wood")`, `play("impact_stone")`, `play("impact_metal")` (groups rotate variants); `opts.gain` 0 to 1 for a light hit |
@@ -42,7 +42,7 @@ The volume fractions should come from the core or settings, not be computed in p
 | Exploding ammo | `play("explosion")` |
 | Fire | `play("fire_ignite")`, then `startLoop("fire_crackle", "fire")` while anything burns, `stopLoop("fire")` |
 | Air effects | `phase_shimmer`, `split_pop`, `dive_whistle`, `air_drop`, `air_reverse` |
-| Royal killed | `play("royal_" + rank)`: squire, knight, princess, prince, queen, king |
+| Royal killed | The core cues `royal_` + rank (squire, knight, princess, prince, queen, king), a short cry of death, for each royal killed in the castle you attack and in your own (R1.3801, `cry_kills` in `app/arena.rs`) |
 | Build actions | `place_segment`, `sell_segment`, `coin` (gold gained), `buy_xp`, `level_up` |
 | Upgrades | `cards_reveal`, `card_pick`, `reroll` |
 | End of game | `elimination` (a player is out), `victory` |

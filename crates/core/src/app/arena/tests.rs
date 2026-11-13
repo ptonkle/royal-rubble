@@ -335,3 +335,60 @@ fn arena_the_siege_view_never_shows_past_the_world_edges() {
         }
     }
 }
+
+#[test]
+fn arena_drum_beats_each_new_second_of_the_last_ten_harder_in_the_last_three() {
+    assert_eq!(drum_beat(11, 10), Some("drum_count"));
+    assert_eq!(drum_beat(5, 4), Some("drum_count"));
+    assert_eq!(drum_beat(4, 3), Some("drum_close"));
+    assert_eq!(drum_beat(2, 1), Some("drum_close"));
+    assert_eq!(drum_beat(12, 11), None);
+    assert_eq!(drum_beat(10, 10), None);
+    assert_eq!(drum_beat(1, 0), None);
+}
+
+#[test]
+fn arena_the_build_timer_reaching_ten_seconds_cues_the_drum() {
+    let mut a = arena(1);
+    let tps = crate::game::tune::TICKS_PER_SECOND;
+    a.play.rules.ticks_left = 10 * tps + 2;
+    a.tick();
+    assert!(a.cues.iter().all(|c| c.name != "drum_count"));
+    a.play.rules.ticks_left = 10 * tps + 1;
+    a.tick();
+    assert_eq!(a.phase(), Phase::Build);
+    assert_eq!(a.cues.last().map(|c| c.name), Some("drum_count"));
+}
+
+#[test]
+fn arena_a_royal_killed_in_your_siege_cries_by_its_rank() {
+    let mut a = arena(1);
+    to_siege(&mut a);
+    let me = a.me;
+    let s = a.play.siege.as_mut().unwrap();
+    let f = s
+        .fields
+        .iter_mut()
+        .find(|f| f.attacker == me && !f.shooter.bot)
+        .unwrap();
+    let i = f
+        .castle
+        .bodies
+        .iter()
+        .position(|b| matches!(b, BodyOwner::Royal(_)))
+        .unwrap();
+    let BodyOwner::Royal(r) = f.castle.bodies[i] else {
+        unreachable!()
+    };
+    let owner = f.owner as usize;
+    f.castle.world.bodies[i].alive = false;
+    let kind = a.play.rules.players[owner].royals[r].kind;
+    a.tick();
+    let cries: Vec<&str> = a
+        .cues
+        .iter()
+        .map(|c| c.name)
+        .filter(|n| n.starts_with("royal_"))
+        .collect();
+    assert_eq!(cries, vec![death_cry(kind)]);
+}

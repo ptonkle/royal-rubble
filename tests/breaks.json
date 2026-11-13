@@ -1216,5 +1216,26 @@
     "find": "p.attacker == attacker && p.key == key)",
     "replace": "p.attacker == attacker)",
     "test": "botplan_build_planning_starts_again_when_the_castle_changed"
+  },
+  {
+    "name": "wardrum countdown drum misses the hard beats",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "Some(if now <= DRUM_HARD { \"drum_close\" } else { \"drum_count\" })",
+    "replace": "Some(\"drum_count\")",
+    "test": "arena_drum_beats_each_new_second_of_the_last_ten_harder_in_the_last_three"
+  },
+  {
+    "name": "wardrum arena never cues the drum",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                self.cue(beat, 0);\n",
+    "replace": "                let _ = beat;\n",
+    "test": "arena_the_build_timer_reaching_ten_seconds_cues_the_drum"
+  },
+  {
+    "name": "deathcry every royal cries as a knight",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "cries.extend(kinds.iter().skip(seen).map(|&k| death_cry(k)));",
+    "replace": "cries.extend(kinds.iter().skip(seen).map(|_| \"royal_knight\"));",
+    "test": "arena_a_royal_killed_in_your_siege_cries_by_its_rank"
   }
 ]

@@ -83,6 +83,11 @@ const INSET_TOP: i32 = 180;
 const CUES_KEPT: usize = 24;
 /// Breaks in one tick that sound as a collapse.
 const COLLAPSE_MIN: u32 = 3;
+/// The countdown drum beats each second from this many seconds left
+/// (R1.3800).
+const DRUM_FROM: u32 = 10;
+/// ...and beats harder from this many (R1.3800).
+const DRUM_HARD: u32 = 3;
 /// Siege camera (R1.1454), in world units: margin round the castle, how far
 /// behind a shot or the trebuchet the view starts, widest flight view, the
 /// aim view's width range, and an empty castle's stand-in size.
@@ -121,6 +126,32 @@ const BUILDINGS: [(BuildingKind, &str); 4] = [
     (BuildingKind::Armory, "armory"),
     (BuildingKind::Mine, "mine"),
 ];
+
+/// The countdown drum's beat when a timed phase's seconds left went from
+/// `was` to `now`: one beat for each new second in the last ten, a harder one
+/// in the last three; none otherwise (R1.3800).
+pub(crate) fn drum_beat(was: u32, now: u32) -> Option<&'static str> {
+    if now == was || now == 0 || now > DRUM_FROM {
+        return None;
+    }
+    Some(if now <= DRUM_HARD {
+        "drum_close"
+    } else {
+        "drum_count"
+    })
+}
+
+/// A royal's cry as it dies, by rank (R1.3801).
+pub(crate) fn death_cry(k: RoyalKind) -> &'static str {
+    match k {
+        RoyalKind::Squire => "royal_squire",
+        RoyalKind::Knight => "royal_knight",
+        RoyalKind::Princess => "royal_princess",
+        RoyalKind::Prince => "royal_prince",
+        RoyalKind::Queen => "royal_queen",
+        RoyalKind::King => "royal_king",
+    }
+}
 
 fn rank_name(k: RoyalKind) -> &'static str {
     match k {
@@ -271,6 +302,10 @@ pub struct Arena {
     auto_released: Option<u32>,
     seen_phase: Phase,
     seen_round: u32,
+    /// Seconds left in the phase when last looked, for the countdown drum.
+    seen_secs: u32,
+    /// Royals killed so far in each field you hear, by (owner, attacker).
+    seen_kills: Vec<((PlayerId, PlayerId), usize)>,
     /// The siege view as shown, easing toward `camera_target` each tick.
     eye: Option<Camera>,
 }
@@ -333,6 +368,8 @@ impl Arena {
             auto_released: None,
             seen_phase,
             seen_round,
+            seen_secs: 0,
+            seen_kills: Vec::new(),
             eye: None,
         };
         a.rebuild();
@@ -841,9 +878,7 @@ impl Arena {
         } else if breaks > 0 {
             self.cue("impact_wood", 0);
         }
-        if after.1 > before.1 {
-            self.cue("royal_knight", 0);
-        }
+        self.cry_kills();
         self.follow_shot();
         if let Some(r) = &mut self.replay {
             for _ in 0..REPLAY_SPEED * ran {
@@ -864,6 +899,13 @@ impl Arena {
         let phase = self.phase();
         let round = self.play.rules.round;
         let moved = phase != self.seen_phase || round != self.seen_round;
+        let secs = self.seconds_left();
+        if !moved && matches!(phase, Phase::Upgrade | Phase::Build | Phase::Siege) {
+            if let Some(beat) = drum_beat(self.seen_secs, secs) {
+                self.cue(beat, 0);
+            }
+        }
+        self.seen_secs = secs;
         if moved {
             self.entered(phase);
             changed = true;
@@ -872,6 +914,48 @@ impl Arena {
             self.rebuild();
         }
         self.move_eye(moved, ran);
+    }
+
+    /// Royals killed in the fields you hear (the castle you attack and your
+    /// own), each new one counted once.
+    fn kills_heard(&self) -> Vec<((PlayerId, PlayerId), Vec<RoyalKind>)> {
+        let Some(s) = self.play.siege.as_ref() else {
+            return Vec::new();
+        };
+        s.fields
+            .iter()
+            .filter(|f| (f.attacker == self.me && !f.shooter.bot) || (f.owner == self.me && !f.ghost))
+            .map(|f| {
+                let royals = &self.play.rules.players[f.owner as usize].royals;
+                let kinds = f
+                    .killed
+                    .iter()
+                    .filter_map(|&b| match f.castle.bodies.get(b) {
+                        Some(BodyOwner::Royal(i)) => royals.get(*i).map(|r| r.kind),
+                        _ => None,
+                    })
+                    .collect();
+                ((f.owner, f.attacker), kinds)
+            })
+            .collect()
+    }
+
+    /// A death cry for each royal killed since last looked (R1.3801).
+    fn cry_kills(&mut self) {
+        let now = self.kills_heard();
+        let mut cries = Vec::new();
+        for (key, kinds) in &now {
+            let seen = self
+                .seen_kills
+                .iter()
+                .find(|(k, _)| k == key)
+                .map_or(0, |(_, n)| *n);
+            cries.extend(kinds.iter().skip(seen).map(|&k| death_cry(k)));
+        }
+        self.seen_kills = now.iter().map(|(k, v)| (*k, v.len())).collect();
+        for c in cries {
+            self.cue(c, 0);
+        }
     }
 
     /// The shown view after `ran` ticks: eased toward `camera_target`, and
