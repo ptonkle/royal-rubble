@@ -611,7 +611,10 @@ impl App {
     /// What Esc does on this screen, as an action name, or empty.
     fn escape(&self) -> &'static str {
         match (self.screen, self.pause) {
-            (Screen::Play, Pause::Off) if self.arena.is_some() => "pause.open",
+            // Esc first cancels a segment's pending start (R1.3300)
+            (Screen::Play, Pause::Off) if self.arena.as_ref().is_some_and(|a| !a.start_pending()) => {
+                "pause.open"
+            }
             (Screen::Play, Pause::Menu) => "pause.resume",
             (Screen::Play, Pause::Settings) => "pause.back",
             (Screen::Settings | Screen::Notes | Screen::Online, _) => "menu.back",

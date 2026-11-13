@@ -842,6 +842,12 @@ impl Arena {
 
     // ---- input ----
 
+    /// A segment's start is placed and waits for its end: Esc cancels it
+    /// instead of pausing.
+    pub fn start_pending(&self) -> bool {
+        self.drag.is_some()
+    }
+
     fn queue(&mut self, input: Input) {
         self.pending.push(input);
     }
