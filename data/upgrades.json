@@ -38,35 +38,35 @@
     },
     "plummet": {
       "name": "Plummet",
-      "text": "Air effect: drop straight down. 2 uses per round"
+      "text": "Trick: drop straight down. 2 uses per round"
     },
     "turnabout": {
       "name": "Turnabout",
-      "text": "Air effect: reverse direction. 2 uses per round"
+      "text": "Trick: reverse direction. 2 uses per round"
     },
     "spur": {
       "name": "Spur",
-      "text": "Air effect: +50% speed. 2 uses per round"
+      "text": "Trick: +50% speed. 2 uses per round"
     },
-    "kestrel": {
-      "name": "Kestrel",
-      "text": "Air effect: hang still for 1 second. 2 uses per round"
+    "skipping_stone": {
+      "name": "Skipping Stone",
+      "text": "Trick: the next hit bounces off. 2 uses per round"
     },
     "ghost_stone": {
       "name": "Ghost Stone",
-      "text": "Air effect: pass through segments for 0.5 seconds. 2 uses per round"
+      "text": "Trick: pass through segments for 0.5 seconds. 2 uses per round"
     },
     "hawk_dive": {
       "name": "Hawk Dive",
-      "text": "Air effect: dive at double speed. 2 uses per round"
+      "text": "Trick: dive at double speed. 2 uses per round"
     },
     "splinter": {
       "name": "Splinter",
-      "text": "Air effect: split into 3. 2 uses per round"
+      "text": "Trick: split into 3. 2 uses per round"
     },
     "wild_hunt": {
       "name": "Wild Hunt",
-      "text": "Air effects: +2 uses each per round"
+      "text": "Tricks: +2 uses each per round"
     },
     "spare_stones": {
       "name": "Spare Stones",

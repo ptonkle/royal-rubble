@@ -47,6 +47,7 @@ fn the_title_offers_bots_host_join_and_settings_and_the_version_opens_whats_new(
         ]
     );
     assert_eq!(a.ui().version, VERSION);
+    assert!(a.ui().version_shown);
     a.act("version", "").unwrap();
     assert_eq!(a.ui().screen, "notes");
     assert!(!a.ui().version_opens);
@@ -102,8 +103,22 @@ fn play_vs_bots_opens_a_lobby_with_a_bot_and_start_shows_the_match() {
     assert_eq!(a.ui().screen, "match");
     assert_eq!(a.ui().panels[0].kind, "field-top");
     assert!(a.ui().field.is_some());
+    // R1.3201: the version label stays off the field
+    assert!(!a.ui().version_shown);
     a.act("play.leave", "").unwrap();
     assert_eq!(a.ui().screen, "title");
+}
+
+#[test]
+fn the_menus_play_the_menu_theme_and_a_match_leaves_music_to_its_field() {
+    let mut a = app();
+    assert_eq!(a.ui().menu_music, "music_menu");
+    a.act("menu.solo", "").unwrap();
+    assert_eq!(a.ui().menu_music, "music_menu");
+    a.act("lobby.start", "").unwrap();
+    a.pump(17, 0);
+    assert_eq!(a.ui().screen, "match");
+    assert_eq!(a.ui().menu_music, "");
 }
 
 #[test]
@@ -174,8 +189,9 @@ fn online_two_apps_play_the_same_match_from_the_lobby() {
     }
     assert_eq!(host.ui().screen, "match");
     assert_eq!(join.ui().screen, "match");
-    host.act("match.ready", "").unwrap();
-    join.act("match.ready", "").unwrap();
+    // the button waits for every royal (R1.3305): send Ready itself
+    host.arena.as_mut().unwrap().ready_now();
+    join.arena.as_mut().unwrap().ready_now();
     for _ in 0..200 {
         wire_frame(&mut now, &mut host, &mut join);
     }
@@ -189,4 +205,76 @@ fn online_two_apps_play_the_same_match_from_the_lobby() {
     let (h, j) = (host.ui().sync, join.ui().sync);
     assert!(!h.ends_with(": 0"), "a checksum was compared: {h}");
     assert_eq!(h, j);
+}
+
+/// A solo match against one bot, running.
+fn solo_match() -> App {
+    let mut a = app();
+    a.act("menu.solo", "").unwrap();
+    a.act("lobby.start", "").unwrap();
+    a.pump(17, 0);
+    a.pump(1017, 0);
+    a
+}
+
+#[test]
+fn pause_menu_stops_a_solo_match_and_resume_skips_the_time_paused() {
+    let mut a = solo_match();
+    let before = a.arena.as_ref().unwrap().ticks_run();
+    a.act("pause.open", "").unwrap();
+    assert_eq!(ids(&a), ["pause.resume", "pause.settings", "play.leave"]);
+    assert!(!a.ui().capture, "the keys are the menu's while paused");
+    assert!(a.ui().field.is_some(), "the match stays drawn behind");
+    a.pump(9017, 0);
+    assert_eq!(a.arena.as_ref().unwrap().ticks_run(), before);
+    a.act("pause.resume", "").unwrap();
+    a.pump(9017, 0);
+    // eight seconds paused are not caught up on resume
+    assert_eq!(a.arena.as_ref().unwrap().ticks_run(), before);
+    assert!(a.ui().capture);
+}
+
+#[test]
+fn pause_escape_walks_pause_settings_and_back() {
+    let mut a = solo_match();
+    assert_eq!(a.ui().escape, "pause.open");
+    a.act("pause.open", "").unwrap();
+    assert_eq!(a.ui().escape, "pause.resume");
+    a.act("pause.settings", "").unwrap();
+    assert_eq!(ids(&a), ["settings.volume", "settings.music", "pause.back"]);
+    assert_eq!(a.ui().escape, "pause.back");
+    a.act("settings.music", "40").unwrap();
+    assert_eq!(a.ui().music, 40);
+    a.act("pause.back", "").unwrap();
+    assert_eq!(a.ui().escape, "pause.resume");
+    a.act("play.leave", "").unwrap();
+    assert_eq!(a.ui().screen, "title");
+    assert_eq!(a.ui().escape, "");
+    a.act("menu.settings", "").unwrap();
+    assert_eq!(a.ui().escape, "menu.back");
+}
+
+#[test]
+fn demo_siege_runs_behind_the_menus_and_stops_for_a_match() {
+    let mut a = app();
+    a.pump(17, 0);
+    assert!(a.ui().field.is_some(), "the title shows the backdrop");
+    assert!(a.ui().live);
+    a.act("menu.settings", "").unwrap();
+    a.pump(34, 0);
+    assert!(a.ui().field.is_some(), "Settings keeps it, music and all");
+    a.act("menu.back", "").unwrap();
+    a.act("menu.solo", "").unwrap();
+    a.pump(51, 0);
+    assert!(a.demo.is_none(), "the lobby has no backdrop");
+}
+
+#[test]
+fn volume_sample_plays_on_each_slider_move() {
+    let mut a = app();
+    a.act("menu.settings", "").unwrap();
+    assert_eq!(a.ui().samples, 0);
+    a.act("settings.volume", "40").unwrap();
+    a.act("settings.music", "20").unwrap();
+    assert_eq!(a.ui().samples, 2);
 }

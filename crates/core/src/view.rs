@@ -67,6 +67,12 @@ pub enum Item {
         quiet: bool,
         #[serde(skip_serializing_if = "is_false")]
         disabled: bool,
+        /// a short hover tip, 1-4 words or a label and a cost
+        #[serde(skip_serializing_if = "String::is_empty")]
+        tip: String,
+        /// an icon's data URL (`app::hud_icon`), drawn before the text
+        #[serde(skip_serializing_if = "String::is_empty")]
+        icon: String,
     },
     Slider {
         id: String,
@@ -176,6 +182,9 @@ pub enum Item {
         tier: String,
         look: String,
         text: String,
+        /// the card's icon by what it changes
+        #[serde(skip_serializing_if = "String::is_empty")]
+        icon: String,
         #[serde(skip_serializing_if = "is_false")]
         picked: bool,
         #[serde(skip_serializing_if = "is_false")]
@@ -186,6 +195,42 @@ pub enum Item {
     Bar {
         id: String,
         options: Vec<BarOption>,
+    },
+    /// an icon and a short value, for the top bar (gold, round, target)
+    Stat {
+        id: String,
+        icon: String,
+        icon_name: String,
+        text: String,
+        #[serde(skip_serializing_if = "String::is_empty")]
+        tip: String,
+    },
+    /// the phase clock, drawn big; `urgent` in its last seconds
+    Timer {
+        id: String,
+        icon: String,
+        phase: String,
+        text: String,
+        #[serde(skip_serializing_if = "is_false")]
+        urgent: bool,
+    },
+    /// a filled bar with an icon and a label (level and XP)
+    Meter {
+        id: String,
+        icon: String,
+        icon_name: String,
+        label: String,
+        value: u32,
+        max: u32,
+        text: String,
+        #[serde(skip_serializing_if = "String::is_empty")]
+        tip: String,
+    },
+    /// every player's health, sorted, as a column of hearts and bars
+    Health {
+        id: String,
+        icon: String,
+        rows: Vec<HealthRow>,
     },
 }
 
@@ -200,6 +245,40 @@ pub struct BarOption {
     pub selected: bool,
     #[serde(skip_serializing_if = "is_false")]
     pub disabled: bool,
+    /// a short hover tip, 1-4 words or a label and a cost
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub tip: String,
+    /// an icon's data URL and its name for the stylesheet's color
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub icon: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub icon_name: String,
+    /// a count shown big on the slot: stock, ammo left, royals to place
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub count: String,
+    /// the gold price shown under the slot; empty when it costs nothing
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub cost: String,
+    /// options with another group start a new run of slots after a gap
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub group: String,
+}
+
+/// One player in the health column.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct HealthRow {
+    pub name: String,
+    pub value: u32,
+    pub max: u32,
+    /// the health as text ("88")
+    pub text: String,
+    #[serde(skip_serializing_if = "is_false")]
+    pub me: bool,
+    #[serde(skip_serializing_if = "is_false")]
+    pub out: bool,
+    /// "target" for the castle you attack, else empty
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub look: String,
 }
 
 /// A term and its definition, for the page's hover hints.
@@ -218,6 +297,8 @@ pub struct Ui {
     pub version: String,
     /// the version button opens What's New (not during a match)
     pub version_opens: bool,
+    /// the version button shows: on menus, never over a field (R1.3201)
+    pub version_shown: bool,
     pub panels: Vec<Panel>,
     pub hints: Vec<Hint>,
     /// the tab icon, as a data URL
@@ -253,12 +334,20 @@ pub struct Ui {
     pub hash: String,
     /// a status line, or nothing
     pub status: String,
+    /// the music while no playfield shows: the menu theme on the menus,
+    /// "" for none (R1.3802)
+    pub menu_music: String,
     /// the playfield's canvas, while one shows
     #[serde(skip_serializing_if = "Option::is_none")]
     pub field: Option<crate::app::field::Frame>,
     /// An online match, for the two-browser check to compare: round, then
     /// the newest checksum's tick and value (`body[data-sync]`).
     pub sync: String,
+    /// The action Esc sends on this screen, or empty.
+    pub escape: String,
+    /// Volume slider moves so far; the page plays `sample_cue` on each.
+    pub samples: u32,
+    pub sample_cue: String,
 }
 
 #[cfg(test)]
@@ -272,6 +361,8 @@ mod tests {
             text: "A".into(),
             quiet: false,
             disabled: false,
+            tip: String::new(),
+            icon: String::new(),
         };
         assert_eq!(
             serde_json::to_string(&b).unwrap(),

@@ -197,7 +197,8 @@ fn terrain_open_country_stays_under_the_arc_cap() {
     assert_eq!(p.arc_cap(f), p.heights[f]);
     let mid = (l + f) / 2;
     let chord = (p.heights[l] + p.heights[f]) / 2;
-    assert!(p.arc_cap(mid) > chord + 10 * CELL);
+    // the plot is about half as far since R1.3700, so the arc is half as tall
+    assert!(p.arc_cap(mid) > chord + 4 * CELL);
     assert!(p.heights[p.between.start..p.between.end]
         .iter()
         .zip(p.between.start..)
@@ -212,7 +213,8 @@ fn terrain_relief_is_strong_and_varies_by_seed() {
         let p = Plot::generate(seed);
         let hi = p.heights.iter().copied().max().unwrap_or(0);
         let lo = p.heights.iter().copied().min().unwrap_or(0);
-        assert!(hi - lo >= 15 * CELL, "seed {seed}: relief {}", (hi - lo) / CELL);
+        // R1.3700: the hills shrank with the distance ("make the distance less")
+        assert!(hi - lo >= 8 * CELL, "seed {seed}: relief {}", (hi - lo) / CELL);
         let pad = p.heights[p.launch_col];
         let front = p.heights[p.plot.start];
         if pad > front {
@@ -234,7 +236,7 @@ fn terrain_plot_front_is_far_from_the_trebuchet() {
         .collect();
     let (lo, hi) = (d.iter().min().copied(), d.iter().max().copied());
     assert!(lo >= Some(DIST.0 as usize) && hi <= Some(DIST.1 as usize));
-    assert!(hi.unwrap_or(0) - lo.unwrap_or(0) >= 20, "{lo:?}..{hi:?}");
+    assert!(hi.unwrap_or(0) - lo.unwrap_or(0) >= 15, "{lo:?}..{hi:?}");
 }
 
 #[test]

@@ -14,9 +14,11 @@ Where slush comes out. Each line has up to {line.spouts} spouts.
 Not: tap, dispenser, nozzle
 -->
 
-### Air effect
+### Trick
 
-A trick you trigger on a shot in flight, such as dropping it straight down. One per shot.
+A move you trigger on a shot in flight with Q, W, E or R, such as dropping it straight down. One per shot.
+
+Not: air effect
 
 ### Ammo
 
@@ -64,6 +66,12 @@ One beam of a castle between two points on the build grid: wood, stone, metal or
 
 Not: piece, block
 
+### Undo
+
+Takes back the last thing you placed this build, for all it cost. Key: Z.
+
+Not: revert, rollback
+
 ### Spot
 
 A place on the map worth defending, such as a deposit, forest or holy well. A building counts as on it when it stands inside both the spot and your plot.
@@ -110,6 +118,14 @@ The room before a match: the players, the bots and the match options.
 The six letters that let friends join a room. Copy link sends the same code as a link.
 
 Not: game code
+
+### Flat map
+
+A lobby option: level ground with no hills, cliffs or water.
+
+### Paused
+
+The menu Esc opens during a match. A match against bots stops while it shows.
 
 ### Wind
 
@@ -165,7 +181,7 @@ The phase where you place segments and royals. Press Test to see the strain befo
 
 ### Drop
 
-An air effect: the shot stops moving sideways and falls straight down.
+A trick: the shot stops moving sideways and falls straight down.
 
 ### Fire
 
@@ -185,11 +201,11 @@ The plain shot every player starts with.
 
 ### Phase
 
-An air effect: the shot passes through walls for a moment.
+A trick: the shot passes through walls for a moment.
 
 ### Reverse
 
-An air effect: the shot turns back the way it came.
+A trick: the shot turns back the way it came.
 
 ### Rope
 
@@ -205,7 +221,7 @@ The phase where everyone throws shots at the castle they are assigned.
 
 ### Split
 
-An air effect: the shot breaks into three that fan out.
+A trick: the shot breaks into three that fan out.
 
 ### Spread
 
@@ -229,7 +245,11 @@ A building that gives you an extra shot next round if it survives the siege.
 
 ### Boost
 
-An air effect: the shot speeds up along its path.
+A trick: the shot speeds up along its path.
+
+### Bounce
+
+A trick: the shot's next hit bounces it off hard instead of stopping it. One hit, then it flies as normal.
 
 ### Carpenter
 
@@ -241,7 +261,7 @@ A chain shot, on the ammo bar.
 
 ### Dive
 
-An air effect: the shot turns straight down and speeds up.
+A trick: the shot turns straight down and speeds up.
 
 ### Exploding
 
@@ -250,10 +270,6 @@ An exploding shot, on the ammo bar.
 ### Gold
 
 What you spend on segments, buildings, XP and shots. Also the middle tier of upgrade cards.
-
-### Hover
-
-An air effect: the shot hangs still for a moment.
 
 ### Level
 
@@ -277,7 +293,7 @@ A building that gives you stone each round it survives.
 
 ### Ready
 
-Says you are done with this phase. The timer ends early once everyone is ready.
+Done with this phase. It ends early once everyone is ready.
 
 ### Reroll
 

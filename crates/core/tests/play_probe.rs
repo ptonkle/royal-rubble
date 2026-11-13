@@ -44,6 +44,7 @@ fn probe_siege_tick_time() {
         seats: vec![Seat::Human, Seat::Human],
         wind: true,
         seed: 5,
+        flat: false,
     })
     .unwrap();
     play.start().unwrap();

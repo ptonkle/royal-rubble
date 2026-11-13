@@ -4,7 +4,10 @@
 //! a seed and the time. Ported from Fleeced's `app.rs` (after Crabble's).
 
 pub mod arena;
+mod bot_names;
+pub mod demo;
 pub mod field;
+pub mod hud_icon;
 mod lobby_view;
 pub mod sandbox;
 
@@ -27,6 +30,9 @@ pub const VERSION: &str = "0.2.8";
 const VOLUME_STEP: u32 = 5;
 /// The sound sliders' top, percent.
 const VOLUME_MAX: u32 = 100;
+
+/// The menu theme, on every screen outside a match (R1.3802).
+const MENU_MUSIC: &str = "music_menu";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Screen {
@@ -56,6 +62,14 @@ impl Screen {
             Screen::Sandbox => "sandbox",
         }
     }
+}
+
+/// The in-match pause menu (Esc).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Pause {
+    Off,
+    Menu,
+    Settings,
 }
 
 /// The page's one app.
@@ -105,6 +119,14 @@ pub struct App {
     arena: Option<arena::Arena>,
     /// The upgrade cards' names and texts (data/upgrades.json).
     cards: arena::CardText,
+    /// The pause menu over a match.
+    pause: Pause,
+    /// When a solo match was paused: its clock skips the time paused.
+    paused_at: Option<i64>,
+    /// The siege behind the menus, while one of them shows.
+    demo: Option<demo::Demo>,
+    /// Volume slider moves so far: each plays the sample cue.
+    samples: u32,
 }
 
 fn percent(value: &str) -> Result<u32, String> {
@@ -166,6 +188,10 @@ impl App {
             sandbox: None,
             arena: None,
             cards: arena::CardText::default(),
+            pause: Pause::Off,
+            paused_at: None,
+            demo: None,
+            samples: 0,
         })
     }
 
@@ -224,7 +250,25 @@ impl App {
         }
     }
 
+    /// Opens the pause menu over the match. A solo match stops its clock.
+    fn pause(&mut self) {
+        if self.pause == Pause::Off && self.arena.as_ref().is_some_and(|a| !a.is_online()) {
+            self.paused_at = Some(self.now_ms);
+        }
+        self.pause = Pause::Menu;
+    }
+
+    /// Closes the pause menu; a solo match picks up where it stopped.
+    fn resume(&mut self) {
+        if let (Some(at), Some(a)) = (self.paused_at.take(), &mut self.arena) {
+            a.hold(self.now_ms - at);
+        }
+        self.pause = Pause::Off;
+    }
+
     fn leave(&mut self) {
+        self.pause = Pause::Off;
+        self.paused_at = None;
         self.arena = None;
         if self.room.take().is_some_and(|r| r.kind != Kind::Solo) {
             self.leaving.push(Request::Leave);
@@ -276,6 +320,10 @@ impl App {
                 }
             }
             "data.upgrades" => self.cards = arena::CardText::parse(value)?,
+            "pause.open" if self.arena.is_some() && self.screen == Screen::Play => self.pause(),
+            "pause.resume" => self.resume(),
+            "pause.settings" if self.pause != Pause::Off => self.pause = Pause::Settings,
+            "pause.back" if self.pause != Pause::Off => self.pause = Pause::Menu,
             "match.again" => {
                 let seed = self.rng.next_u64();
                 let next = match &self.arena {
@@ -303,8 +351,14 @@ impl App {
                     self.open(Screen::Notes);
                 }
             }
-            "settings.volume" => self.save.volume = percent(value)?,
-            "settings.music" => self.save.music = percent(value)?,
+            "settings.volume" => {
+                self.save.volume = percent(value)?;
+                self.samples += 1;
+            }
+            "settings.music" => {
+                self.save.music = percent(value)?;
+                self.samples += 1;
+            }
             "save.load" => self.load_save(value),
             // the page has the refused text now, and Settings still offers it
             "save.kept" => self.keep_refused.clear(),
@@ -379,13 +433,32 @@ impl App {
     /// page's clock), so a release lands between ticks (R1.2103).
     pub fn pump_pressed(&mut self, now_ms: i64, keys: u32, press_us: Option<i64>) -> Pump {
         self.now_ms = now_ms;
+        if self.menu_backdrop() {
+            if self.demo.is_none() {
+                self.demo = Some(demo::Demo::new(self.rng.next_u64()));
+            }
+        } else {
+            self.demo = None;
+        }
+        if let Some(d) = &mut self.demo {
+            d.pump(now_ms);
+        }
         if let Some(s) = &mut self.sandbox {
             s.pump(now_ms, keys, press_us);
         }
         self.start_arena();
+        if self.arena.is_none() {
+            self.pause = Pause::Off;
+            self.paused_at = None;
+        }
         if let Some(a) = &mut self.arena {
             let net_tick = self.room.as_ref().and_then(|r| r.last_tick_us());
-            a.pump(now_ms, keys, press_us, net_tick);
+            match (self.pause, self.paused_at) {
+                (Pause::Off, _) => a.pump(now_ms, keys, press_us, net_tick),
+                // a solo match waits; an online one plays on with no keys
+                (_, Some(_)) => {}
+                (_, None) => a.pump(now_ms, 0, None, net_tick),
+            }
         }
         if let (Some(a), Some(r)) = (&mut self.arena, &mut self.room) {
             if a.is_online() {
@@ -450,6 +523,8 @@ impl App {
 
     fn button(&self, id: &str, key: &str) -> Item {
         Item::Button {
+            tip: String::new(),
+            icon: String::new(),
             id: id.into(),
             text: self.strings.get(key),
             quiet: false,
@@ -459,6 +534,8 @@ impl App {
 
     fn quiet(&self, id: &str, key: &str) -> Item {
         Item::Button {
+            tip: String::new(),
+            icon: String::new(),
             id: id.into(),
             text: self.strings.get(key),
             quiet: true,
@@ -489,6 +566,54 @@ impl App {
             step: VOLUME_STEP,
             value,
             text: format!("{value}%"),
+        }
+    }
+
+    /// The pause menu over the match: Resume, Settings, Leave.
+    fn pause_panels(&self) -> Vec<Panel> {
+        match self.pause {
+            Pause::Settings => {
+                let mut p = self.settings_panels();
+                for panel in &mut p {
+                    panel.kind = "pause".into();
+                    for item in &mut panel.items {
+                        if let Item::Button { id, .. } = item {
+                            if id == "menu.back" {
+                                *id = "pause.back".into();
+                            }
+                        }
+                    }
+                }
+                p
+            }
+            _ => vec![Panel::new(
+                "pause",
+                self.strings.get("pause.heading"),
+                vec![
+                    self.button("pause.resume", "pause.resume"),
+                    self.quiet("pause.settings", "menu.settings"),
+                    self.quiet("play.leave", "pause.leave"),
+                ],
+            )],
+        }
+    }
+
+    /// The menus that show the siege behind them.
+    fn menu_backdrop(&self) -> bool {
+        matches!(
+            self.screen,
+            Screen::Title | Screen::Settings | Screen::Notes | Screen::Online
+        ) && self.room.is_none()
+    }
+
+    /// What Esc does on this screen, as an action name, or empty.
+    fn escape(&self) -> &'static str {
+        match (self.screen, self.pause) {
+            (Screen::Play, Pause::Off) if self.arena.is_some() => "pause.open",
+            (Screen::Play, Pause::Menu) => "pause.resume",
+            (Screen::Play, Pause::Settings) => "pause.back",
+            (Screen::Settings | Screen::Notes | Screen::Online, _) => "menu.back",
+            _ => "",
         }
     }
 
@@ -565,6 +690,9 @@ impl App {
             (Screen::Paste, r) => self.paste_panels(r),
             (Screen::Lobby, Some(r)) => self.lobby_panels(r),
             (Screen::Play, Some(r)) if self.arena.is_some() && r.out_of_sync() => self.out_of_sync_panels(),
+            (Screen::Play, Some(_)) if self.arena.is_some() && self.pause != Pause::Off => {
+                self.pause_panels()
+            }
             (Screen::Play, Some(_)) if self.arena.is_some() => self
                 .arena
                 .as_ref()
@@ -580,6 +708,7 @@ impl App {
         let arena = self.arena.as_ref().filter(|_| self.screen == Screen::Play);
         let playing = (self.screen == Screen::Play && room.is_some_and(|r| r.stage == Stage::Playing))
             || sandbox.is_some();
+        let playing = playing && self.pause == Pause::Off;
         let status = match room {
             Some(r) => r.status(),
             None if self.bad_code => "online.bad_code",
@@ -594,6 +723,7 @@ impl App {
             title: self.strings.get("title"),
             version: VERSION.into(),
             version_opens: !matches!(self.screen, Screen::Notes | Screen::Play | Screen::Sandbox),
+            version_shown: arena.is_none() && !matches!(self.screen, Screen::Play | Screen::Sandbox),
             panels,
             hints: self.hints.clone(),
             icon: icon::data_url(),
@@ -606,7 +736,7 @@ impl App {
             music_gain: decimal(save::music_gain(self.save.music)),
             sound_share: decimal(self.save.volume * 10),
             music_share: decimal(self.save.music * 10),
-            live: room.is_some() || sandbox.is_some(),
+            live: room.is_some() || sandbox.is_some() || self.menu_backdrop(),
             capture: playing,
             keys: if arena.is_some() {
                 arena::keys()
@@ -623,7 +753,23 @@ impl App {
             } else {
                 self.strings.get(status)
             },
-            field: arena.map(|a| a.frame()).or_else(|| sandbox.map(|s| s.frame())),
+            menu_music: if matches!(self.screen, Screen::Play | Screen::Sandbox) {
+                String::new()
+            } else {
+                MENU_MUSIC.into()
+            },
+            field: arena
+                .map(|a| a.frame())
+                .or_else(|| sandbox.map(|s| s.frame()))
+                .or_else(|| {
+                    self.demo
+                        .as_ref()
+                        .filter(|_| self.menu_backdrop())
+                        .map(|d| d.frame())
+                }),
+            samples: self.samples,
+            sample_cue: "sample".into(),
+            escape: self.escape().into(),
             sync: room
                 .filter(|r| r.game.is_some())
                 .map_or_else(String::new, lobby_view::state_line),

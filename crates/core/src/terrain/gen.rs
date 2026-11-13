@@ -194,7 +194,9 @@ fn between_ground(
         }
     }
     if rng.chance(2, 3) {
-        let hw = rng.range(6, 12);
+        let hw = rng
+            .range(BETWEEN_DIP_HALF_W.0, BETWEEN_DIP_HALF_W.1)
+            .min(ni / 2 - 1);
         let c = rng.range(hw, ni - hw);
         let dip = rng.range(BETWEEN_DIP_H.0, BETWEEN_DIP_H.1) * CELL;
         bump(&mut h, c, hw, 0, -dip);

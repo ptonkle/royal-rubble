@@ -433,6 +433,21 @@ fn is_zero(v: &u32) -> bool {
     *v == 0
 }
 
+/// The build tools' marks over the field (R1.3300).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Default)]
+pub struct BuildMarks {
+    /// the buildable area's outline: along the top, down the right side,
+    /// back along the ground, up the left side; exactly where pieces fit
+    pub zone_edge: Vec<[i32; 2]>,
+    /// where the royal being placed may not stand: a circle round each
+    /// placed royal's feet, the spacing rule's distance
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub keep_out: Vec<Ring>,
+    /// the royal being placed, standing where a press would put it
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ghost: Option<Figure>,
+}
+
 /// Everything on the canvas, in pixels.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Frame {
@@ -487,6 +502,9 @@ pub struct Frame {
     /// the view's offset in pixels while a big hit shakes it
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shake: Option<[i32; 2]>,
+    /// the build tools' marks, while you build
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub build: Option<BuildMarks>,
 }
 
 /// A puff of dust, and for a broken segment its chips or splinters flying

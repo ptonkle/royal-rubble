@@ -6,8 +6,8 @@ use crate::physics::*;
 
 const BASE: Vec2 = Vec2::ints(4, 0);
 /// A plot-like distance from the trebuchet: the real terrain puts the plot
-/// front 112-148 columns out, where plain shots come in at a slant.
-const FAR: i64 = 4 + 140;
+/// front 60-80 columns out (R1.3700), where plain shots come in at a slant.
+const FAR: i64 = 4 + 75;
 /// Ticks a far shot is followed: long enough for a flat throw to land.
 const FAR_FLIGHT: u32 = 400;
 
@@ -86,19 +86,20 @@ fn ai_hard_bot_compensates_for_wind() {
 
 #[test]
 fn ai_drop_effect_reaches_a_royal_down_a_well() {
-    // a royal at the bottom of a one-unit well three units deep, a plot's
+    // a royal at the bottom of a two-unit well four units deep, a plot's
     // distance out: plain shots come in at a slant and hit the walls; a drop
-    // falls straight in
+    // falls straight in (one unit wide and three deep until R1.3702 made the
+    // shot one unit across)
     let kills = |effects: &[AirEffect]| {
         let mut w = World::new(Terrain::flat(FAR as usize + 60, Fx::ZERO));
         let floor = w
-            .add_beam(Vec2::ints(FAR, 0), Vec2::ints(FAR + 1, 0), Material::Metal)
+            .add_beam(Vec2::ints(FAR, 0), Vec2::ints(FAR + 2, 0), Material::Metal)
             .unwrap();
         // each wall two layers thick, so a shot rolling along the ground
         // cannot pass between ticks (R1.1306)
-        for x in [FAR, FAR + 1] {
+        for x in [FAR, FAR + 2] {
             let outer = if x == FAR { -Fx::HALF } else { Fx::HALF };
-            for y in 0..3 {
+            for y in 0..4 {
                 for dx in [Fx::ZERO, outer] {
                     let at = |y: i64| Vec2::new(Fx::from_int(x) + dx, Fx::from_int(y));
                     w.add_beam(at(y), at(y + 1), Material::Metal).unwrap();
@@ -311,6 +312,7 @@ fn match_with(seats: Vec<Seat>, seed: u64) -> Play {
         seats,
         wind: false,
         seed,
+        flat: false,
     })
     .unwrap();
     p.start().unwrap();

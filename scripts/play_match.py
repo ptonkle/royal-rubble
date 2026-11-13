@@ -45,14 +45,11 @@ def build_some(page):
     cell = (right - left) // 40
     x0 = left + cell * 4
     press(page, "match.tool.wood")
-    page.mouse.move(left, bottom)
-    page.mouse.down()
-    page.mouse.move(left, bottom - cell * 2, steps=4)
-    page.mouse.up()
-    page.mouse.move(left, bottom - cell * 2)
-    page.mouse.down()
-    page.mouse.move(left + cell * 2, bottom - cell * 2, steps=4)
-    page.mouse.up()
+    # two clicks a segment, the next starting where the last ended (R1.3300)
+    page.mouse.click(left, bottom)
+    page.mouse.click(left, bottom - cell * 2)
+    page.mouse.click(left + cell * 2, bottom - cell * 2)
+    page.keyboard.press("Escape")
     if page.locator(by_id("match.tool.royal")).count():
         press(page, "match.tool.royal")
         page.mouse.click(x0 + cell * 6, bottom - 2)
@@ -109,8 +106,8 @@ def main():
                 page.wait_for_timeout(100)
                 continue
             if page.locator(by_id("match.ammo")).count():
-                left = page.locator(by_id("match.ammo.0")).inner_text()
-                if left.strip().endswith(" 0") and not page.locator(by_id("match.ammo.1")).count():
+                left = page.locator(by_id("match.ammo.0") + " .bar-count").inner_text()
+                if left.strip() == "0" and not page.locator(by_id("match.ammo.1")).count():
                     if page.locator(by_id("match.ready")).is_enabled():
                         press(page, "match.ready")
                     continue
@@ -122,7 +119,7 @@ def main():
                 page.wait_for_timeout(400)
                 continue
             if page.locator(by_id("match.tool")).count():
-                rnd = page.locator(by_id("match.phase")).inner_text().split("\n")[0]
+                rnd = page.locator(by_id("match.round")).inner_text()
                 if rnd not in built_rounds:
                     built_rounds.add(rnd)
                     build_some(page)

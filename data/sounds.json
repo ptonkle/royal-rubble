@@ -1,5 +1,5 @@
 {
- "_note": "Every sound in Royal Rubble. There are no audio files: tools/sound/compile.py compiles these recipes into data/sound-programs.json, which web/sound/synth.js plays and tools/sound/render.py renders. Written by tools/sound/author.py; edit there. Frequencies in Hz, times in ms, gains 0 to 1.",
+ "_note": "Every sound in Royal Rubble. There are no audio files: tools/sound/compile.py compiles these recipes into data/sound-programs.json, which web/synth.js plays and tools/sound/render.py renders. Written by tools/sound/author.py; edit there. Frequencies in Hz, times in ms, gains 0 to 1.",
  "silence": 0.001,
  "noise": {
   "samples": 44100,
@@ -94,7 +94,7 @@
    ]
   },
   {
-   "label": "Shots and air effects",
+   "label": "Shots and tricks",
    "ids": [
     "splash",
     "explosion",
@@ -136,18 +136,24 @@
    "ids": [
     "horn_build",
     "horn_siege",
-    "tick",
-    "tick_last",
+    "drum_count",
+    "drum_close",
     "elimination",
     "victory",
     "ui_click",
-    "ui_hover"
+    "ui_hover",
+    "sample"
    ]
   },
   {
    "label": "Music",
    "ids": [
+    "music_menu",
     "music_build",
+    "music_jig",
+    "music_pastoral",
+    "music_ballad",
+    "music_mandolins",
     "music_siege",
     "music_siege_urgent"
    ]
@@ -2226,46 +2232,144 @@
    "layers": [
     {
      "wave": "sawtooth",
-     "freq": 520,
-     "gain": 0.13,
+     "freq": 420,
+     "gain": 0.546,
      "at_ms": 0,
-     "attack_ms": 12,
-     "hold_ms": 180,
-     "release_ms": 70,
+     "attack_ms": 14,
+     "hold_ms": 260,
+     "release_ms": 110,
      "bends": [
       [
-       54.0,
-       700
+       46.8,
+       640
       ],
       [
-       180,
-       380
+       130.0,
+       595
+      ],
+      [
+       260,
+       300
       ]
      ],
      "filters": [
       {
        "type": "bandpass",
-       "freq": 1100,
-       "q": 3.5
-      },
-      {
-       "type": "bandpass",
-       "freq": 2860.0,
-       "q": 4
+       "freq": 851,
+       "q": 5
       }
      ],
      "wobble": [
       {
-       "rate": 11,
-       "cents": 25
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
       }
      ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 420,
+     "gain": 0.382,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 260,
+     "release_ms": 110,
+     "bends": [
+      [
+       46.8,
+       640
+      ],
+      [
+       130.0,
+       595
+      ],
+      [
+       260,
+       300
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1322,
+       "q": 7
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 420,
+     "gain": 0.191,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 260,
+     "release_ms": 110,
+     "bends": [
+      [
+       46.8,
+       640
+      ],
+      [
+       130.0,
+       595
+      ],
+      [
+       260,
+       300
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2856,
+       "q": 9
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.066,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1322,
+       "q": 2
+      }
+     ],
+     "at_ms": 0,
+     "attack_ms": 10,
+     "hold_ms": 156,
+     "release_ms": 130
     },
     {
      "wave": "sine",
      "freq": 95,
      "gain": 0.22,
-     "at_ms": 200,
+     "at_ms": 280,
      "attack_ms": 2,
      "hold_ms": 0,
      "release_ms": 140,
@@ -2281,7 +2385,7 @@
       ]
      ],
      "ring_ms": 30,
-     "at_ms": 200,
+     "at_ms": 280,
      "filters": [
       {
        "type": "lowpass",
@@ -2298,46 +2402,144 @@
    "layers": [
     {
      "wave": "sawtooth",
-     "freq": 260,
-     "gain": 0.16,
+     "freq": 170,
+     "gain": 0.672,
      "at_ms": 0,
-     "attack_ms": 12,
-     "hold_ms": 240,
-     "release_ms": 70,
+     "attack_ms": 14,
+     "hold_ms": 330,
+     "release_ms": 110,
      "bends": [
       [
-       72.0,
-       330
+       59.4,
+       250
       ],
       [
-       240,
-       190
+       165.0,
+       232
+      ],
+      [
+       330,
+       110
       ]
      ],
      "filters": [
       {
        "type": "bandpass",
-       "freq": 700,
-       "q": 3.5
-      },
-      {
-       "type": "bandpass",
-       "freq": 1820.0,
-       "q": 4
+       "freq": 560,
+       "q": 5
       }
      ],
      "wobble": [
       {
-       "rate": 11,
-       "cents": 25
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
       }
      ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 170,
+     "gain": 0.47,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 330,
+     "release_ms": 110,
+     "bends": [
+      [
+       59.4,
+       250
+      ],
+      [
+       165.0,
+       232
+      ],
+      [
+       330,
+       110
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 7
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 170,
+     "gain": 0.235,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 330,
+     "release_ms": 110,
+     "bends": [
+      [
+       59.4,
+       250
+      ],
+      [
+       165.0,
+       232
+      ],
+      [
+       330,
+       110
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2400,
+       "q": 9
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.081,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 2
+      }
+     ],
+     "at_ms": 0,
+     "attack_ms": 10,
+     "hold_ms": 198,
+     "release_ms": 165
     },
     {
      "wave": "sine",
      "freq": 95,
      "gain": 0.3,
-     "at_ms": 260,
+     "at_ms": 330,
      "attack_ms": 2,
      "hold_ms": 0,
      "release_ms": 140,
@@ -2353,7 +2555,7 @@
       ]
      ],
      "ring_ms": 30,
-     "at_ms": 260,
+     "at_ms": 330,
      "filters": [
       {
        "type": "lowpass",
@@ -2372,7 +2574,7 @@
       ]
      ],
      "ring_ms": 160.0,
-     "at_ms": 260,
+     "at_ms": 330,
      "filters": [],
      "freq": 620.0
     },
@@ -2386,7 +2588,7 @@
       ]
      ],
      "ring_ms": 100.0,
-     "at_ms": 260,
+     "at_ms": 330,
      "filters": [],
      "freq": 1711.2
     },
@@ -2400,7 +2602,7 @@
       ]
      ],
      "ring_ms": 72.72727272727272,
-     "at_ms": 260,
+     "at_ms": 330,
      "filters": [],
      "freq": 3348.0
     },
@@ -2414,7 +2616,7 @@
       ]
      ],
      "ring_ms": 57.142857142857146,
-     "at_ms": 260,
+     "at_ms": 330,
      "filters": [],
      "freq": 5536.6
     }
@@ -2426,46 +2628,144 @@
    "layers": [
     {
      "wave": "sawtooth",
-     "freq": 780,
-     "gain": 0.12,
+     "freq": 560,
+     "gain": 0.504,
      "at_ms": 0,
-     "attack_ms": 12,
-     "hold_ms": 300,
-     "release_ms": 70,
+     "attack_ms": 14,
+     "hold_ms": 380,
+     "release_ms": 110,
      "bends": [
       [
-       90.0,
-       1100
+       68.39999999999999,
+       900
       ],
       [
-       300,
-       640
+       190.0,
+       837
+      ],
+      [
+       380,
+       420
       ]
      ],
      "filters": [
       {
        "type": "bandpass",
-       "freq": 1400,
-       "q": 3.5
-      },
-      {
-       "type": "bandpass",
-       "freq": 3640.0,
-       "q": 4
+       "freq": 912,
+       "q": 5
       }
      ],
      "wobble": [
       {
-       "rate": 11,
-       "cents": 25
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
       }
      ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 560,
+     "gain": 0.353,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 380,
+     "release_ms": 110,
+     "bends": [
+      [
+       68.39999999999999,
+       900
+      ],
+      [
+       190.0,
+       837
+      ],
+      [
+       380,
+       420
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1416,
+       "q": 7
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 560,
+     "gain": 0.176,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 380,
+     "release_ms": 110,
+     "bends": [
+      [
+       68.39999999999999,
+       900
+      ],
+      [
+       190.0,
+       837
+      ],
+      [
+       380,
+       420
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 3060,
+       "q": 9
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.06,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1416,
+       "q": 2
+      }
+     ],
+     "at_ms": 0,
+     "attack_ms": 10,
+     "hold_ms": 228,
+     "release_ms": 190
     },
     {
      "wave": "sine",
      "freq": 95,
      "gain": 0.22,
-     "at_ms": 330,
+     "at_ms": 400,
      "attack_ms": 2,
      "hold_ms": 0,
      "release_ms": 140,
@@ -2481,7 +2781,7 @@
       ]
      ],
      "ring_ms": 30,
-     "at_ms": 330,
+     "at_ms": 400,
      "filters": [
       {
        "type": "lowpass",
@@ -2500,7 +2800,7 @@
       ]
      ],
      "ring_ms": 300,
-     "at_ms": 340,
+     "at_ms": 420,
      "filters": [],
      "freq": 1568
     },
@@ -2514,7 +2814,7 @@
       ]
      ],
      "ring_ms": 300,
-     "at_ms": 410,
+     "at_ms": 490,
      "filters": [],
      "freq": 2093
     }
@@ -2526,46 +2826,144 @@
    "layers": [
     {
      "wave": "sawtooth",
-     "freq": 330,
-     "gain": 0.16,
+     "freq": 230,
+     "gain": 0.63,
      "at_ms": 0,
-     "attack_ms": 12,
-     "hold_ms": 320,
-     "release_ms": 70,
+     "attack_ms": 14,
+     "hold_ms": 380,
+     "release_ms": 110,
      "bends": [
       [
-       96.0,
-       450
+       68.39999999999999,
+       340
       ],
       [
-       320,
-       240
+       190.0,
+       316
+      ],
+      [
+       380,
+       150
       ]
      ],
      "filters": [
       {
        "type": "bandpass",
-       "freq": 850,
-       "q": 3.5
-      },
-      {
-       "type": "bandpass",
-       "freq": 2210.0,
-       "q": 4
+       "freq": 760,
+       "q": 5
       }
      ],
      "wobble": [
       {
-       "rate": 11,
-       "cents": 25
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
       }
      ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 230,
+     "gain": 0.441,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 380,
+     "release_ms": 110,
+     "bends": [
+      [
+       68.39999999999999,
+       340
+      ],
+      [
+       190.0,
+       316
+      ],
+      [
+       380,
+       150
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1180,
+       "q": 7
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 230,
+     "gain": 0.22,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 380,
+     "release_ms": 110,
+     "bends": [
+      [
+       68.39999999999999,
+       340
+      ],
+      [
+       190.0,
+       316
+      ],
+      [
+       380,
+       150
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2550,
+       "q": 9
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.076,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1180,
+       "q": 2
+      }
+     ],
+     "at_ms": 0,
+     "attack_ms": 10,
+     "hold_ms": 228,
+     "release_ms": 190
     },
     {
      "wave": "sine",
      "freq": 95,
      "gain": 0.3,
-     "at_ms": 350,
+     "at_ms": 400,
      "attack_ms": 2,
      "hold_ms": 0,
      "release_ms": 140,
@@ -2581,7 +2979,7 @@
       ]
      ],
      "ring_ms": 30,
-     "at_ms": 350,
+     "at_ms": 400,
      "filters": [
       {
        "type": "lowpass",
@@ -2600,7 +2998,7 @@
       ]
      ],
      "ring_ms": 300,
-     "at_ms": 360,
+     "at_ms": 420,
      "filters": [],
      "freq": 1175
     },
@@ -2614,7 +3012,7 @@
       ]
      ],
      "ring_ms": 300,
-     "at_ms": 430,
+     "at_ms": 490,
      "filters": [],
      "freq": 1568
     }
@@ -2626,46 +3024,144 @@
    "layers": [
     {
      "wave": "sawtooth",
-     "freq": 440,
-     "gain": 0.16,
+     "freq": 400,
+     "gain": 0.546,
      "at_ms": 0,
-     "attack_ms": 12,
-     "hold_ms": 420,
-     "release_ms": 70,
+     "attack_ms": 14,
+     "hold_ms": 520,
+     "release_ms": 110,
      "bends": [
       [
-       126.0,
-       620
+       93.6,
+       680
       ],
       [
-       420,
-       330
+       260.0,
+       632
+      ],
+      [
+       520,
+       280
       ]
      ],
      "filters": [
       {
        "type": "bandpass",
-       "freq": 1000,
-       "q": 3.5
-      },
-      {
-       "type": "bandpass",
-       "freq": 2600.0,
-       "q": 4
+       "freq": 874,
+       "q": 5
       }
      ],
      "wobble": [
       {
-       "rate": 11,
-       "cents": 25
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
       }
      ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 400,
+     "gain": 0.382,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 520,
+     "release_ms": 110,
+     "bends": [
+      [
+       93.6,
+       680
+      ],
+      [
+       260.0,
+       632
+      ],
+      [
+       520,
+       280
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1357,
+       "q": 7
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 400,
+     "gain": 0.191,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 520,
+     "release_ms": 110,
+     "bends": [
+      [
+       93.6,
+       680
+      ],
+      [
+       260.0,
+       632
+      ],
+      [
+       520,
+       280
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2932,
+       "q": 9
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.066,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1357,
+       "q": 2
+      }
+     ],
+     "at_ms": 0,
+     "attack_ms": 10,
+     "hold_ms": 312,
+     "release_ms": 260
     },
     {
      "wave": "sine",
      "freq": 95,
      "gain": 0.3,
-     "at_ms": 450,
+     "at_ms": 540,
      "attack_ms": 2,
      "hold_ms": 0,
      "release_ms": 140,
@@ -2681,7 +3177,7 @@
       ]
      ],
      "ring_ms": 30,
-     "at_ms": 450,
+     "at_ms": 540,
      "filters": [
       {
        "type": "lowpass",
@@ -2700,7 +3196,7 @@
       ]
      ],
      "ring_ms": 500,
-     "at_ms": 470,
+     "at_ms": 560,
      "filters": [],
      "freq": 1047
     },
@@ -2714,7 +3210,7 @@
       ]
      ],
      "ring_ms": 500,
-     "at_ms": 560,
+     "at_ms": 650,
      "filters": [],
      "freq": 1319
     },
@@ -2728,7 +3224,7 @@
       ]
      ],
      "ring_ms": 500,
-     "at_ms": 650,
+     "at_ms": 740,
      "filters": [],
      "freq": 1568
     }
@@ -2740,46 +3236,144 @@
    "layers": [
     {
      "wave": "sawtooth",
-     "freq": 190,
-     "gain": 0.18,
+     "freq": 140,
+     "gain": 0.756,
      "at_ms": 0,
-     "attack_ms": 12,
-     "hold_ms": 420,
-     "release_ms": 70,
+     "attack_ms": 14,
+     "hold_ms": 560,
+     "release_ms": 110,
      "bends": [
       [
-       126.0,
-       260
+       100.8,
+       210
       ],
       [
-       420,
-       140
+       280.0,
+       195
+      ],
+      [
+       560,
+       80
       ]
      ],
      "filters": [
       {
        "type": "bandpass",
-       "freq": 620,
-       "q": 3.5
-      },
-      {
-       "type": "bandpass",
-       "freq": 1612.0,
-       "q": 4
+       "freq": 560,
+       "q": 5
       }
      ],
      "wobble": [
       {
-       "rate": 11,
-       "cents": 25
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
       }
      ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 140,
+     "gain": 0.529,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 560,
+     "release_ms": 110,
+     "bends": [
+      [
+       100.8,
+       210
+      ],
+      [
+       280.0,
+       195
+      ],
+      [
+       560,
+       80
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 7
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 140,
+     "gain": 0.265,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 560,
+     "release_ms": 110,
+     "bends": [
+      [
+       100.8,
+       210
+      ],
+      [
+       280.0,
+       195
+      ],
+      [
+       560,
+       80
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2400,
+       "q": 9
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.091,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 2
+      }
+     ],
+     "at_ms": 0,
+     "attack_ms": 10,
+     "hold_ms": 336,
+     "release_ms": 280
     },
     {
      "wave": "sine",
      "freq": 95,
      "gain": 0.35,
-     "at_ms": 450,
+     "at_ms": 580,
      "attack_ms": 2,
      "hold_ms": 0,
      "release_ms": 140,
@@ -2795,7 +3389,7 @@
       ]
      ],
      "ring_ms": 30,
-     "at_ms": 450,
+     "at_ms": 580,
      "filters": [
       {
        "type": "lowpass",
@@ -2808,7 +3402,7 @@
      "wave": "sawtooth",
      "freq": 523,
      "gain": 0.09,
-     "at_ms": 520,
+     "at_ms": 650,
      "attack_ms": 22,
      "hold_ms": 70,
      "release_ms": 140,
@@ -2830,7 +3424,7 @@
      "wave": "sawtooth",
      "freq": 523,
      "gain": 0.09,
-     "at_ms": 640,
+     "at_ms": 770,
      "attack_ms": 22,
      "hold_ms": 70,
      "release_ms": 140,
@@ -2852,7 +3446,7 @@
      "wave": "sawtooth",
      "freq": 392,
      "gain": 0.09,
-     "at_ms": 760,
+     "at_ms": 890,
      "attack_ms": 22,
      "hold_ms": 420,
      "release_ms": 380,
@@ -2874,7 +3468,7 @@
      "wave": "sawtooth",
      "freq": 659,
      "gain": 0.05,
-     "at_ms": 520,
+     "at_ms": 650,
      "attack_ms": 22,
      "hold_ms": 70,
      "release_ms": 140,
@@ -2896,7 +3490,7 @@
      "wave": "sawtooth",
      "freq": 659,
      "gain": 0.05,
-     "at_ms": 640,
+     "at_ms": 770,
      "attack_ms": 22,
      "hold_ms": 70,
      "release_ms": 140,
@@ -2918,7 +3512,7 @@
      "wave": "sawtooth",
      "freq": 494,
      "gain": 0.05,
-     "at_ms": 760,
+     "at_ms": 890,
      "attack_ms": 22,
      "hold_ms": 420,
      "release_ms": 380,
@@ -3643,70 +4237,189 @@
    ]
   },
   {
-   "id": "tick",
-   "label": "Timer tick",
+   "id": "drum_count",
+   "label": "Countdown drum",
    "layers": [
     {
      "wave": "sine",
-     "freq": 1250,
-     "gain": 0.11,
+     "freq": 72,
+     "gain": 0.42,
      "at_ms": 0,
      "attack_ms": 2,
      "hold_ms": 0,
-     "release_ms": 45,
-     "to_freq": 1000
+     "release_ms": 420,
+     "to_freq": 42,
+     "glide_ms": 260
+    },
+    {
+     "wave": "sine",
+     "freq": 118,
+     "gain": 0.147,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 160,
+     "to_freq": 80
     },
     {
      "wave": "noise",
-     "gain": 0.06,
+     "gain": 0.294,
      "strikes": [
       [
        0,
        1
       ]
      ],
-     "ring_ms": 5,
+     "ring_ms": 70,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 220,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.105,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 14,
      "at_ms": 0,
      "filters": [
       {
        "type": "bandpass",
-       "freq": 2600,
-       "q": 3
+       "freq": 900,
+       "q": 1.4
       }
      ]
     }
    ]
   },
   {
-   "id": "tick_last",
-   "label": "Last tick",
+   "id": "drum_close",
+   "label": "Countdown drum (last seconds)",
    "layers": [
     {
      "wave": "sine",
-     "freq": 1650,
-     "gain": 0.14,
+     "freq": 72,
+     "gain": 0.6,
      "at_ms": 0,
      "attack_ms": 2,
      "hold_ms": 0,
-     "release_ms": 60,
-     "to_freq": 1350
+     "release_ms": 420,
+     "to_freq": 42,
+     "glide_ms": 260
+    },
+    {
+     "wave": "sine",
+     "freq": 118,
+     "gain": 0.21,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 160,
+     "to_freq": 80
     },
     {
      "wave": "noise",
-     "gain": 0.08,
+     "gain": 0.42,
      "strikes": [
       [
        0,
        1
       ]
      ],
-     "ring_ms": 6,
+     "ring_ms": 70,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 220,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.15,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 14,
      "at_ms": 0,
      "filters": [
       {
        "type": "bandpass",
-       "freq": 3200,
-       "q": 3
+       "freq": 900,
+       "q": 1.4
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 72,
+     "gain": 0.42,
+     "at_ms": 240,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 420,
+     "to_freq": 42,
+     "glide_ms": 260
+    },
+    {
+     "wave": "sine",
+     "freq": 118,
+     "gain": 0.147,
+     "at_ms": 240,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 160,
+     "to_freq": 80
+    },
+    {
+     "wave": "noise",
+     "gain": 0.294,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 70,
+     "at_ms": 240,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 220,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.105,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 14,
+     "at_ms": 240,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 1.4
       }
      ]
     }
@@ -4228,6 +4941,120 @@
      "release_ms": 28
     }
    ]
+  },
+  {
+   "id": "sample",
+   "label": "Volume sample",
+   "layers": [
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.62,
+      0.46,
+      0.32,
+      0.22,
+      0.16,
+      0.1,
+      0.07
+     ],
+     "freq": 146.83,
+     "gain": 0.09,
+     "at_ms": 0,
+     "attack_ms": 3,
+     "release_ms": 650,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1174.64,
+       "q": 0.7071,
+       "sweep_ms": 260,
+       "to_freq": 323.02600000000007
+      }
+     ]
+    },
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.62,
+      0.46,
+      0.32,
+      0.22,
+      0.16,
+      0.1,
+      0.07
+     ],
+     "freq": 220,
+     "gain": 0.09,
+     "at_ms": 28,
+     "attack_ms": 3,
+     "release_ms": 650,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1760,
+       "q": 0.7071,
+       "sweep_ms": 260,
+       "to_freq": 484.00000000000006
+      }
+     ]
+    },
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.62,
+      0.46,
+      0.32,
+      0.22,
+      0.16,
+      0.1,
+      0.07
+     ],
+     "freq": 293.66,
+     "gain": 0.09,
+     "at_ms": 56,
+     "attack_ms": 3,
+     "release_ms": 650,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2349.28,
+       "q": 0.7071,
+       "sweep_ms": 260,
+       "to_freq": 646.0520000000001
+      }
+     ]
+    },
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.62,
+      0.46,
+      0.32,
+      0.22,
+      0.16,
+      0.1,
+      0.07
+     ],
+     "freq": 369.99,
+     "gain": 0.09,
+     "at_ms": 84,
+     "attack_ms": 3,
+     "release_ms": 650,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2959.92,
+       "q": 0.7071,
+       "sweep_ms": 260,
+       "to_freq": 813.9780000000001
+      }
+     ]
+    }
+   ]
   }
  ],
  "instruments": {
@@ -4665,9 +5492,423 @@
      ]
     }
    ]
+  },
+  "mandolin": {
+   "layers": [
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.72,
+      0.56,
+      0.46,
+      0.36,
+      0.28,
+      0.21,
+      0.15,
+      0.1,
+      0.07,
+      0.05
+     ],
+     "ratio": 1,
+     "gain": 0.042,
+     "attack_ms": 2,
+     "release_ms": 420,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 12,
+       "to_ratio": 3,
+       "sweep_ms": 170,
+       "q": 1.4
+      }
+     ]
+    },
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.6,
+      0.45,
+      0.33,
+      0.24,
+      0.16,
+      0.1,
+      0.06
+     ],
+     "ratio": 1.0045,
+     "at_ms": 7,
+     "gain": 0.03,
+     "attack_ms": 2,
+     "release_ms": 360,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 9,
+       "to_ratio": 2.6,
+       "sweep_ms": 150,
+       "q": 1.2
+      }
+     ]
+    }
+   ]
+  },
+  "mandolin_trem": {
+   "layers": [
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.62,
+      0.46,
+      0.32,
+      0.22,
+      0.14,
+      0.08
+     ],
+     "ratio": 1,
+     "gain": 0.03,
+     "attack_ms": 12,
+     "hold_ms": "note",
+     "gap_ms": 50,
+     "release_ms": 140,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 6,
+       "q": 1
+      }
+     ],
+     "throb": [
+      {
+       "rate": 12.5,
+       "depth": 0.8
+      }
+     ]
+    },
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.5,
+      0.3,
+      0.2,
+      0.1
+     ],
+     "ratio": 1.004,
+     "gain": 0.018,
+     "attack_ms": 14,
+     "hold_ms": "note",
+     "gap_ms": 50,
+     "release_ms": 140,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 5,
+       "q": 1
+      }
+     ],
+     "throb": [
+      {
+       "rate": 13.1,
+       "depth": 0.75
+      }
+     ]
+    }
+   ]
+  },
+  "bodhran": {
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.1,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 70,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 140,
+       "q": 1.2
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 108,
+     "to_freq": 64,
+     "glide_ms": 120,
+     "gain": 0.08,
+     "attack_ms": 2,
+     "release_ms": 150
+    },
+    {
+     "wave": "noise",
+     "gain": 0.02,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 20,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1300,
+       "q": 1
+      }
+     ]
+    }
+   ]
+  },
+  "tambourine": {
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.03,
+     "strikes": [
+      [
+       0,
+       1
+      ],
+      [
+       22,
+       0.5
+      ]
+     ],
+     "ring_ms": 45,
+     "filters": [
+      {
+       "type": "highpass",
+       "freq": 5500,
+       "q": 0.8
+      }
+     ]
+    }
+   ]
+  },
+  "horn_note": {
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "ratio": 1,
+     "gain": 0.04,
+     "attack_ms": 55,
+     "hold_ms": "note",
+     "gap_ms": 45,
+     "release_ms": 170,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 4,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 4.8,
+       "cents": 8
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "ratio": 0.5,
+     "gain": 0.016,
+     "attack_ms": 70,
+     "hold_ms": "note",
+     "gap_ms": 45,
+     "release_ms": 170,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 3,
+       "q": 1
+      }
+     ]
+    }
+   ]
+  },
+  "soft_drone": {
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "ratio": 1,
+     "gain": 0.009,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 360,
+       "q": 0.7071
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 0.21,
+       "cents": 4
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "ratio": 2,
+     "gain": 0.006,
+     "wobble": [
+      {
+       "rate": 0.29,
+       "cents": 5
+      }
+     ]
+    }
+   ]
   }
  },
  "music": [
+  {
+   "id": "music_menu",
+   "label": "Menu theme",
+   "bpm": 92,
+   "beats_per_bar": 3,
+   "section_bars": 8,
+   "root_hz": 146.83,
+   "mode": [
+    0,
+    2,
+    4,
+    5,
+    7,
+    9,
+    11
+   ],
+   "seed": 47,
+   "humanize_ms": 10,
+   "form": [
+    "A",
+    "B",
+    "B2"
+   ],
+   "drones": [
+    {
+     "instrument": "soft_drone",
+     "degree": -7
+    }
+   ],
+   "parts": [
+    {
+     "type": "notes",
+     "instrument": "horn_note",
+     "octave": 1,
+     "sections": {
+      "A": {
+       "notes": "0:1 0:.5 0:.5 4:1 4:2 2:1 3:1 4:1 5:1 4:3 0:1 0:.5 0:.5 4:1 7:2 6:1 5:1 4:1 1:1 0:3"
+      }
+     }
+    },
+    {
+     "type": "notes",
+     "instrument": "recorder",
+     "octave": 1,
+     "sections": {
+      "B": {
+       "notes": "4:2 5:1 6:1.5 5:.5 4:1 3:2 2:1 1:3 2:2 3:1 4:1.5 5:.5 6:1 7:2 6:1 7:3"
+      },
+      "B2": {
+       "notes": "7:2 8:1 9:1.5 8:.5 7:1 6:2 5:1 4:3 5:1 4:1 3:1 2:1 3:1 1:1 2:1.5 1:.5 0:1 0:3"
+      }
+     }
+    },
+    {
+     "type": "notes",
+     "instrument": "mandolin_trem",
+     "octave": 0,
+     "gain": 0.55,
+     "sections": {
+      "B2": {
+       "notes": "4:3 4:3 2:3 1:3 0:3 -1:3 1:3 0:3"
+      }
+     }
+    },
+    {
+     "type": "arp",
+     "instrument": "lute",
+     "step_beats": 0.5,
+     "pattern": [
+      -7,
+      0,
+      4,
+      7,
+      4,
+      2
+     ],
+     "soft": 0.6,
+     "ring": 2,
+     "sections": {
+      "A": {
+       "chords": [
+        0,
+        0,
+        3,
+        4,
+        0,
+        0,
+        1,
+        0
+       ]
+      },
+      "B": {
+       "chords": [
+        0,
+        4,
+        3,
+        4,
+        0,
+        4,
+        0,
+        0
+       ]
+      },
+      "B2": {
+       "chords": [
+        0,
+        0,
+        4,
+        4,
+        3,
+        1,
+        4,
+        0
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "tabor",
+     "step_beats": 0.5,
+     "soft": 0.5,
+     "gain": 0.8,
+     "sections": {
+      "A": {
+       "bars": [
+        "X.x.x.",
+        "X.xxx."
+       ]
+      },
+      "B2": {
+       "bars": [
+        "X...x.",
+        "X.x.x."
+       ]
+      }
+     }
+    }
+   ]
+  },
   {
    "id": "music_build",
    "label": "Build and upgrade music",
@@ -4840,6 +6081,640 @@
        "bars": [
         "X..x..x.",
         "X..x.xxx"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "music_jig",
+   "label": "Village jig",
+   "bpm": 318,
+   "beats_per_bar": 6,
+   "section_bars": 8,
+   "root_hz": 196.0,
+   "mode": [
+    0,
+    2,
+    4,
+    5,
+    7,
+    9,
+    11
+   ],
+   "seed": 31,
+   "humanize_ms": 9,
+   "form": [
+    "A",
+    "A2",
+    "B",
+    "B2"
+   ],
+   "drones": [],
+   "parts": [
+    {
+     "type": "notes",
+     "instrument": "mandolin",
+     "octave": 1,
+     "sections": {
+      "A": {
+       "notes": "4:1 2:1 4:1 7:2 4:1  5:1 4:1 5:1 6:1 5:1 4:1  4:1 2:1 4:1 7:2 9:1  8:1 7:1 6:1 5:3 4:1 2:1 4:1 7:2 4:1  5:1 6:1 7:1 8:2 7:1  6:1 4:1 6:1 5:1 3:1 1:1  2:1 1:1 -1:1 0:3"
+      },
+      "A2": {
+       "notes": "4:1 2:1 4:1 7:2 4:1  5:1 4:1 5:1 6:1 5:1 4:1  4:1 2:1 4:1 7:2 9:1  8:1 7:1 6:1 5:3 4:1 2:1 4:1 7:2 4:1  5:1 6:1 7:1 8:2 7:1  6:1 8:1 6:1 4:1 5:1 6:1  7:3 r:3"
+      },
+      "B": {
+       "notes": "9:2 8:1 9:2 7:1  8:1 7:1 8:1 6:2 4:1  9:2 8:1 9:1 10:1 11:1  11:3 9:3 12:1 11:1 10:1 9:1 8:1 7:1  8:1 9:1 8:1 6:2 4:1  5:1 7:1 6:1 5:1 4:1 2:1  1:3 4:3"
+      },
+      "B2": {
+       "notes": "9:2 8:1 9:2 7:1  8:1 7:1 8:1 6:2 4:1  9:2 8:1 9:1 10:1 11:1  11:3 9:3 12:1 11:1 10:1 9:1 8:1 7:1  8:1 9:1 8:1 6:2 4:1  5:1 7:1 6:1 8:1 6:1 4:1  7:3 r:3"
+      }
+     }
+    },
+    {
+     "type": "notes",
+     "instrument": "recorder",
+     "octave": 1,
+     "gain": 0.7,
+     "sections": {
+      "B": {
+       "notes": "9:2 8:1 9:2 7:1  8:1 7:1 8:1 6:2 4:1  9:2 8:1 9:1 10:1 11:1  11:3 9:3 12:1 11:1 10:1 9:1 8:1 7:1  8:1 9:1 8:1 6:2 4:1  5:1 7:1 6:1 5:1 4:1 2:1  1:3 4:3"
+      },
+      "B2": {
+       "notes": "9:2 8:1 9:2 7:1  8:1 7:1 8:1 6:2 4:1  9:2 8:1 9:1 10:1 11:1  11:3 9:3 12:1 11:1 10:1 9:1 8:1 7:1  8:1 9:1 8:1 6:2 4:1  5:1 7:1 6:1 8:1 6:1 4:1  7:3 r:3"
+      }
+     }
+    },
+    {
+     "type": "arp",
+     "instrument": "lute",
+     "step_beats": 1,
+     "pattern": [
+      -7,
+      2,
+      4,
+      -3,
+      2,
+      4
+     ],
+     "soft": 0.55,
+     "ring": 2,
+     "sections": {
+      "A": {
+       "chords": [
+        0,
+        5,
+        0,
+        4,
+        0,
+        3,
+        4,
+        0
+       ]
+      },
+      "A2": {
+       "chords": [
+        0,
+        5,
+        0,
+        4,
+        0,
+        3,
+        4,
+        0
+       ]
+      },
+      "B": {
+       "chords": [
+        5,
+        4,
+        0,
+        0,
+        3,
+        4,
+        0,
+        4
+       ]
+      },
+      "B2": {
+       "chords": [
+        5,
+        4,
+        0,
+        0,
+        3,
+        4,
+        4,
+        0
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "bodhran",
+     "step_beats": 1,
+     "soft": 0.5,
+     "sections": {
+      "A": {
+       "bars": [
+        "X.xX.x",
+        "X.xX.x",
+        "X.xX.x",
+        "X.xXxx"
+       ]
+      },
+      "A2": {
+       "bars": [
+        "X.xX.x",
+        "X.xX.x",
+        "X.xX.x",
+        "X.xX.."
+       ]
+      },
+      "B": {
+       "bars": [
+        "X.xX.x",
+        "XxxX.x"
+       ]
+      },
+      "B2": {
+       "bars": [
+        "X.xX.x",
+        "XxxX.x",
+        "X.xX.x",
+        "X.xX.."
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "tambourine",
+     "step_beats": 1,
+     "soft": 0.6,
+     "sections": {
+      "B": {
+       "bars": [
+        "..x..x"
+       ]
+      },
+      "B2": {
+       "bars": [
+        "..x..x"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "music_pastoral",
+   "label": "Under the hill",
+   "bpm": 84,
+   "beats_per_bar": 3,
+   "section_bars": 8,
+   "root_hz": 174.61,
+   "mode": [
+    0,
+    2,
+    4,
+    5,
+    7,
+    9,
+    11
+   ],
+   "seed": 37,
+   "humanize_ms": 14,
+   "form": [
+    "A",
+    "B",
+    "A2",
+    "C"
+   ],
+   "drones": [
+    {
+     "instrument": "soft_drone",
+     "degree": -7
+    },
+    {
+     "instrument": "soft_drone",
+     "degree": -3,
+     "gain": 0.6
+    }
+   ],
+   "parts": [
+    {
+     "type": "notes",
+     "instrument": "recorder",
+     "octave": 1,
+     "sections": {
+      "A": {
+       "notes": "4:2 5:1 4:2 2:1 3:1.5 2:.5 1:1 2:3 4:2 5:1 7:2 6:1 5:1 4:1 3:1 4:3"
+      },
+      "B": {
+       "notes": "7:2 8:1 9:2 7:1 8:1 7:1 6:1 5:3 6:2 5:1 4:2 2:1 3:1 2:1 1:1 0:3"
+      },
+      "A2": {
+       "notes": "4:2 5:1 4:2 2:1 3:1.5 2:.5 1:1 2:2 4:1 7:2 6:.5 5:.5 4:2 2:1 1:1.5 2:.5 1:1 0:3"
+      },
+      "C": {
+       "notes": "r:6 7:3 6:3 5:3 4:3 r:6",
+       "gain": 0.75
+      }
+     }
+    },
+    {
+     "type": "arp",
+     "instrument": "lute",
+     "step_beats": 0.5,
+     "pattern": [
+      -7,
+      0,
+      2,
+      4,
+      2,
+      0
+     ],
+     "soft": 0.6,
+     "ring": 2.5,
+     "sections": {
+      "A": {
+       "chords": [
+        0,
+        0,
+        3,
+        0,
+        0,
+        3,
+        4,
+        0
+       ]
+      },
+      "B": {
+       "chords": [
+        0,
+        0,
+        4,
+        5,
+        4,
+        0,
+        4,
+        0
+       ]
+      },
+      "A2": {
+       "chords": [
+        0,
+        0,
+        3,
+        0,
+        3,
+        0,
+        4,
+        0
+       ]
+      },
+      "C": {
+       "chords": [
+        0,
+        5,
+        3,
+        4,
+        0,
+        5,
+        3,
+        4
+       ],
+       "pattern": [
+        -7,
+        null,
+        4,
+        2,
+        7,
+        2
+       ]
+      }
+     }
+    },
+    {
+     "type": "notes",
+     "instrument": "mandolin_trem",
+     "octave": 0,
+     "gain": 0.6,
+     "sections": {
+      "C": {
+       "notes": "4:3 2:3 3:3 1:3 4:3 2:3 3:3 4:3"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "music_ballad",
+   "label": "Wistful ballad",
+   "bpm": 70,
+   "beats_per_bar": 4,
+   "section_bars": 8,
+   "root_hz": 220.0,
+   "mode": [
+    0,
+    2,
+    3,
+    5,
+    7,
+    8,
+    10
+   ],
+   "seed": 41,
+   "humanize_ms": 16,
+   "form": [
+    "A",
+    "B",
+    "A2"
+   ],
+   "drones": [
+    {
+     "instrument": "soft_drone",
+     "degree": -7
+    }
+   ],
+   "parts": [
+    {
+     "type": "notes",
+     "instrument": "recorder",
+     "octave": 1,
+     "sections": {
+      "A": {
+       "notes": "4:1.5 3:.5 2:1 1:1  0:2 2:1 4:1  5:1.5 4:.5 3:1 2:1  1:3 r:1 2:1.5 3:.5 4:1 5:1  4:2 7:1 6:1  5:1 4:1 3:1 1:1  0:3 r:1"
+      },
+      "B": {
+       "notes": "7:2 6:1 5:1  4:2 2:2  5:2 4:1 3:1  4:4 7:1.5 8:.5 9:1 7:1  6:2 4:2  5:1 3:1 1:1 -1:1  0:4"
+      },
+      "A2": {
+       "notes": "4:1.5 3:.5 2:1 1:1  0:2 2:1 4:1  5:1.5 4:.5 3:1 2:1  1:3 r:1 2:1.5 3:.5 4:1 5:1  4:2 7:1 6:1  5:1 4:1 3:1 1:1  0:4"
+      }
+     }
+    },
+    {
+     "type": "notes",
+     "instrument": "mandolin_trem",
+     "octave": 0,
+     "gain": 0.7,
+     "sections": {
+      "B": {
+       "notes": "2:4 0:4 1:4 -1:4 2:4 0:4 -1:4 -3:4"
+      }
+     }
+    },
+    {
+     "type": "arp",
+     "instrument": "lute",
+     "step_beats": 0.5,
+     "pattern": [
+      -7,
+      0,
+      4,
+      2,
+      7,
+      2,
+      4,
+      0
+     ],
+     "soft": 0.6,
+     "ring": 2.5,
+     "sections": {
+      "A": {
+       "chords": [
+        0,
+        0,
+        3,
+        4,
+        2,
+        0,
+        3,
+        0
+       ]
+      },
+      "B": {
+       "chords": [
+        5,
+        0,
+        3,
+        4,
+        0,
+        2,
+        6,
+        0
+       ]
+      },
+      "A2": {
+       "chords": [
+        0,
+        0,
+        3,
+        4,
+        2,
+        0,
+        3,
+        0
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "tabor",
+     "step_beats": 1,
+     "soft": 0.5,
+     "gain": 0.6,
+     "sections": {
+      "B": {
+       "bars": [
+        "X...",
+        "X.x."
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "music_mandolins",
+   "label": "Two mandolins",
+   "bpm": 112,
+   "beats_per_bar": 4,
+   "section_bars": 8,
+   "root_hz": 146.83,
+   "mode": [
+    0,
+    2,
+    4,
+    5,
+    7,
+    9,
+    11
+   ],
+   "seed": 43,
+   "humanize_ms": 8,
+   "form": [
+    "A1",
+    "B",
+    "A",
+    "B2"
+   ],
+   "drones": [],
+   "parts": [
+    {
+     "type": "notes",
+     "instrument": "mandolin",
+     "octave": 1,
+     "sections": {
+      "A1": {
+       "notes": "4:.5 5:.5 4:.5 3:.5 2:1 4:1  3:.5 4:.5 3:.5 2:.5 1:1 3:1 2:.5 3:.5 4:.5 5:.5 6:.5 7:.5 6:.5 5:.5  4:2 2:1 r:1 4:.5 5:.5 4:.5 3:.5 2:1 4:1  7:.5 6:.5 5:.5 4:.5 3:1 5:1 4:.5 3:.5 2:.5 1:.5 3:1 1:1  0:3 r:1"
+      },
+      "B": {
+       "notes": "7:1 7:.5 8:.5 9:1 7:1  8:1 8:.5 9:.5 10:1 8:1  9:.5 8:.5 7:.5 6:.5 5:1 7:1  6:2 4:1 r:1 7:1 7:.5 8:.5 9:1 11:1  10:.5 9:.5 8:.5 7:.5 8:1 6:1  7:.5 6:.5 5:.5 4:.5 5:.5 6:.5 4:1  7:3 r:1"
+      },
+      "A": {
+       "notes": "4:.5 5:.5 4:.5 3:.5 2:1 4:1  3:.5 4:.5 3:.5 2:.5 1:1 3:1 2:.5 3:.5 4:.5 5:.5 6:.5 7:.5 6:.5 5:.5  4:2 2:1 r:1 4:.5 5:.5 4:.5 3:.5 2:1 4:1  7:.5 6:.5 5:.5 4:.5 3:1 5:1 4:.5 3:.5 2:.5 1:.5 3:1 1:1  0:3 r:1"
+      },
+      "B2": {
+       "notes": "7:1 7:.5 8:.5 9:1 7:1  8:1 8:.5 9:.5 10:1 8:1  9:.5 8:.5 7:.5 6:.5 5:1 7:1  6:2 4:1 r:1 7:1 7:.5 8:.5 9:1 11:1  10:.5 9:.5 8:.5 7:.5 8:1 6:1  7:.5 6:.5 5:.5 4:.5 5:.5 6:.5 4:1  7:3 r:1"
+      }
+     }
+    },
+    {
+     "type": "notes",
+     "instrument": "mandolin",
+     "octave": 1,
+     "gain": 0.75,
+     "sections": {
+      "B": {
+       "notes": "5:1 5:.5 6:.5 7:1 5:1 6:1 6:.5 7:.5 8:1 6:1 7:.5 6:.5 5:.5 4:.5 3:1 5:1 4:2 2:1 r:1 5:1 5:.5 6:.5 7:1 9:1 8:.5 7:.5 6:.5 5:.5 6:1 4:1 5:.5 4:.5 3:.5 2:.5 3:.5 4:.5 2:1 5:3 r:1"
+      },
+      "A": {
+       "notes": "2:.5 3:.5 2:.5 1:.5 0:1 2:1 1:.5 2:.5 1:.5 0:.5 -1:1 1:1 0:.5 1:.5 2:.5 3:.5 4:.5 5:.5 4:.5 3:.5 2:2 0:1 r:1 2:.5 3:.5 2:.5 1:.5 0:1 2:1 5:.5 4:.5 3:.5 2:.5 1:1 3:1 2:.5 1:.5 0:.5 -1:.5 1:1 -1:1 -2:3 r:1"
+      },
+      "B2": {
+       "notes": "5:1 5:.5 6:.5 7:1 5:1 6:1 6:.5 7:.5 8:1 6:1 7:.5 6:.5 5:.5 4:.5 3:1 5:1 4:2 2:1 r:1 5:1 5:.5 6:.5 7:1 9:1 8:.5 7:.5 6:.5 5:.5 6:1 4:1 5:.5 4:.5 3:.5 2:.5 3:.5 4:.5 2:1 5:3 r:1"
+      }
+     }
+    },
+    {
+     "type": "arp",
+     "instrument": "lute",
+     "step_beats": 0.5,
+     "pattern": [
+      -7,
+      4,
+      2,
+      4,
+      -3,
+      4,
+      2,
+      4
+     ],
+     "soft": 0.5,
+     "ring": 1.6,
+     "sections": {
+      "A1": {
+       "chords": [
+        0,
+        3,
+        4,
+        4,
+        0,
+        3,
+        4,
+        0
+       ]
+      },
+      "B": {
+       "chords": [
+        0,
+        4,
+        5,
+        4,
+        0,
+        3,
+        4,
+        0
+       ]
+      },
+      "A": {
+       "chords": [
+        0,
+        3,
+        4,
+        4,
+        0,
+        3,
+        4,
+        0
+       ]
+      },
+      "B2": {
+       "chords": [
+        0,
+        4,
+        5,
+        4,
+        0,
+        3,
+        4,
+        0
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "tabor",
+     "step_beats": 0.5,
+     "soft": 0.5,
+     "sections": {
+      "A1": {
+       "bars": [
+        "X...X...",
+        "X...X.x."
+       ]
+      },
+      "B": {
+       "bars": [
+        "X..xX.x.",
+        "X..xX.xx"
+       ]
+      },
+      "A": {
+       "bars": [
+        "X..xX.x.",
+        "X..xX.x."
+       ]
+      },
+      "B2": {
+       "bars": [
+        "X..xX.x.",
+        "X.xxX.xx"
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "tambourine",
+     "step_beats": 1,
+     "soft": 0.6,
+     "sections": {
+      "B": {
+       "bars": [
+        ".x.x"
+       ]
+      },
+      "B2": {
+       "bars": [
+        ".x.x"
        ]
       }
      }

@@ -188,7 +188,7 @@ impl Play {
 
     /// One player input, now.
     pub fn apply(&mut self, p: PlayerId, input: Input) -> Result<(), Refusal> {
-        let build = self.rules.phase == Phase::Build;
+        let build = self.rules.builds_now(p);
         let r = self.apply_input(p, input);
         if build && r.is_ok() && input != Input::Ready {
             if self.edits.len() <= p as usize {
@@ -227,7 +227,10 @@ impl Play {
                 self.field_of(p)?.swing(now)
             }
             Input::Release(part) => {
-                self.need_live_siege()?;
+                // a swing begun before the timer ran out still throws (R1.3203)
+                if self.siege.is_none() || !matches!(self.rules.phase, Phase::Siege | Phase::SiegeOver) {
+                    return Err(Refusal::WrongPhase);
+                }
                 let now = self.siege_tick();
                 self.field_of(p)?.release_at(now, part)
             }
@@ -271,6 +274,14 @@ impl Play {
         if dup {
             return Err(Refusal::BadSpot);
         }
+        let cw = self.castles[p as usize].world(pl, false);
+        let through = self.castles[p as usize]
+            .royal_feet(&cw.world, pl)
+            .into_iter()
+            .any(|(_, f)| castle::beam_hits_royal(a.to_fx(), b.to_fx(), f));
+        if through {
+            return Err(Refusal::BadSpot);
+        }
         let id = self.rules.place(p, piece)?;
         self.castles[p as usize].geo.insert(id, Geo::Beam { a, b });
         self.refresh(p);
@@ -300,6 +311,9 @@ impl Play {
         if castle::surface_at(&cw.world, at.to_fx()).is_none() {
             return Err(Refusal::BadSpot);
         }
+        if !self.royal_spaced(p, index, at) {
+            return Err(Refusal::BadSpot);
+        }
         let spot = castle::rule_spot(&pl.terrain, pl.purse.level, at);
         self.rules.place_royal(p, index, spot)?;
         let c = &mut self.castles[p as usize];
@@ -308,6 +322,35 @@ impl Play {
         }
         c.royal_at[index] = Some(at);
         Ok(())
+    }
+
+    /// Is `at` at least the royal spacing from every other royal of `p`'s,
+    /// measured between their feet as the build view draws it (R1.3303)?
+    pub fn royal_spaced(&self, p: PlayerId, index: usize, at: GridPt) -> bool {
+        let Some(pl) = self.rules.player(p) else {
+            return false;
+        };
+        let min = crate::physics::Fx::from_int(crate::game::royals::spacing_cells() as i64);
+        let c = &self.castles[p as usize];
+        let cw = c.world(pl, false);
+        c.royal_feet(&cw.world, pl)
+            .into_iter()
+            .all(|(i, f)| i == index || (f - at.to_fx()).len() >= min)
+    }
+
+    /// The newest piece `p` placed this build phase, still standing: what
+    /// Undo sells back for a full refund (R1.3301).
+    pub fn last_placed(&self, p: PlayerId) -> Option<u32> {
+        let pl = self.rules.player(p)?;
+        if self.rules.phase != Phase::Build {
+            return None;
+        }
+        pl.ledger
+            .entries
+            .iter()
+            .filter(|e| e.round == self.rules.round && !pl.ruin_pieces.iter().any(|(id, _)| *id == e.id))
+            .map(|e| e.id)
+            .max()
     }
 
     /// Tell the rules where `p`'s royals may stand, from the castle as built.
@@ -475,6 +518,12 @@ impl Play {
 
     fn drain_or_finish(&mut self) {
         let Some(s) = self.siege.as_mut() else { return };
+        // a player's swing or shot still moving holds the round open until
+        // it stops (R1.3203)
+        if s.wait_left > 0 && s.fields.iter().any(|f| f.shot_moving()) {
+            s.wait_left -= 1;
+            return;
+        }
         if s.drain_left > 0 && s.fields.iter().any(|f| f.active()) {
             s.drain_left -= 1;
             return;
@@ -529,6 +578,7 @@ impl Play {
             fields,
             tick: 0,
             drain_left: tune::DRAIN_TICKS,
+            wait_left: tune::SHOT_WAIT_TICKS,
         });
     }
 

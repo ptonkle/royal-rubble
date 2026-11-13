@@ -29,9 +29,9 @@ The volume fractions should come from the core or settings, not be computed in p
 
 | When | Call |
 | --- | --- |
-| Build or upgrade phase starts | `play("horn_build"); music("music_build")` |
+| Build or upgrade phase starts | `play("horn_build")`; the field's `music` is the round's building song (`BUILD_SONGS` in `app/arena.rs`, one a round in turn) |
 | Siege phase starts | `play("horn_siege"); music("music_siege")` |
-| Last 10 seconds of a phase | `play("tick")` each second, `play("tick_last")` on the final one; in a siege also `urgent(true)` (the next `music(...)` turns it off) |
+| Last 10 seconds of a phase | The core cues the war drum: `drum_count` each new second from 10 to 4, `drum_close` (harder, with a second beat close behind) from 3 to 1 (R1.3800, `drum_beat` in `app/arena.rs`). `urgent(true)` is not yet wired |
 | Trebuchet swing starts / release | `play("trebuchet_creak")` / `play("trebuchet_release")` |
 | Shot in the air / lands | `startLoop("shot_whoosh", shotId)` / `stopLoop(shotId)` |
 | Hit by material | `play("impact_wood")`, `play("impact_stone")`, `play("impact_metal")` (groups rotate variants); `opts.gain` 0 to 1 for a light hit |
@@ -41,19 +41,26 @@ The volume fractions should come from the core or settings, not be computed in p
 | Moat | `play("splash")` |
 | Exploding ammo | `play("explosion")` |
 | Fire | `play("fire_ignite")`, then `startLoop("fire_crackle", "fire")` while anything burns, `stopLoop("fire")` |
-| Air effects | `phase_shimmer`, `split_pop`, `dive_whistle`, `air_drop`, `air_reverse` |
-| Royal killed | `play("royal_" + rank)`: squire, knight, princess, prince, queen, king |
+| Tricks | `phase_shimmer`, `split_pop`, `dive_whistle`, `air_drop`, `air_reverse` |
+| Royal killed | The core cues `royal_` + rank (squire, knight, princess, prince, queen, king), a short cry of death, for each royal killed in the castle you attack and in your own (R1.3801, `cry_kills` in `app/arena.rs`) |
 | Build actions | `place_segment`, `sell_segment`, `coin` (gold gained), `buy_xp`, `level_up` |
 | Upgrades | `cards_reveal`, `card_pick`, `reroll` |
 | End of game | `elimination` (a player is out), `victory` |
 | Menus | `ui_click` on press, `ui_hover` on hover (the same sound never stacks within `repeat_gap`) |
-| Leaving a match | `music(null)` fades out |
+| Leaving a match, and every menu | `ui.menu_music` (`music_menu` outside a match, "" in one) crossfades in when no field shows |
+| Volume slider sample | `play("sample")`: a short lute strum |
 
 The page marks `body[data-audio]` (`waiting`, `started`), `data-last-sound` and `data-music` for browser checks.
 
 ## Music
 
 - **Build and upgrade** (`music_build`, 80 s loop): D Dorian at 96 bpm. A plucked lute arpeggio with a bass note on each bar, a recorder melody, a tabor and a soft D–A drone. Four sections (A, B, a quieter C with long recorder notes, A with a varied arpeggio) so it doesn't grate. Original melody.
+- **Village jig** (`music_jig`, 36 s loop): G major, 6/8 at 106 dotted quarters. Mandolin tune, a lute oom-pah, bodhran; a recorder doubles the B strain, with a tambourine.
+- **Under the hill** (`music_pastoral`, 69 s loop): F major, 3/4 at 84 bpm. Recorder over a gentle lute arpeggio and a soft drone; a quiet last section with tremolo mandolin. No drums.
+- **Wistful ballad** (`music_ballad`, 82 s loop): A minor at 70 bpm. Fingerpicked lute and a recorder; a tremolo mandolin and a soft tabor in the middle.
+- **Two mandolins** (`music_mandolins`, 69 s loop): D major at 112 bpm. One mandolin alone, then two in thirds, over a lute and a tabor.
+- The building songs take turns, one a round (round 1 `music_build`, then jig, pastoral, ballad, mandolins, and round again), so a song plays through the upgrade and build phases of its round and the crossfade comes with the siege (R1.3802). They are in `tools/sound/songs.py`.
+- **Menu theme** (`music_menu`, 47 s loop): D major, 3/4 at 92 bpm. A horn call, then a recorder tune over the lute. Browsers start sound only after a first press, so it starts on the first click or key.
 - **Siege** (`music_siege`, 96 s loop): A minor at 120 bpm. Timpani and a low drone from the start; war drum and a string ostinato join, then snare and a shawm call; the last two sections repeat at full strength.
 - **Last seconds** (`music_siege_urgent`, 4 s loop): woodblock sixteenths and a high string figure, layered over the siege music by `urgent(true)`.
 - Tracks crossfade over about a second (`setup.crossfade` is the time constant, 0.33 s). Music sits at `music_gain` 0.32 under the effects.

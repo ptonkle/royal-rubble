@@ -2,7 +2,7 @@
  "_about": "The hand-painted look's drawing numbers (R1.3600), read by web/field-draw.js: multiples of what the core gives (a beam's width, a shot's radius) or screen pixels. The baked pictures are in data/look/paint/, their sizes in data/paint-sprites.json.",
  "beam_k": 1.5,
  "beam_end": 0.14,
- "ball_k": 1.6,
+ "ball_k": 1.15,
  "debris_k": 1.4,
  "ground_bands": [["grass", 0, 16], ["dirt", 16, 58], ["rock", 58, 120]],
  "ground_fill": "deep",
