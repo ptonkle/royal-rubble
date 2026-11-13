@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.2.9",
+    "date": "2026-11-13",
+    "notes": [
+      "New bottom bar with icons, prices and tips.",
+      "Pause menu with settings: press Esc.",
+      "The camera follows your shot smoothly and waits for it to land.",
+      "Castles are closer and easier to hit; shots are bigger.",
+      "New trick: Bounce.",
+      "Click twice to place a segment; Z to undo.",
+      "War drums near the end of each timer, new music, and royal death cries.",
+      "A live siege behind the menu, and bots with names."
+    ]
+  },
+  {
     "version": "0.2.8",
     "date": "2026-11-13",
     "notes": [
