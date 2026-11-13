@@ -14,20 +14,6 @@ body {
   overflow-x: hidden;
 }
 
-/* the look's border band along the top and bottom of the window */
-body::before, body::after {
-  content: "";
-  position: fixed;
-  left: 0;
-  right: 0;
-  height: var(--strip-height);
-  background: var(--strip-image) repeat-x left center / auto 100%;
-  pointer-events: none;
-  z-index: 1;
-}
-body::before { top: 0; }
-body::after { bottom: 0; transform: scaleX(-1); }
-
 #menus {
   /* over the menu's backdrop canvas */
   position: relative;
@@ -36,7 +22,7 @@ body::after { bottom: 0; transform: scaleX(-1); }
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: calc(var(--strip-height) + 1.5rem) 16px;
+  padding: 1.5rem 16px;
 }
 
 .panels {
@@ -55,15 +41,13 @@ body::after { bottom: 0; transform: scaleX(-1); }
   border: var(--panel-edge-width) solid var(--panel-edge);
   border-radius: var(--panel-radius);
   box-shadow: var(--panel-shadow);
-  outline: var(--panel-stitch-width) dashed var(--panel-stitch);
-  outline-offset: var(--panel-stitch-inset);
 }
 
 .panel.title { width: min(100%, 30rem); text-align: center; }
 .panel.notes {
   width: min(100%, 36rem);
   /* inside the window's padding, so only the list scrolls, never the page */
-  max-height: calc(100vh - 2 * (var(--strip-height) + 1.5rem));
+  max-height: calc(100vh - 3rem);
   display: flex;
   flex-direction: column;
 }
@@ -92,21 +76,15 @@ h2 { font-size: var(--heading-size); font-weight: var(--heading-weight); letter-
   cursor: pointer;
   position: relative;
 }
-/* the stem stitch's lighter twist, just inside the edge */
-.button::after {
-  content: "";
-  position: absolute;
-  inset: 2px;
-  border: 1px dashed var(--button-stitch);
-  pointer-events: none;
-}
-.button.quiet::after { border-color: var(--button-quiet-stitch); }
 .button.quiet {
   color: var(--button-quiet-ink);
   background: var(--button-quiet-bg);
   border-color: var(--button-quiet-edge);
-  font-weight: 400;
 }
+/* a panel's first full button is its main action */
+.panel > .button:not(.quiet):first-of-type { background: var(--button-main-bg); border-color: var(--button-main-edge); }
+.button .icon { width: 1.2rem; height: 1.2rem; }
+.button.with-icon { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
 .button:hover:not(:disabled) { filter: var(--button-hover); }
 .button:disabled { opacity: 0.45; cursor: not-allowed; }
 .button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
@@ -171,7 +149,7 @@ h2 { font-size: var(--heading-size); font-weight: var(--heading-weight); letter-
 #message {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--strip-height) + 0.5rem);
+  bottom: 0.5rem;
   transform: translateX(-50%);
   margin: 0;
   max-width: calc(100% - 32px);
@@ -183,7 +161,7 @@ h2 { font-size: var(--heading-size); font-weight: var(--heading-weight); letter-
 #version {
   position: fixed;
   right: 1rem;
-  bottom: calc(var(--strip-height) + 0.5rem);
+  bottom: 0.5rem;
   z-index: 2;
   color: var(--page-ink-dim);
   background: none;
@@ -330,7 +308,3 @@ body[data-screen="match"] .bar-option { color: var(--hud-ink); }
 .bar-option[data-selected="on"] { border-color: var(--bar-chosen); color: var(--bar-chosen); }
 .bar-option:disabled { opacity: 0.4; cursor: not-allowed; }
 .bar-key { font-size: 0.75rem; font-weight: 400; color: var(--page-ink-dim); }
-/* the playfield draws its own frame */
-body[data-screen="play"]::before, body[data-screen="play"]::after,
-body[data-screen="match"]::before, body[data-screen="match"]::after,
-body[data-screen="sandbox"]::before, body[data-screen="sandbox"]::after { display: none; }

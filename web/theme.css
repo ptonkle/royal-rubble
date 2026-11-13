@@ -1,88 +1,75 @@
 /* The look, and only the look: every color, font, size and edge the menus
    use. style.css holds the structure and reads these names alone.
 
-   The Bayeux tapestry (BRIEF Look line), kept close to the real cloth:
-   faded wool on pale creased linen, sparse border bands, thin stitched
-   rules. The palette is sampled from photographs of the tapestry and lives
-   in data/look.json, which tools/look/tapestry_svgs.mjs also reads to draw
-   the linen, border band and wool patches in look.css. Body text is dark blue
-   on linen (8:1); dim text 6:1; button text 5.5:1. */
+   The menus share the match HUD's look (web/hud.css): dark slate panels with
+   light ink over the painted siege behind, slate slot buttons, the main
+   action gold-edged. Body text on the slate is 14:1; dim text 7:1. */
 
 :root {
-  /* the wools (data/look.json) */
-  --linen: #ddd3c8;
-  --linen-light: #e9e2d8;
-  --linen-shadow: #c4b6a8;
-  --brick: #8e4a3b;
-  --brick-dark: #6e3a2e;
-  --tan: #a88e6c;
-  --buff: #cbb79f;
-  --olive: #958556;
-  --sage: #66705e;
-  --slate: #4f6460;
-  --navy: #2a3646;
-  --light-blue: #8aa0ac;
+  --slate-bg: rgba(28, 33, 40, 0.9);
+  --slate-edge: #6b7686;
+  --slate-slot: rgba(255, 255, 255, 0.06);
+  --slate-slot-edge: #4d5662;
+  --slate-ink: #eef0f2;
+  --slate-dim: #a9b2bd;
+  --slate-gold: #f0c419;
+  --slate-green: #6fcf6a;
 
-  /* the page behind everything: linen, a border band top and bottom */
-  --page-bg: var(--linen) var(--look-linen) repeat;
-  --page-ink: var(--navy);
-  --page-ink-dim: #5a4636;
-  --strip-image: var(--look-border);
-  --strip-height: 84px;
+  /* the page behind everything: the siege canvas paints over this */
+  --page-bg: #1c2128;
+  --page-ink: var(--slate-ink);
+  --page-ink-dim: var(--slate-dim);
 
-  /* a panel: the same linen, set off by two thin red-brown stitched rules */
-  --panel-bg: rgba(233, 226, 216, 0.55);
-  --panel-edge: var(--brick);
-  --panel-edge-width: 2px;
-  --panel-stitch: rgba(142, 74, 59, 0.6);
-  --panel-stitch-width: 1px;
-  --panel-stitch-inset: -7px;
-  --panel-radius: 0;
-  --panel-pad: 2.25rem;
-  --panel-shadow: none;
-  --rule: rgba(142, 74, 59, 0.7);
+  /* a panel: dark slate with a thin light edge */
+  --panel-bg: var(--slate-bg);
+  --panel-edge: var(--slate-edge);
+  --panel-edge-width: 1px;
+  --panel-radius: 0.5rem;
+  --panel-pad: 2rem;
+  --panel-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.45);
+  --rule: var(--slate-slot-edge);
 
-  /* buttons: small couched-wool patches with a stem-stitch outline in a
-     contrasting thread */
-  --button-bg: var(--brick) var(--look-wool-brick) repeat;
-  --button-ink: #f2ebe0;
-  --button-edge: var(--olive);
+  /* buttons: slate slots; a panel's main action is gold-edged with a warm
+     tint, a quiet one has a darker edge */
+  --button-bg: rgba(255, 255, 255, 0.1);
+  --button-ink: var(--slate-ink);
+  --button-edge: var(--slate-edge);
+  --button-main-bg: rgba(240, 196, 25, 0.16);
+  --button-main-edge: var(--slate-gold);
   --button-edge-width: 2px;
-  --button-stitch: rgba(242, 235, 224, 0.35);
-  --button-quiet-bg: var(--buff) var(--look-wool-buff) repeat;
-  --button-quiet-ink: var(--navy);
-  --button-quiet-edge: var(--slate);
-  --button-quiet-stitch: rgba(42, 54, 70, 0.3);
-  --button-radius: 0;
-  --button-weight: 400;
-  --button-size: 1.1rem;
-  --button-spacing: 0.04em;
-  --button-hover: brightness(1.07);
+  --button-quiet-bg: var(--slate-slot);
+  --button-quiet-ink: var(--slate-ink);
+  --button-quiet-edge: var(--slate-slot-edge);
+  --button-radius: 0.4rem;
+  --button-weight: 600;
+  --button-size: 1.05rem;
+  --button-spacing: 0.02em;
+  --button-hover: brightness(1.2);
 
   /* fields */
-  --field-bg: var(--linen-light);
-  --field-ink: var(--navy);
-  --field-edge: var(--slate);
-  --accent: var(--brick);
-  --focus: var(--navy);
+  --field-bg: rgba(0, 0, 0, 0.3);
+  --field-ink: var(--slate-ink);
+  --field-edge: var(--slate-slot-edge);
+  --accent: var(--slate-gold);
+  --focus: var(--slate-gold);
 
   /* lobby seats */
-  --seat-bg: rgba(203, 183, 159, 0.4);
-  --seat-me: var(--buff) var(--look-wool-buff) repeat;
-  --seat-edge: var(--tan);
-  --seat-ready: #4a5a2e;
+  --seat-bg: var(--slate-slot);
+  --seat-me: rgba(240, 196, 25, 0.12);
+  --seat-edge: var(--slate-slot-edge);
+  --seat-ready: var(--slate-green);
 
-  /* type: a book serif; headings in spaced Roman capitals, dark blue */
+  /* type: a book serif; headings in spaced capitals */
   --font-body: "Palatino Linotype", Palatino, "Book Antiqua", "URW Palladio L", Georgia, serif;
   --font-title: "Palatino Linotype", Palatino, "Book Antiqua", "URW Palladio L", Georgia, serif;
   --title-size: 3.2rem;
   --title-weight: 400;
   --title-spacing: 0.1em;
-  --title-ink: var(--navy);
+  --title-ink: var(--slate-ink);
   --heading-size: 1.3rem;
   --heading-weight: 400;
   --heading-spacing: 0.14em;
-  --heading-ink: var(--brick-dark);
+  --heading-ink: var(--slate-ink);
   --heading-case: uppercase;
   --body-size: 1.05rem;
   --gap: 1.5rem;

@@ -283,7 +283,7 @@ body[data-screen="match"] .panel.field-bar > #match\.buy_xp .icon { background-c
 .panel.upgrades {
   width: min(100%, 60rem);
   /* only the list scrolls, never the page */
-  max-height: calc(100vh - 2 * (var(--strip-height) + 1.5rem));
+  max-height: calc(100vh - 3rem);
   display: flex;
   flex-direction: column;
 }
