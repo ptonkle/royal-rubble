@@ -235,6 +235,16 @@ body[data-screen="match"] .panel { pointer-events: auto; width: auto; box-shadow
   color: var(--page-ink);
 }
 .panel.field-side .lines p { margin: 0.15rem 0; }
+/* the siege's corner window label, over the window (arena.rs INSET_*) */
+.panel.field-inset {
+  position: fixed;
+  top: calc(180px - 2.5rem);
+  right: 24px;
+  padding: 0.25rem 0.75rem;
+  background: var(--bar-bg);
+}
+.panel.field-inset .lines { color: var(--hud-ink); }
+.panel.field-inset .lines p { margin: 0; }
 /* upgrade cards, in the middle of the field */
 .panel.cards {
   position: fixed;

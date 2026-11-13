@@ -1552,5 +1552,47 @@
     "find": "            if mates as u32 >= pl.mods.royal_spacing.unwrap_or(1) {",
     "replace": "            if mates as u32 >= 99 {",
     "test": "royals_room_rule_allows_one_royal_under_a_roof_beam"
+  },
+  {
+    "name": "r3206 a cleared castle still takes shots",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "        if self.cleared() {\n            return Err(Refusal::Limit);",
+    "replace": "        if false {\n            return Err(Refusal::Limit);",
+    "test": "arena_a_cleared_castle_says_so_takes_no_more_shots_and_readies_you"
+  },
+  {
+    "name": "r3206 no cleared label",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "let key = if f.cleared() {",
+    "replace": "let key = if false {",
+    "test": "arena_a_cleared_castle_says_so_takes_no_more_shots_and_readies_you"
+  },
+  {
+    "name": "r3207 not readied when done",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "if spent && !ready && still && self.camera_home() {",
+    "replace": "if false {",
+    "test": "arena_a_cleared_castle_says_so_takes_no_more_shots_and_readies_you"
+  },
+  {
+    "name": "r3207 Ready shown in the siege",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                    // no Ready in the siege: you are done when your shots\n",
+    "replace": "                    bar.push(button(\"match.ready\", ready_text, \"ready\", me.ready));\n",
+    "test": "arena_the_siege_hud_has_leave_and_no_ready"
+  },
+  {
+    "name": "r3208 no flash on a hit",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "            self.own_hit_at = self.play.siege.as_ref().map(|s| s.tick);",
+    "replace": "",
+    "test": "arena_a_hit_on_your_castle_flashes_the_labeled_corner_window"
+  },
+  {
+    "name": "r3208 corner window unlabeled",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                    if self.own_field().is_some() {\n                        // the corner window's label",
+    "replace": "                    if false {\n                        // the corner window's label",
+    "test": "arena_a_hit_on_your_castle_flashes_the_labeled_corner_window"
   }
 ]

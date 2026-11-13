@@ -117,6 +117,7 @@
   "hud.health": "{name} {n}",
   "hud.out": "{name} out",
   "hud.knocked_out": "Knocked out",
+  "hud.cleared": "Castle cleared",
   "hud.ammo": "{name} {n}",
   "hud.reroll": "Reroll ({n})",
   "hud.reroll_plain": "Reroll",

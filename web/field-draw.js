@@ -453,7 +453,7 @@ function inset(g, f) {
   g.restore();
   g.save();
   g.setLineDash([G.band_dash, G.band_gap]);
-  g.strokeStyle = wool.rule.mid;
+  g.strokeStyle = f.inset.hit ? wool.terracotta.mid : wool.rule.mid;
   g.lineWidth = G.inset_edge;
   g.strokeRect(x, y, w, h);
   g.restore();

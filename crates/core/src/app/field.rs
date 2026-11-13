@@ -453,6 +453,8 @@ pub struct SpotMark {
 pub struct Inset {
     pub at: [i32; 2],
     pub frame: Frame,
+    /// your castle was just hit: the frame flashes (R1.3208)
+    pub hit: bool,
 }
 
 fn is_zero_i(v: &i32) -> bool {
