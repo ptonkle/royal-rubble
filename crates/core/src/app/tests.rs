@@ -47,6 +47,7 @@ fn the_title_offers_bots_host_join_and_settings_and_the_version_opens_whats_new(
         ]
     );
     assert_eq!(a.ui().version, VERSION);
+    assert!(a.ui().version_shown);
     a.act("version", "").unwrap();
     assert_eq!(a.ui().screen, "notes");
     assert!(!a.ui().version_opens);
@@ -102,6 +103,8 @@ fn play_vs_bots_opens_a_lobby_with_a_bot_and_start_shows_the_match() {
     assert_eq!(a.ui().screen, "match");
     assert_eq!(a.ui().panels[0].kind, "field-top");
     assert!(a.ui().field.is_some());
+    // R1.3201: the version label stays off the field
+    assert!(!a.ui().version_shown);
     a.act("play.leave", "").unwrap();
     assert_eq!(a.ui().screen, "title");
 }

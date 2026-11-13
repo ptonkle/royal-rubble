@@ -468,6 +468,7 @@ function draw(result) {
   const version = el("version");
   if (version.textContent !== ui.version) version.textContent = ui.version;
   version.disabled = !ui.version_opens;
+  version.hidden = !ui.version_shown;
   el("message").textContent = ui.status;
   drawMenus();
   showField(ui);

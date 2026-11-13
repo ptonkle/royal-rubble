@@ -227,7 +227,10 @@ impl Play {
                 self.field_of(p)?.swing(now)
             }
             Input::Release(part) => {
-                self.need_live_siege()?;
+                // a swing begun before the timer ran out still throws (R1.3203)
+                if self.siege.is_none() || !matches!(self.rules.phase, Phase::Siege | Phase::SiegeOver) {
+                    return Err(Refusal::WrongPhase);
+                }
                 let now = self.siege_tick();
                 self.field_of(p)?.release_at(now, part)
             }
@@ -475,6 +478,12 @@ impl Play {
 
     fn drain_or_finish(&mut self) {
         let Some(s) = self.siege.as_mut() else { return };
+        // a player's swing or shot still moving holds the round open until
+        // it stops (R1.3203)
+        if s.wait_left > 0 && s.fields.iter().any(|f| f.shot_moving()) {
+            s.wait_left -= 1;
+            return;
+        }
         if s.drain_left > 0 && s.fields.iter().any(|f| f.active()) {
             s.drain_left -= 1;
             return;
@@ -529,6 +538,7 @@ impl Play {
             fields,
             tick: 0,
             drain_left: tune::DRAIN_TICKS,
+            wait_left: tune::SHOT_WAIT_TICKS,
         });
     }
 

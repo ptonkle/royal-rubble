@@ -101,6 +101,10 @@ const CAM_CASTLE_SHARE: (i64, i64) = (35, 100);
 pub(crate) const CAM_HOLD: u32 = 24;
 /// Each tick the view moves this fraction (1/n) of the way to its target.
 pub(crate) const CAM_EASE: i64 = 8;
+/// Ticks the view rests on the castle after your shot lands, and the most
+/// while debris still moves (R1.3204).
+const CAM_LOOK: u32 = 90;
+const CAM_LOOK_MAX: u32 = 300;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Tool {
@@ -288,6 +292,20 @@ pub struct Arena {
     seen_round: u32,
     /// The siege view as shown, easing toward `camera_target` each tick.
     eye: Option<Camera>,
+    /// Your shot in the air and its view (R1.3204).
+    flight: Option<Flight>,
+    /// The siege tick your last shot landed.
+    landed_at: Option<u32>,
+}
+
+/// Your shot in the air: its ball, the view's width for the flight,
+/// whether it has started falling, and whether it has hit something.
+#[derive(Clone, Copy, Debug)]
+struct Flight {
+    ball: usize,
+    width: Fx,
+    fell: bool,
+    landed: bool,
 }
 
 /// Sixteenths of a tick from `basis_us` (when a tick began) to `press_us`,
@@ -349,6 +367,8 @@ impl Arena {
             seen_phase,
             seen_round,
             eye: None,
+            flight: None,
+            landed_at: None,
         };
         a.rebuild();
         Ok(a)
@@ -523,6 +543,19 @@ impl Arena {
         (l, r, ground, top)
     }
 
+    /// The corner window's view of your own field `f` (R1.3202): your
+    /// castle's box, whole, with a margin, the ground a sixth up; with
+    /// nothing built, the royals and the plot's front.
+    fn inset_camera(&self, f: &Field) -> Camera {
+        let (cl, cr, ground, top) = self.castle_box(f);
+        let m = Fx::from_int(CAM_MARGIN);
+        let tall = (top - ground + m) * 6 / 5;
+        let width = (cr - cl + m * 2).max(tall * Fx::from_int(INSET_W as i64) / Fx::from_int(INSET_H as i64));
+        let mut cam = Camera::spanning((cl + cr) / 2 - width / 2, width, Fx::ZERO, INSET_W, INSET_H);
+        cam.bottom = ground - cam.height() / 6;
+        cam.kept_in(world_right(&f.plot))
+    }
+
     /// Where the siege view of field `f` wants to be (R1.1454): aiming, the
     /// trebuchet with the castle's front at the right edge; in flight, the
     /// shot followed and the castle brought in as it nears; settled, the
@@ -548,48 +581,23 @@ impl Arena {
             .iter()
             .filter_map(|&i| world.projectiles.get(i))
             .find(|b| b.alive);
-        // just after release the view stays on the trebuchet so the sling's
-        // whip and the follow-through are seen (R1.1800)
-        let held = flying.is_some_and(|b| b.age < CAM_HOLD);
-        let flying = flying.filter(|_| !held);
         let base = f.base;
-        if let Some(b) = flying {
-            let left = b.pos.x - Fx::from_int(CAM_BEHIND);
-            let right = (cr + Fx::from_int(CAM_MARGIN)).max(b.pos.x + Fx::from_int(CAM_MARGIN));
-            let width = (right - left)
-                .min(Fx::from_int(CAM_FLY_MAX_W))
-                .max(castle.width());
-            // the castle's frame once the shot is inside it
-            let left = if left + width > right {
-                (right - width).max(castle.left.min(left))
-            } else {
-                left
-            };
-            // a high shot widens the view so the ground stays in it, up to
-            // a widest view; past that the view rises with the shot (R1.1700)
-            let floor = base.y.min(ground);
-            let tall = (b.pos.y + Fx::from_int(CAM_MARGIN) - floor) * 6 / 5;
-            let width = width.max(
-                (tall * Fx::from_int(w as i64) / Fx::from_int(h.max(1) as i64))
-                    .min(Fx::from_int(CAM_FLY_TALL_W)),
-            );
-            // the trebuchet stays in while the widened view still holds the ball
-            let home = base.x - Fx::from_int(CAM_BEHIND);
-            let left = if home < left && b.pos.x + Fx::from_int(CAM_MARGIN) < home + width {
-                home
-            } else {
-                left
-            };
-            let mut cam = Camera::spanning(left, width, Fx::ZERO, w, h);
-            cam.bottom = floor - cam.height() / 6;
-            let mut cam = cam.kept_in(edge);
-            let above = b.pos.y + Fx::from_int(CAM_MARGIN) - (cam.bottom + cam.height());
-            if above > Fx::ZERO {
-                cam.bottom += above;
-            }
-            return cam;
+        let floor = base.y.min(ground);
+        let m = Fx::from_int(CAM_MARGIN);
+        let home = base.x - Fx::from_int(CAM_BEHIND);
+        let flying_w = self.flight.filter(|fl| !fl.landed).map(|fl| fl.width);
+        if let (Some(b), Some(width)) = (flying, flying_w) {
+            // followed from release (R1.3204): one width for the whole
+            // flight, so the view never zooms in and out under the shot;
+            // the shot two fifths across and in the upper middle, and the
+            // pan stops with the castle in view, so it is there before impact
+            let mut cam = Camera::spanning(home, width, Fx::ZERO, w, h);
+            let tall = cam.height();
+            cam.left = (b.pos.x - width * 2 / 5).max(home).min(cr + m - width);
+            cam.bottom = (floor - tall / 6).max(b.pos.y - tall * 3 / 5);
+            return cam.kept_in(edge);
         }
-        if settled && !held {
+        if settled {
             return castle.kept_in(edge);
         }
         let left = base.x - Fx::from_int(CAM_BEHIND);
@@ -597,8 +605,52 @@ impl Arena {
             .min(Fx::from_int(CAM_AIM_MAX_W))
             .max(Fx::from_int(CAM_AIM_MIN_W));
         let mut cam = Camera::spanning(left, width, Fx::ZERO, w, h);
-        cam.bottom = base.y.min(ground) - cam.height() / 6;
+        cam.bottom = floor - cam.height() / 6;
         cam.kept_in(edge)
+    }
+
+    /// The flight view's width for shot `b` just thrown at field `f`
+    /// (R1.3204): from the trebuchet to past the castle, widened so the
+    /// shot's highest point sits under the top quarter, at most the widest.
+    fn flight_width(&self, f: &Field, b: &crate::physics::balls::Ball) -> Fx {
+        let (w, h) = self.size;
+        let (_, cr, ground, _) = self.castle_box(f);
+        let floor = f.base.y.min(ground);
+        let home = f.base.x - Fx::from_int(CAM_BEHIND);
+        let across = (cr + Fx::from_int(CAM_MARGIN) - home)
+            .min(Fx::from_int(CAM_FLY_MAX_W))
+            .max(Fx::from_int(CAM_AIM_MIN_W));
+        // rise under gravity alone: vy^2 / 2g, in raw units
+        let vy = b.vel.y.0.max(0);
+        let rise = Fx(vy * vy / (2 * crate::physics::tune::G_RAW));
+        let tall = (b.pos.y + rise + Fx::from_int(CAM_MARGIN) - floor) * 12 / 7;
+        across
+            .max(tall * Fx::from_int(w as i64) / Fx::from_int(h.max(1) as i64))
+            .min(Fx::from_int(CAM_FLY_TALL_W))
+    }
+
+    /// Whether the view is back on the trebuchet after a shot, so the next
+    /// swing may start (R1.3205).
+    fn camera_home(&self) -> bool {
+        let Some(f) = self.my_field() else { return true };
+        if self.flight.is_some_and(|fl| !fl.landed) || self.looking(f) {
+            return false;
+        }
+        let (Some(eye), target) = (self.eye, self.camera_target()) else {
+            return true;
+        };
+        let near = |a: Fx, b: Fx, tol: Fx| (a - b).abs() <= tol;
+        near(eye.left, target.left, Fx::ONE) && near(eye.ppu, target.ppu, target.ppu / 16)
+    }
+
+    /// Whether the view still rests on the castle after your shot landed:
+    /// a while, longer while debris still moves (R1.3204).
+    fn looking(&self, f: &Field) -> bool {
+        let (Some(at), Some(s)) = (self.landed_at, self.play.siege.as_ref()) else {
+            return false;
+        };
+        let since = s.tick.saturating_sub(at);
+        since < CAM_LOOK || (since < CAM_LOOK_MAX && f.active())
     }
 
     /// The field you shoot at this siege.
@@ -633,7 +685,7 @@ impl Arena {
         }
         match (self.phase(), self.my_field()) {
             (Phase::Siege | Phase::SiegeOver, Some(f)) => {
-                self.siege_camera(f, f.shooter.swing_from.is_none() && !self.trail.is_empty(), w, h)
+                self.siege_camera(f, f.shooter.swing_from.is_none() && self.looking(f), w, h)
             }
             _ => self.build_camera(self.shown(), w, h),
         }
@@ -726,11 +778,17 @@ impl Arena {
             self.replay = None;
             return;
         }
-        if self.phase() != Phase::Siege {
+        let Some(f) = self.my_field() else { return };
+        let swinging = f.shooter.swing_from.is_some();
+        // after the timer only a swing under way may still throw (R1.3203)
+        if self.phase() != Phase::Siege && !(swinging && self.phase() == Phase::SiegeOver) {
             return;
         }
-        let Some(f) = self.my_field() else { return };
-        if f.shooter.swing_from.is_none() {
+        if !swinging {
+            // the next swing waits for the view to come back (R1.3205)
+            if !self.camera_home() {
+                return;
+            }
             self.queue(Input::Swing);
         } else {
             self.queue(Input::Release(part));
@@ -938,20 +996,39 @@ impl Arena {
             .shooter
             .live
             .iter()
-            .filter_map(|&i| w.projectiles.get(i))
-            .find(|b| b.alive);
-        match live {
-            Some(b) => {
-                if b.age.is_multiple_of(TRAIL_EVERY) {
-                    let p = b.pos;
-                    self.path.push(p);
-                }
+            .copied()
+            .find(|&i| w.projectiles.get(i).is_some_and(|b| b.alive));
+        let now = self.play.siege.as_ref().map_or(0, |s| s.tick);
+        let Some(i) = live else {
+            if self.flight.take().is_some_and(|fl| !fl.landed) {
+                self.landed_at = Some(now);
             }
-            None => {
-                if !self.path.is_empty() {
-                    self.trail = std::mem::take(&mut self.path);
-                }
+            if !self.path.is_empty() {
+                self.trail = std::mem::take(&mut self.path);
             }
+            return;
+        };
+        let b = &w.projectiles[i];
+        let mut fl = match self.flight {
+            Some(fl) if fl.ball == i => fl,
+            _ => Flight {
+                ball: i,
+                width: self.flight_width(f, b),
+                fell: false,
+                landed: false,
+            },
+        };
+        // the flight ends at the first hit: falling, then not (R1.3204)
+        let hit = fl.fell && b.vel.y >= Fx::ZERO && !fl.landed;
+        fl.landed |= hit;
+        fl.fell |= b.vel.y < Fx::ZERO;
+        let point = b.age.is_multiple_of(TRAIL_EVERY).then_some(b.pos);
+        self.flight = Some(fl);
+        if hit {
+            self.landed_at = Some(now);
+        }
+        if let Some(p) = point {
+            self.path.push(p);
         }
     }
 
@@ -963,6 +1040,11 @@ impl Arena {
         self.drag = None;
         match phase {
             Phase::Siege => {
+                // a replay still running from the last siege would hold the
+                // view on its castle and eat the first Space (R1.3200)
+                self.replay = None;
+                self.flight = None;
+                self.landed_at = None;
                 self.scout = None;
                 self.trail.clear();
                 self.path.clear();
@@ -1387,7 +1469,7 @@ impl Arena {
             f.flag = Some(self.flag());
             f.cues = self.cues.clone();
             if let Some(own) = self.own_field() {
-                let icam = self.build_camera(self.me, INSET_W, INSET_H);
+                let icam = self.inset_camera(own);
                 let mut inner = self.field_frame(own, now, icam, false);
                 inner.loops.clear();
                 f.inset = Some(Box::new(Inset {

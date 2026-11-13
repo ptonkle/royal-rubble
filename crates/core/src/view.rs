@@ -224,6 +224,8 @@ pub struct Ui {
     pub version: String,
     /// the version button opens What's New (not during a match)
     pub version_opens: bool,
+    /// the version button shows: on menus, never over a field (R1.3201)
+    pub version_shown: bool,
     pub panels: Vec<Panel>,
     pub hints: Vec<Hint>,
     /// the tab icon, as a data URL

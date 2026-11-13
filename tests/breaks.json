@@ -1031,8 +1031,8 @@
   {
     "name": "arena a high shot widens the view",
     "file": "crates/core/src/app/arena.rs",
-    "find": "                    .min(Fx::from_int(CAM_FLY_TALL_W)),",
-    "replace": "                    .min(Fx::ZERO),",
+    "find": "            .min(Fx::from_int(CAM_FLY_TALL_W))",
+    "replace": "            .min(Fx::from_int(CAM_AIM_MIN_W))",
     "test": "arena_a_high_shot_widens_the_view_and_keeps_the_ground_in_it"
   },
   {
@@ -1090,13 +1090,6 @@
     "find": "treb_hinge: Fx::ratio(3, 2),",
     "replace": "treb_hinge: Fx::ratio(1, 2),",
     "test": "trebuchet_counterweight_stays_clear_of_the_frame_and_the_ground"
-  },
-  {
-    "name": "arena camera holds on the trebuchet after release",
-    "file": "crates/core/src/app/arena.rs",
-    "find": "let held = flying.is_some_and(|b| b.age < CAM_HOLD);",
-    "replace": "let held = flying.is_some_and(|b| b.age < 0);",
-    "test": "arena_the_view_keeps_the_trebuchet_in_just_after_release"
   },
   {
     "name": "physics trebuchet steady arm speed band",
@@ -1314,5 +1307,61 @@
     "find": "        if alive.len() <= 1 {\n",
     "replace": "        if alive.is_empty() {\n",
     "test": "eight_seats_end_when_one_player_is_left"
+  },
+  {
+    "name": "r3200 replay kept into the next siege",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                self.replay = None;\n                self.flight = None;",
+    "replace": "                self.flight = None;",
+    "test": "arena_an_eight_seat_second_siege_aims_from_your_trebuchet"
+  },
+  {
+    "name": "r3201 version label shown over the field",
+    "file": "crates/core/src/app.rs",
+    "find": "version_shown: arena.is_none() && !matches!(self.screen, Screen::Play | Screen::Sandbox),",
+    "replace": "version_shown: true,",
+    "test": "play_vs_bots_opens_a_lobby_with_a_bot_and_start_shows_the_match"
+  },
+  {
+    "name": "r3202 inset frames the whole zone",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "let width = (cr - cl + m * 2).max(",
+    "replace": "let width = (cr - cl + m * 40).max(",
+    "test": "arena_the_corner_window_frames_your_castle_box_not_the_whole_zone"
+  },
+  {
+    "name": "r3203 release refused after the siege timer",
+    "file": "crates/core/src/play/mod.rs",
+    "find": "if self.siege.is_none() || !matches!(self.rules.phase, Phase::Siege | Phase::SiegeOver) {",
+    "replace": "if self.siege.is_none() || self.rules.phase != Phase::Siege {",
+    "test": "arena_a_swing_begun_as_the_siege_timer_ends_still_flies_before_the_round_ends"
+  },
+  {
+    "name": "r3203 moving shot does not hold the round",
+    "file": "crates/core/src/play/mod.rs",
+    "find": "if s.wait_left > 0 && s.fields.iter().any(|f| f.shot_moving()) {",
+    "replace": "if false {",
+    "test": "arena_a_swing_begun_as_the_siege_timer_ends_still_flies_before_the_round_ends"
+  },
+  {
+    "name": "r3204 flight view zooms with the shot",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "let mut cam = Camera::spanning(home, width, Fx::ZERO, w, h);",
+    "replace": "let mut cam = Camera::spanning(home, width + (b.pos.y - floor).abs() / 2, Fx::ZERO, w, h);",
+    "test": "arena_the_flight_view_follows_from_release_without_zooming_back_and_forth"
+  },
+  {
+    "name": "r3204 flight view keeps the shot low",
+    "file": "crates/core/src/app/arena.rs",
+    "find": ".max(b.pos.y - tall * 3 / 5);",
+    "replace": ".max(b.pos.y - tall / 10);",
+    "test": "arena_the_flight_view_follows_from_release_without_zooming_back_and_forth"
+  },
+  {
+    "name": "r3205 swing starts before the view is back",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "            if !self.camera_home() {",
+    "replace": "            if false {",
+    "test": "arena_the_next_swing_waits_for_the_view_to_come_back_to_the_trebuchet"
   }
 ]
