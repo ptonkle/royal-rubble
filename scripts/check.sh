@@ -34,9 +34,10 @@ step "5/9 WebAssembly import audit (scripts/wasm_imports.py)"
 step "6/9 art pipeline checks, no TeX needed (tests/art_check.py)"
 if [ -f tests/art_check.py ]; then "$PY" tests/art_check.py; else echo "no art pipeline in this project"; fi
 
-step "7/9 notebook form and test tags (scripts/notebook_check.py, scripts/quick_check.py --guard)"
+step "7/9 notebook form and test tags (scripts/notebook_check.py, scripts/quick_check.py --guard, scripts/tags.py guard)"
 "$PY" scripts/notebook_check.py
 "$PY" scripts/quick_check.py --guard
+"$PY" scripts/tags.py guard
 
 step "8/9 design journal (scripts/journal_check.py)"
 "$PY" scripts/journal_check.py

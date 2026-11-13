@@ -30,6 +30,8 @@ Where the design journal is, its link if it is published, and its newest entry.
 
 Every `SECOND-ORDER.md` row with status *person*, by number, with what the person has to decide or supply. `scripts/notebook_check.py` fails while one is missing.
 
+- R1.407: run `scripts/setup.sh` once (it needs the network) so ctc has its own `.venv` with Playwright; until then the browser check borrows Fleeced's through `BUILDER_PYTHON`.
+
 ## Mistakes so far
 
 By system, from `SECOND-ORDER.md`, with the rule each one produced.

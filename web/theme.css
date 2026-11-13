@@ -1,0 +1,48 @@
+/* The look, and only the look: every color, font, size and edge the menus
+   use. style.css holds the structure and reads these names alone, so the
+   chosen style (painted storybook, illuminated manuscript or Bayeux
+   tapestry, still to be picked) replaces this one file. These values are a
+   plain neutral stand-in (R1.402), not a style. */
+
+:root {
+  /* the page behind everything */
+  --page-bg: #20232a;
+  --page-ink: #e6e3dc;
+  --page-ink-dim: #a9a59c;
+
+  /* a panel */
+  --panel-bg: #2b2f37;
+  --panel-edge: #464b55;
+  --panel-radius: 6px;
+  --panel-pad: 2rem;
+  --panel-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+
+  /* buttons */
+  --button-bg: #d9d4c7;
+  --button-ink: #1d2026;
+  --button-edge: #a8a397;
+  --button-quiet-bg: transparent;
+  --button-quiet-ink: #e6e3dc;
+  --button-quiet-edge: #5a606b;
+  --button-radius: 4px;
+
+  /* fields */
+  --field-bg: #1b1e24;
+  --field-ink: #e6e3dc;
+  --field-edge: #5a606b;
+  --accent: #c9b98f;
+  --focus: #f0e2b6;
+
+  /* lobby seats */
+  --seat-bg: #23272e;
+  --seat-me: #3a3f2f;
+  --seat-ready: #9fbf8a;
+
+  /* type */
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-title: Georgia, "Times New Roman", serif;
+  --title-size: 3.5rem;
+  --heading-size: 1.5rem;
+  --body-size: 1rem;
+  --gap: 1.5rem;
+}

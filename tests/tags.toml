@@ -9,9 +9,57 @@
 # its rules. ./scripts/check.sh stays the check before a handoff or a deploy.
 #
 # Steps: fmt, clippy, core, build, wasm, art, notebook, journal, browser, all.
-# After Peter's quick check in Ape Race, Honey Hole and Crabble.
+# After Peter's quick check in Ape Race, Honey Hole and Crabble; ported with
+# its test tags from Fleeced (R1.405).
 
 ignore = [".gitignore", "notes/**", ".claude/**", "LICENSE*", "README.md", "LICENSES.md", "MEASUREMENTS.md", "DECISIONS.md"]
+
+# Test tags. A [[rule]] says which check steps a file needs; a rule that also
+# names `tags` narrows the core step to the cargo tests whose [tests] tags
+# meet them (scripts/tags.py). A file no tagged rule covers runs every test,
+# so a rule with no tags stays safe. scripts/check.sh's tags step fails on a
+# test with no tags, so add a row below with each new module.
+
+[tags]
+all = "foundations: run everything"
+boundary = "the architecture scans of tests/boundary.rs (always run: they read every file)"
+foundation = "rng.rs, ticks.rs: no rule tags them, so a change to one runs everything"
+online = "the lobby and online play: lobby.rs, online.rs, online/, the transport's fence"
+page = "the app and its door: app.rs, api.rs, view.rs, icon.rs, the shim, web/"
+saves = "the save and the settings it keeps: save.rs, the storage fence"
+notes = "the version and What's New: patch_notes.rs, data/patch-notes.json"
+copy = "reader-visible words: GLOSSARY.md, TONE.md, data/strings.json, strings.rs, glossary.rs"
+
+# A hit tag on the left also hits the tags on the right, transitively.
+[implies]
+online = ["page"]
+saves = ["page"]
+notes = ["page"]
+copy = ["page"]
+
+# Tags whose tests always run in a quick check.
+[always]
+tags = ["boundary"]
+
+# Test id prefix -> tags. `lib:<module>` is the core's own tests, and
+# `test:<file>` an integration test file's. The longest prefix wins.
+[tests]
+"test:boundary" = ["boundary"]
+"test:copy" = ["copy"]
+"test:storage_fence" = ["saves"]
+"test:online_fence" = ["online"]
+"lib:api" = ["page"]
+"lib:app" = ["page"]
+"lib:icon" = ["page"]
+"lib:view" = ["page"]
+"lib:lobby" = ["online"]
+"lib:online" = ["online"]
+"lib:save" = ["saves"]
+"lib:patch_notes" = ["notes"]
+"lib:glossary" = ["copy"]
+"lib:strings" = ["copy"]
+"lib:rng" = ["foundation"]
+"lib:ticks" = ["foundation"]
 
 [[rule]]
 name = "the core and the shim"
@@ -53,9 +101,43 @@ steps = ["build", "browser"]
 name = "the breaks"
 files = ["tests/breaks.json", "scripts/break_tests.py"]
 steps = ["core"]
+tags = ["boundary"]
 
 [[rule]]
 name = "the checks themselves"
 # a change to a script that runs or builds the checks runs everything
 files = ["scripts/**", "tests/tags.toml"]
 steps = ["all"]
+
+# The narrow rules: each adds nothing to the steps above, and says which tests
+# its files reach.
+
+[[rule]]
+name = "tests of the lobby and online play"
+files = ["crates/core/src/lobby.rs", "crates/core/src/online.rs", "crates/core/src/online/**", "crates/core/tests/online_fence.rs", "web/online.js", "web/net-clock.js", "web/net/**"]
+steps = ["core"]
+tags = ["online"]
+
+[[rule]]
+name = "tests of the app and its door"
+files = ["crates/core/src/api.rs", "crates/core/src/app.rs", "crates/core/src/app/**", "crates/core/src/icon.rs", "crates/core/src/view.rs", "crates/shim/**", "web/app.js", "web/index.html", "web/style.css", "web/theme.css", "web/settings.js"]
+steps = ["core"]
+tags = ["page"]
+
+[[rule]]
+name = "tests of the save"
+files = ["crates/core/src/save.rs", "crates/core/tests/storage_fence.rs", "web/save/**"]
+steps = ["core"]
+tags = ["saves"]
+
+[[rule]]
+name = "tests of the version"
+files = ["crates/core/src/patch_notes.rs", "data/patch-notes.json"]
+steps = ["core"]
+tags = ["notes"]
+
+[[rule]]
+name = "tests of the words"
+files = ["crates/core/src/glossary.rs", "crates/core/src/strings.rs", "crates/core/tests/copy.rs", "data/strings.json", "GLOSSARY.md", "TONE.md"]
+steps = ["core"]
+tags = ["copy"]

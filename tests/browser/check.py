@@ -33,9 +33,13 @@ import importlib.util
 import os
 import pathlib
 import sys
+import time
 import threading
 
 from playwright.sync_api import sync_playwright
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import engines  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 DIST = ROOT / "dist"
@@ -43,6 +47,8 @@ ENGINES = os.environ.get("BUILDER_ENGINES", "chromium firefox webkit").split()
 IDLE_MS = int(float(os.environ.get("BUILDER_IDLE", "10")) * 1000)
 
 failures = []
+# How long after the check navigates a cancelled fetch counts as its doing.
+LEAVE_GRACE_S = 3
 
 
 def check(ok, what):
@@ -92,7 +98,7 @@ def run_engine(p, engine, base, interactions):
     # real multitouch, fullscreen or install, which stay a person's check.
     launcher, _, device = engine.partition("-")
     profile = dict(p.devices["iPhone 15"]) if device == "iphone" else {}
-    browser = getattr(p, launcher).launch()
+    browser = engines.launch(p, launcher)
     context = browser.new_context(accept_downloads=True, **profile)
     context.on("request", lambda r: None if same_origin(r.url) else seen["foreign"].append(r.url))
 
@@ -112,12 +118,36 @@ def run_engine(p, engine, base, interactions):
     )
     page = context.new_page()
     page.on("console", lambda m: seen["console"].append(m.text) if m.type == "error" else None)
-    page.on("pageerror", lambda e: seen["errors"].append(str(e)))
+    # Leaving a page cancels its fetches still in flight, and Firefox throws
+    # each as an uncaught "NetworkError" on the page being left (seen on the
+    # live site, where loads are slower: R1.3014). Such an error within a
+    # moment of the check navigating is noted, not failed; any other stays.
+    left = {"at": -1e9}
+
+    def leaving(go):
+        def wrapped(*args, **kwargs):
+            left["at"] = time.monotonic()
+            return go(*args, **kwargs)
+        return wrapped
+
+    page.goto = leaving(page.goto)
+    page.reload = leaving(page.reload)
+
+    def page_error(e):
+        text = str(e)
+        cancelled = "NetworkError when attempting to fetch resource" in text
+        if cancelled and time.monotonic() - left["at"] < LEAVE_GRACE_S:
+            print(f"  note: a fetch cancelled by leaving the page ({text})")
+            return
+        seen["errors"].append(text)
+
+    page.on("pageerror", page_error)
     page.on("websocket", lambda ws: seen["sockets"].append(ws.url))
     page.on("worker", lambda w: seen["workers"].append(w.url))
     page.on("popup", lambda pg: seen["popups"].append(pg.url))
 
-    page.goto(base + "/index.html")
+    # ?fast skips what only makes a person wait (crates/core/src/app.rs).
+    page.goto(base + "/index.html?fast")
     page.wait_for_selector("body[data-ready='true']", state="attached", timeout=20000)
     check(True, "page reported ready")
     page.wait_for_timeout(IDLE_MS)

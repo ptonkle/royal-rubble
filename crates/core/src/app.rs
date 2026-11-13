@@ -1,0 +1,484 @@
+//! The app: which screen shows, the player's settings, and what every action
+//! does. `api.rs` holds one `App` for the page and forwards to it; `ui` is
+//! everything the page draws. No clock and no randomness: the page hands in
+//! a seed and the time. Ported from Fleeced's `app.rs` (after Crabble's).
+
+mod lobby_view;
+
+use std::collections::BTreeMap;
+
+use crate::lobby::clean_name;
+use crate::online::room::{clean_code, Kind, Opening, Pump, Request, Room, Stage};
+use crate::online::APP_ID;
+use crate::rng::Rng;
+use crate::save::{self, Loaded, Save};
+use crate::strings::Strings;
+use crate::view::{Hint, Item, NoteEntry, Panel, Ui};
+use crate::{glossary, icon, patch_notes};
+
+/// The build's version: the version button's text, and the top row of
+/// `data/patch-notes.json`. `scripts/bump.sh` changes the two together.
+pub const VERSION: &str = "0.1.0";
+
+/// The sound sliders' step, percent.
+const VOLUME_STEP: u32 = 5;
+/// The sound sliders' top, percent.
+const VOLUME_MAX: u32 = 100;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Screen {
+    Title,
+    Settings,
+    Notes,
+    /// Join with code: the code field.
+    Online,
+    /// A joiner's pasted-code form, until the host's lobby is heard.
+    Paste,
+    Lobby,
+    Play,
+}
+
+impl Screen {
+    fn name(self) -> &'static str {
+        match self {
+            Screen::Title => "title",
+            Screen::Settings => "settings",
+            Screen::Notes => "notes",
+            Screen::Online => "online",
+            Screen::Paste => "paste",
+            Screen::Lobby => "lobby",
+            Screen::Play => "play",
+        }
+    }
+}
+
+/// The page's one app.
+#[derive(Debug, Clone)]
+pub struct App {
+    strings: Strings,
+    notes: Vec<patch_notes::Entry>,
+    hints: Vec<Hint>,
+    screen: Screen,
+    /// Where Back goes from Settings and What's New.
+    back: Screen,
+    save: Save,
+    /// A save this build refused, until the page has taken it.
+    keep_refused: String,
+    /// The status key that says why, for as long as Settings can offer it.
+    refused_why: &'static str,
+    /// Settings' button asked for the refused save as a file.
+    offer_old_file: bool,
+    /// `?fast`: the browser checks skip what only makes a person wait.
+    fast: bool,
+    /// `?codes`: show the invite-code buttons on the Join screen.
+    codes: bool,
+    /// `?net=off`: rooms open with no transport, for the checks.
+    no_net: bool,
+    /// This browser's id, stable for its tab, from the page.
+    client: String,
+    /// The build's stamp: a different one is turned away at the door.
+    build: String,
+    /// The page's own address, for the invite link.
+    page_url: String,
+    rng: Rng,
+    /// The room this browser is in.
+    room: Option<Room>,
+    /// A room just left: the transport still has to hear it.
+    leaving: Vec<Request>,
+    /// The Join screen's code field, and whether Join refused it.
+    typed_code: String,
+    bad_code: bool,
+    /// The pasted-code forms' fields: a joiner's invite, a host's reply.
+    typed_invite: String,
+    typed_reply: String,
+    /// The latest time the page handed in.
+    now_ms: i64,
+}
+
+fn percent(value: &str) -> Result<u32, String> {
+    let v: u32 = value
+        .parse()
+        .map_err(|_| format!("\"{value}\" is not a sound level."))?;
+    Ok(v.min(VOLUME_MAX))
+}
+
+/// A gain in thousandths as the decimal the page hands to Web Audio.
+fn decimal(milli: u32) -> String {
+    format!("{}.{:03}", milli / 1000, milli % 1000)
+}
+
+impl App {
+    /// Checks the strings file, the patch notes and the glossary and opens
+    /// on the Title.
+    pub fn new(strings_json: &str, notes_json: &str, glossary_md: &str) -> Result<App, String> {
+        let strings = Strings::parse(strings_json).map_err(|e| e.message())?;
+        let notes = patch_notes::parse(notes_json)?;
+        if notes[0].version != VERSION {
+            return Err(format!(
+                "The patch notes start at {}, and this build is {VERSION}.",
+                notes[0].version
+            ));
+        }
+        let hints = glossary::parse(glossary_md)
+            .map_err(|e| e.message())?
+            .into_iter()
+            .map(|e| Hint {
+                term: e.term,
+                definition: e.definition,
+            })
+            .collect();
+        Ok(App {
+            strings,
+            notes,
+            hints,
+            screen: Screen::Title,
+            back: Screen::Title,
+            save: save::new_game(),
+            keep_refused: String::new(),
+            refused_why: "",
+            offer_old_file: false,
+            fast: false,
+            codes: false,
+            no_net: false,
+            client: String::new(),
+            build: String::new(),
+            page_url: String::new(),
+            rng: Rng::new(0),
+            room: None,
+            leaving: Vec::new(),
+            typed_code: String::new(),
+            bad_code: false,
+            typed_invite: String::new(),
+            typed_reply: String::new(),
+            now_ms: 0,
+        })
+    }
+
+    /// Opens a screen that Back returns from.
+    fn open(&mut self, screen: Screen) {
+        self.back = self.screen;
+        self.screen = screen;
+    }
+
+    /// The stored text, read once as the page loads.
+    fn load_save(&mut self, text: &str) {
+        match save::load(text) {
+            Loaded::Fresh => {}
+            Loaded::Ready(s) => self.save = s,
+            Loaded::Refused { why, kept } => {
+                self.keep_refused = kept;
+                self.refused_why = why;
+            }
+        }
+    }
+
+    /// What a new room needs from the page.
+    fn opening(&mut self) -> Opening {
+        Opening {
+            client: self.client.clone(),
+            name: self.save.name.clone(),
+            build: self.build.clone(),
+            app_id: APP_ID.to_string(),
+            seed: self.rng.next_u64(),
+            fast: self.fast,
+            no_net: self.no_net,
+        }
+    }
+
+    fn enter(&mut self, room: Room) {
+        self.room = Some(room);
+        self.bad_code = false;
+        self.back = Screen::Title;
+        self.screen = Screen::Lobby;
+    }
+
+    /// Joins by a typed or linked code, or says it is wrong.
+    fn join(&mut self, code: &str) {
+        match clean_code(code) {
+            Some(code) => {
+                let how = self.opening();
+                self.enter(Room::join(&how, &code, self.now_ms));
+            }
+            None => {
+                self.typed_code = code.to_string();
+                self.bad_code = true;
+                if self.screen != Screen::Online {
+                    self.open(Screen::Online);
+                }
+            }
+        }
+    }
+
+    fn leave(&mut self) {
+        if self.room.take().is_some_and(|r| r.kind != Kind::Solo) {
+            self.leaving.push(Request::Leave);
+        }
+        self.typed_invite.clear();
+        self.typed_reply.clear();
+        self.back = Screen::Title;
+        self.screen = Screen::Title;
+    }
+
+    /// Applies one named action. A refused action leaves the app as it was.
+    pub fn act(&mut self, name: &str, value: &str) -> Result<(), String> {
+        match name {
+            "menu.solo" => {
+                let how = self.opening();
+                self.enter(Room::solo(&how));
+            }
+            "menu.host" => {
+                let how = self.opening();
+                self.enter(Room::host(&how, self.now_ms));
+            }
+            "menu.join" => self.open(Screen::Online),
+            "menu.settings" => self.open(Screen::Settings),
+            "menu.back" => self.screen = self.back,
+            "version" => {
+                if self.screen != Screen::Notes {
+                    self.open(Screen::Notes);
+                }
+            }
+            "settings.volume" => self.save.volume = percent(value)?,
+            "settings.music" => self.save.music = percent(value)?,
+            "save.load" => self.load_save(value),
+            // the page has the refused text now, and Settings still offers it
+            "save.kept" => self.keep_refused.clear(),
+            "save.old_file" => self.offer_old_file = true,
+            "save.offered" => self.offer_old_file = false,
+            "online.code" => {
+                self.typed_code = value.to_string();
+                self.bad_code = false;
+            }
+            "online.join" => self.join(&self.typed_code.clone()),
+            "online.paste_host" => {
+                let how = self.opening();
+                self.enter(Room::host_by_code(&how));
+            }
+            "online.paste_join" => self.open(Screen::Paste),
+            "online.offer_in" => self.typed_invite = value.to_string(),
+            // the form stays up, so a refused invite can be pasted again
+            "online.make_answer" => {
+                let how = self.opening();
+                self.room = Some(Room::join_by_code(&how, &self.typed_invite));
+            }
+            "online.answer_in" => self.typed_reply = value.to_string(),
+            "online.accept_answer" => {
+                if let Some(room) = &mut self.room {
+                    room.accept_reply(&self.typed_reply);
+                }
+                self.typed_reply.clear();
+            }
+            "online.paste_back" => {
+                self.leave();
+                self.screen = Screen::Online;
+            }
+            "lobby.leave" | "play.leave" => self.leave(),
+            "flag.fast" => self.fast = true,
+            "flag.codes" => self.codes = true,
+            "flag.net_off" => self.no_net = true,
+            "flag.client" => self.client = value.to_string(),
+            "flag.build" => self.build = value.to_string(),
+            "flag.page_url" => self.page_url = value.to_string(),
+            "flag.seed" => {
+                let seed: u64 = value.parse().map_err(|_| format!("\"{value}\" is not a seed."))?;
+                self.rng = Rng::new(seed);
+            }
+            "flag.room" => self.join(value),
+            other => {
+                let Some(room) = &mut self.room else {
+                    return Err(format!("Unknown action \"{other}\"."));
+                };
+                room.act(other, value)?;
+                if other == "lobby.name" {
+                    self.save.name = clean_name(value);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// One event from the transport. With no room open there is no one to
+    /// hear it: a room just left can still send a last word.
+    pub fn net_event(&mut self, kind: &str, peer: &str, text: &str, host: bool, now_ms: i64) {
+        if let Some(room) = &mut self.room {
+            room.event(kind, peer, text, host, now_ms);
+        }
+    }
+
+    /// One display frame: the room's work, and the screen following it.
+    pub fn pump(&mut self, now_ms: i64, keys: u32) -> Pump {
+        self.now_ms = now_ms;
+        let mut pump = self
+            .room
+            .as_mut()
+            .map_or_else(Pump::default, |r| r.pump(now_ms, keys));
+        pump.requests.append(&mut self.leaving);
+        if self.screen == Screen::Paste && self.room.as_ref().is_some_and(|r| r.heard) {
+            self.screen = Screen::Lobby;
+        }
+        let started = self.room.as_ref().is_some_and(|r| r.stage != Stage::Lobby);
+        if started && self.screen == Screen::Lobby {
+            self.screen = Screen::Play;
+        }
+        if !started && self.screen == Screen::Play {
+            self.screen = Screen::Lobby;
+        }
+        pump
+    }
+
+    fn button(&self, id: &str, key: &str) -> Item {
+        Item::Button {
+            id: id.into(),
+            text: self.strings.get(key),
+            quiet: false,
+            disabled: false,
+        }
+    }
+
+    fn quiet(&self, id: &str, key: &str) -> Item {
+        Item::Button {
+            id: id.into(),
+            text: self.strings.get(key),
+            quiet: true,
+            disabled: false,
+        }
+    }
+
+    fn title_panels(&self) -> Vec<Panel> {
+        vec![Panel::new(
+            "title",
+            self.strings.get("title"),
+            vec![
+                self.button("menu.solo", "menu.solo"),
+                self.button("menu.host", "menu.host"),
+                self.button("menu.join", "menu.join"),
+                self.quiet("menu.settings", "menu.settings"),
+            ],
+        )]
+    }
+
+    fn slider(&self, id: &str, key: &str, value: u32) -> Item {
+        Item::Slider {
+            id: id.into(),
+            label: self.strings.get(key),
+            min: 0,
+            max: VOLUME_MAX,
+            step: VOLUME_STEP,
+            value,
+            text: format!("{value}%"),
+        }
+    }
+
+    fn settings_panels(&self) -> Vec<Panel> {
+        let mut items = vec![
+            self.slider("settings.volume", "settings.sound", self.save.volume),
+            self.slider("settings.music", "settings.music", self.save.music),
+        ];
+        if !self.refused_why.is_empty() {
+            items.push(Item::Lines {
+                id: String::new(),
+                lines: vec![self.strings.get(self.refused_why)],
+            });
+            items.push(self.quiet("save.old_file", "save.old_file"));
+        }
+        items.push(self.quiet("menu.back", "menu.back"));
+        vec![Panel::new(
+            "settings",
+            self.strings.get("settings.heading"),
+            items,
+        )]
+    }
+
+    fn notes_panels(&self) -> Vec<Panel> {
+        let entries = self
+            .notes
+            .iter()
+            .map(|e| NoteEntry {
+                version: e.version.clone(),
+                date: e.date.clone(),
+                minor: e.minor(),
+                lines: e.notes.clone(),
+            })
+            .collect();
+        vec![Panel::new(
+            "notes",
+            self.strings.get("notes.heading"),
+            vec![
+                Item::Notes {
+                    id: "notes.list".into(),
+                    entries,
+                },
+                self.quiet("menu.back", "menu.back"),
+            ],
+        )]
+    }
+
+    fn online_panels(&self) -> Vec<Panel> {
+        let mut items = vec![
+            Item::Text {
+                id: "online.code".into(),
+                label: self.strings.get("online.code"),
+                value: self.typed_code.clone(),
+                max: crate::online::room::CODE_LEN as u32,
+                placeholder: String::new(),
+            },
+            self.button("online.join", "online.join"),
+        ];
+        if self.codes {
+            items.push(self.quiet("online.paste_host", "online.paste_host"));
+            items.push(self.quiet("online.paste_join", "online.paste_join"));
+        }
+        items.push(self.quiet("menu.back", "menu.back"));
+        vec![Panel::new("online", self.strings.get("online.heading"), items)]
+    }
+
+    /// Everything the page draws now.
+    pub fn ui(&self) -> Ui {
+        let room = self.room.as_ref();
+        let panels = match (self.screen, room) {
+            (Screen::Settings, _) => self.settings_panels(),
+            (Screen::Notes, _) => self.notes_panels(),
+            (Screen::Online, _) => self.online_panels(),
+            (Screen::Paste, r) => self.paste_panels(r),
+            (Screen::Lobby, Some(r)) => self.lobby_panels(r),
+            (Screen::Play, Some(r)) => self.play_panels(r),
+            (Screen::Title | Screen::Lobby | Screen::Play, _) => self.title_panels(),
+        };
+        let playing = self.screen == Screen::Play && room.is_some_and(|r| r.stage == Stage::Playing);
+        let status = match room {
+            Some(r) => r.status(),
+            None if self.bad_code => "online.bad_code",
+            None => "",
+        };
+        Ui {
+            screen: self.screen.name().into(),
+            title: self.strings.get("title"),
+            version: VERSION.into(),
+            version_opens: !matches!(self.screen, Screen::Notes | Screen::Play),
+            panels,
+            hints: self.hints.clone(),
+            icon: icon::data_url(),
+            save: save::store(&self.save),
+            keep_refused: self.keep_refused.clone(),
+            offer_old_file: self.offer_old_file,
+            volume: self.save.volume,
+            music: self.save.music,
+            master_gain: decimal(save::master_gain(self.save.volume)),
+            music_gain: decimal(save::music_gain(self.save.music)),
+            live: room.is_some(),
+            capture: playing,
+            keys: BTreeMap::new(),
+            hash: room
+                .filter(|r| !r.code.is_empty())
+                .map_or_else(String::new, |r| format!("#room={}", r.code)),
+            status: if status.is_empty() {
+                String::new()
+            } else {
+                self.strings.get(status)
+            },
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests;
