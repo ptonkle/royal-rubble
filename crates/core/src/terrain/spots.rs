@@ -50,7 +50,8 @@ pub struct Spot {
 
 /// Ruin shapes in cells: (x from the spot's left edge, height); height 0 is
 /// the ground under that x, any other height is above the spot's highest ground.
-const RUINS: &[&[((i32, i32), (i32, i32))]] = &[
+type RuinShape = &'static [((i32, i32), (i32, i32))];
+const RUINS: &[RuinShape] = &[
     // broken wall
     &[((1, 0), (1, 4)), ((4, 0), (4, 3)), ((1, 4), (4, 3))],
     // arch

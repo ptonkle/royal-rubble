@@ -52,11 +52,14 @@ pub mod tune {
     pub const HILL_CHANCE_OF_3: u64 = 2;
     pub const HILL_HALF_W: (i32, i32) = (9, 12);
     pub const HILL_H: (i32, i32) = (3, 5);
+    /// Half-width of the hill's flat top, in columns.
+    pub const HILL_TOP_HALF_W: i32 = 2;
     /// Spot counts per match and widths in columns: (kind, min, max, width).
+    /// The watchtower's count holds only when the map has a hill.
     pub const SPOTS: &[(super::SpotKind, usize, usize, usize)] = {
         use super::SpotKind::*;
         &[
-            (Watchtower, 0, 1, 5),
+            (Watchtower, 1, 1, 5),
             (StoneDeposit, 1, 1, 5),
             (GoldVein, 1, 1, 4),
             (Forest, 1, 1, 8),

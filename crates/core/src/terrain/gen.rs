@@ -33,7 +33,10 @@ fn clamp_slope(h: &mut [i32], max: i32) {
 
 /// The plot plus the margin behind it, starting at `front`. Returns the
 /// heights, and the hill and cliff features with columns relative to the plot.
-fn plot_ground(rng: &mut Rng, front: i32) -> (Vec<i32>, Option<(ColRange, usize)>, Option<(usize, i32)>) {
+/// Plot heights, the hill (columns, peak) and the cliff (column, rise).
+type PlotGround = (Vec<i32>, Option<(ColRange, usize)>, Option<(usize, i32)>);
+
+fn plot_ground(rng: &mut Rng, front: i32) -> PlotGround {
     let n = PLOT_MAX_W + MARGIN_W;
     // rolling ground: control points every 12 columns, blended and blurred
     let step = 12usize;
@@ -61,10 +64,14 @@ fn plot_ground(rng: &mut Rng, front: i32) -> (Vec<i32>, Option<(ColRange, usize)
     let mut hill = None;
     if rng.chance(HILL_CHANCE_OF_3, 3) {
         let hw = rng.range(HILL_HALF_W.0, HILL_HALF_W.1);
-        let c = rng.range(hw + 4, PLOT_MAX_W as i32 - hw - 4);
+        let c = rng.range(
+            hw + HILL_TOP_HALF_W + 4,
+            PLOT_MAX_W as i32 - hw - HILL_TOP_HALF_W - 4,
+        );
         let top = rng.range(HILL_H.0, HILL_H.1) * CELL;
         for (i, v) in h.iter_mut().enumerate() {
-            let d = (i as i32 - c).abs();
+            // a flat top a few columns wide, for the watchtower
+            let d = ((i as i32 - c).abs() - HILL_TOP_HALF_W).max(0);
             if d < hw {
                 *v += lerp(top, 0, d, hw);
             }
@@ -84,7 +91,7 @@ fn plot_ground(rng: &mut Rng, front: i32) -> (Vec<i32>, Option<(ColRange, usize)
         let hi = PLOT_MAX_W as i32 * 75 / 100;
         let c = rng.range(lo, hi);
         let clear = match hill {
-            Some((hc, hw)) => (c - hc).abs() > hw + 4,
+            Some((hc, hw)) => (c - hc).abs() > hw + HILL_TOP_HALF_W + 4,
             None => true,
         };
         if clear {
@@ -98,8 +105,8 @@ fn plot_ground(rng: &mut Rng, front: i32) -> (Vec<i32>, Option<(ColRange, usize)
 
     let hill = hill.map(|(c, hw)| {
         let cols = ColRange {
-            start: (c - hw) as usize,
-            end: (c + hw) as usize,
+            start: (c - hw - HILL_TOP_HALF_W) as usize,
+            end: (c + hw + HILL_TOP_HALF_W) as usize,
         };
         let mut peak = cols.start;
         for i in cols.start..cols.end {

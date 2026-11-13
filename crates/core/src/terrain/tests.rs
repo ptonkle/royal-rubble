@@ -70,7 +70,11 @@ fn problems(p: &Plot) -> Vec<String> {
     for &(kind, min, max, _) in SPOTS {
         let n = p.spots.iter().filter(|sp| sp.kind == kind).count();
         let hill = p.features.iter().any(|f| matches!(f, Feature::Hill { .. }));
-        let min = if kind == SpotKind::Watchtower { 0 } else { min };
+        let min = if kind == SpotKind::Watchtower && !hill {
+            0
+        } else {
+            min
+        };
         if n < min || n > max || (kind == SpotKind::Watchtower && n > 0 && !hill) {
             out.push(format!("seed {s}: {n} of {kind:?}"));
         }

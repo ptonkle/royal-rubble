@@ -12,5 +12,54 @@
     "find": "other => return Err(format!(\"Unknown action \\\"{other}\\\".\")),",
     "replace": "_ => {}",
     "test": "act_refuses_an_unknown_action"
+  },
+  {
+    "name": "terrain rng follows splitmix64",
+    "file": "crates/core/src/terrain/rng.rs",
+    "find": "self.state.wrapping_add(0x9E37_79B9_7F4A_7C15)",
+    "replace": "self.state.wrapping_add(0x9E37_79B9_7F4A_7C17)",
+    "test": "terrain_rng_matches_splitmix64"
+  },
+  {
+    "name": "terrain plot slope is clamped",
+    "file": "crates/core/src/terrain/gen.rs",
+    "find": "    clamp_slope(&mut h, MAX_STEP);\n",
+    "replace": "",
+    "test": "terrain_hundred_seeds_all_playable"
+  },
+  {
+    "name": "terrain buildable span grows",
+    "file": "crates/core/src/terrain/mod.rs",
+    "find": "let w = tune::PLOT_MIN_W + (level - 1) * tune::PLOT_STEP_W;",
+    "replace": "let w = tune::PLOT_MIN_W;",
+    "test": "terrain_buildable_span_grows_with_level"
+  },
+  {
+    "name": "terrain steep spot refused",
+    "file": "crates/core/src/terrain/spots.rs",
+    "find": "if hi - lo > SPOT_FLAT {",
+    "replace": "if false {",
+    "test": "terrain_a_steep_spot_is_refused"
+  },
+  {
+    "name": "terrain spots keep apart",
+    "file": "crates/core/src/terrain/spots.rs",
+    "find": "!plot.spots.iter().any(|s| s.cols.overlaps(&padded))",
+    "replace": "true",
+    "test": "terrain_spots_sit_on_flat_dry_ground_apart"
+  },
+  {
+    "name": "terrain first spots at level 1",
+    "file": "crates/core/src/terrain/spots.rs",
+    "find": "let near = placed_free < SPOTS_AT_LEVEL_1;",
+    "replace": "let near = false;",
+    "test": "terrain_first_spots_open_at_level_1"
+  },
+  {
+    "name": "terrain water stays in the gap",
+    "file": "crates/core/src/terrain/gen.rs",
+    "find": "let bottom = lowest - depth * CELL;",
+    "replace": "let bottom = lowest - CELL;",
+    "test": "terrain_hundred_seeds_all_playable"
   }
 ]
