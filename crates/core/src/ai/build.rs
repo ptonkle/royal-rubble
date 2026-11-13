@@ -427,7 +427,7 @@ pub fn plan_castle(ask: &BuildAsk) -> CastlePlan {
         .gold
         .saturating_sub(cost(&segments, u32::MAX, ask.stock, ask.have).map_or(0, |c| c.0));
     want.retain(|k| {
-        let c = ledger::building_row(*k).cost + 1;
+        let c = ledger::building_row(*k).cost;
         let ok = c <= left && producers > 0;
         if ok {
             left -= c;
