@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.2.10",
+    "date": "2026-11-13",
+    "notes": [
+      "New painted look: sky, green hills, gray stone, timber trebuchet.",
+      "Royals are painted, face the incoming shot and fall when killed.",
+      "Gold, ore and stone seams show in the ground.",
+      "Esc cancels a half-placed segment."
+    ]
+  },
+  {
     "version": "0.2.9",
     "date": "2026-11-13",
     "notes": [
