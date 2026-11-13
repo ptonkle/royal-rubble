@@ -1034,5 +1034,19 @@
     "find": "                    .min(Fx::from_int(CAM_FLY_TALL_W)),",
     "replace": "                    .min(Fx::ZERO),",
     "test": "arena_a_high_shot_widens_the_view_and_keeps_the_ground_in_it"
+  },
+  {
+    "name": "the cloth offset follows the camera",
+    "file": "crates/core/src/app/field.rs",
+    "find": "    cam.px(Vec2::new(Fx::ZERO, Fx::ZERO))\n",
+    "replace": "    [0, cam.h]\n",
+    "test": "cloth_offset_moves_with_the_view"
+  },
+  {
+    "name": "scenery trees start in the open country",
+    "file": "crates/core/src/terrain/mod.rs",
+    "find": "let mut col = self.between.start + rng",
+    "replace": "let mut col = self.pad.start + rng",
+    "test": "terrain_trees_stand_apart_in_open_country"
   }
 ]

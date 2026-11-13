@@ -22,7 +22,47 @@ function save(name, c, meta, jpeg) {
 }
 
 // linen
-{ const c = canvas(B.linen_w, B.linen_h); S.linen(0, 0, B.linen_w, B.linen_h); save("linen", c, {}, true); }
+// The page repeats the linen across any width, so it is made seamless: each
+// axis in turn, a copy shifted by half (its seam in the middle) shows at the
+// edges and the original in the middle, crossfaded (R1.1902).
+function seamless(src, axisX) {
+  const W = src.width, H = src.height;
+  const out = document.createElement("canvas"); out.width = W; out.height = H;
+  const o = out.getContext("2d");
+  const dx = axisX ? W / 2 : 0, dy = axisX ? 0 : H / 2;
+  for (const [x, y] of [[-dx, -dy], [axisX ? W - dx : 0, axisX ? 0 : H - dy]]) o.drawImage(src, x, y);
+  const mid = document.createElement("canvas"); mid.width = W; mid.height = H;
+  const m = mid.getContext("2d");
+  m.drawImage(src, 0, 0);
+  m.globalCompositeOperation = "destination-in";
+  const gr = axisX ? m.createLinearGradient(0, 0, W, 0) : m.createLinearGradient(0, 0, 0, H);
+  gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(0.5, "rgba(0,0,0,1)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+  m.fillStyle = gr; m.fillRect(0, 0, W, H);
+  o.drawImage(mid, 0, 0);
+  return out;
+}
+{
+  const raw = canvas(B.linen_w, B.linen_h); S.linen(0, 0, B.linen_w, B.linen_h);
+  const flat = seamless(seamless(raw, true), false);
+  const c = canvas(B.linen_w, B.linen_h); c.getContext("2d").drawImage(flat, 0, 0);
+  save("linen", c, {}, true);
+}
+// the top border: two rules, slanted bars, beasts and birds facing in pairs
+{
+  const D = K.border, H = B.border_h, u = H / G.units, W = D.bay * u * D.bays.length;
+  const c = canvas(W, H);
+  const lineW = S.P.stem_width * K.figure.line;
+  const floor = H - D.floor * u;
+  D.bays.forEach((bay, i) => {
+    const x0 = i * D.bay * u;
+    const bw = D.bar_w * u, sl = D.bar_slant * u, top = D.rule_inset * u, bot = H - D.rule_inset * u;
+    S.patch([[x0, bot], [x0 + bw, bot], [x0 + bw + sl, top], [x0 + sl, top]], D.bars[i % D.bars.length], "navy", { angle: 1.2, scale: K.figure.fill, lineW });
+    const mid = x0 + (D.bay * u + bw + sl) / 2;
+    parts(S, D[bay.kind], { a: bay.a, b: bay.b }, mid, floor, u * D[bay.kind + "_scale"], bay.face, {});
+  });
+  for (const y of [D.rule_inset * u / 2, H - D.rule_inset * u / 2]) S.stem([[-H, y], [W + H, y]], "rule", { w: D.rule_w });
+  save("border", c);
+}
 // wool tiles for terrain, water and the flag
 for (const name of B.tiles) {
   const T = B.tile; const c = canvas(T, T);
@@ -69,6 +109,14 @@ for (const [rank, C] of Object.entries(K.costumes)) {
     save("fig-" + rank + (dead ? "-dead" : ""), c, { ax: w / 2, ay: foot, tall });
   }
 }
+// scenery trees, one per look, foot at the anchor
+K.tree_looks.forEach((L, i) => {
+  const T = B.tree, ts = T / G.units, w = T, h = T * G.fig_h, foot = h - T * G.figure_pad;
+  const c = canvas(w, h);
+  const flags = {}; L.flags.forEach(f => flags[f] = true);
+  parts(S, K.tree, L, w / 2, foot, ts, 1, flags);
+  save("tree-" + i, c, { ax: w / 2, ay: foot, tall: T });
+});
 // huts
 for (const [kind, H] of Object.entries(K.huts)) {
   const hs = B.hut / G.hut_units, w = B.hut * 2, h = B.hut * 2, foot = h - B.hut * G.figure_pad;

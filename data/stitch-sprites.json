@@ -5,6 +5,11 @@
   "w": 2048,
   "h": 1152
  },
+ "border": {
+  "file": "data/look/stitch/border.png",
+  "w": 432,
+  "h": 72
+ },
  "wool-olive": {
   "file": "data/look/stitch/wool-olive.png",
   "w": 192,
@@ -167,6 +172,30 @@
   "ax": 240,
   "ay": 276,
   "tall": 240
+ },
+ "tree-0": {
+  "file": "data/look/stitch/tree-0.png",
+  "w": 160,
+  "h": 232,
+  "ax": 80,
+  "ay": 184,
+  "tall": 160
+ },
+ "tree-1": {
+  "file": "data/look/stitch/tree-1.png",
+  "w": 160,
+  "h": 232,
+  "ax": 80,
+  "ay": 184,
+  "tall": 160
+ },
+ "tree-2": {
+  "file": "data/look/stitch/tree-2.png",
+  "w": 160,
+  "h": 232,
+  "ax": 80,
+  "ay": 184,
+  "tall": 160
  },
  "hut-carpenter": {
   "file": "data/look/stitch/hut-carpenter.png",

@@ -96,6 +96,14 @@ pub mod tune {
     };
     /// The first this many spots placed after the watchtower go inside the level-1 plot.
     pub const SPOTS_AT_LEVEL_1: usize = 2;
+    /// Scenery trees in the open country (drawing only): columns between
+    /// one tree and the next, the columns kept clear before the gap, how many
+    /// looks there are, and the salt that keeps their stream apart from the
+    /// ground's.
+    pub const TREE_GAP: (i32, i32) = (10, 26);
+    pub const TREE_EDGE: usize = 4;
+    pub const TREE_LOOKS: i32 = 3;
+    pub const TREE_SALT: u64 = 0x7EE5_1066;
 }
 
 /// Columns `start..end`.
@@ -218,6 +226,22 @@ impl Plot {
             self.heights[self.plot.start],
             col,
         )
+    }
+
+    /// Scenery trees in the open country, as (column, look): seeded from
+    /// the plot's seed, [`tune::TREE_GAP`] columns apart, never in the
+    /// water. They are drawn only and touch no rule.
+    pub fn trees(&self) -> Vec<(usize, u8)> {
+        let mut rng = rng::Rng::new(self.seed ^ tune::TREE_SALT);
+        let mut out = Vec::new();
+        let mut col = self.between.start + rng.range(tune::TREE_GAP.0, tune::TREE_GAP.1) as usize;
+        while col + tune::TREE_EDGE < self.between.end {
+            if !self.water.cols.contains(col) {
+                out.push((col, rng.range(0, tune::TREE_LOOKS - 1) as u8));
+            }
+            col += rng.range(tune::TREE_GAP.0, tune::TREE_GAP.1) as usize;
+        }
+        out
     }
 
     /// True when fixed-point point (`x`, `y`) is in the water.

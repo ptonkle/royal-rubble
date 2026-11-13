@@ -2258,7 +2258,8 @@
   "band_dash": 5,
   "band_gap": 3,
   "ground_dash": 6,
-  "ground_gap": 3
+  "ground_gap": 3,
+  "border_share": 0.06
  },
  "materials": {
   "wood": {
@@ -2340,6 +2341,914 @@
   "strip_scale": 1.0,
   "figure": 240,
   "hut": 120,
-  "small": 24
- }
+  "small": 24,
+  "border_h": 72,
+  "tree": 160
+ },
+ "border": {
+  "_about": "The top border band after ref01/ref02: two rules, slanted bars, and paired beasts and birds facing across a bar, in units of a band 100 tall with its floor at (0, 0), facing right. The page lays the baked tile across the top of the screen, scrolled with the cloth.",
+  "bay": 150,
+  "rule_inset": 5,
+  "rule_w": 2.2,
+  "bar_w": 16,
+  "bar_slant": 34,
+  "floor": 10,
+  "beast_scale": 0.95,
+  "bird_scale": 0.95,
+  "bars": [
+   "terracotta",
+   "navy",
+   "tan",
+   "bluegreen"
+  ],
+  "bays": [
+   {
+    "kind": "beast",
+    "face": 1,
+    "a": "tan",
+    "b": "terracotta"
+   },
+   {
+    "kind": "beast",
+    "face": -1,
+    "a": "tan",
+    "b": "terracotta"
+   },
+   {
+    "kind": "bird",
+    "face": 1,
+    "a": "bluegreen",
+    "b": "tan"
+   },
+   {
+    "kind": "bird",
+    "face": -1,
+    "a": "bluegreen",
+    "b": "tan"
+   }
+  ],
+  "beast": [
+   {
+    "kind": "stem",
+    "pts": [
+     [
+      -30,
+      -30
+     ],
+     [
+      -42,
+      -38
+     ],
+     [
+      -40,
+      -54
+     ],
+     [
+      -29,
+      -57
+     ],
+     [
+      -24,
+      -50
+     ]
+    ],
+    "curve": 3,
+    "color": "b",
+    "w": 1.4
+   },
+   {
+    "kind": "knot",
+    "at": [
+     -24,
+     -49
+    ],
+    "color": "b",
+    "r": 3.2
+   },
+   {
+    "kind": "patch",
+    "pts": [
+     [
+      -27,
+      -26
+     ],
+     [
+      -19,
+      -26
+     ],
+     [
+      -21,
+      -2
+     ],
+     [
+      -28,
+      -2
+     ]
+    ],
+    "fill": "b",
+    "angle": 1.5
+   },
+   {
+    "kind": "patch",
+    "pts": [
+     [
+      -15,
+      -24
+     ],
+     [
+      -8,
+      -24
+     ],
+     [
+      -10,
+      -2
+     ],
+     [
+      -16,
+      -2
+     ]
+    ],
+    "fill": "b",
+    "angle": 1.5
+   },
+   {
+    "kind": "patch",
+    "pts": [
+     [
+      16,
+      -26
+     ],
+     [
+      23,
+      -26
+     ],
+     [
+      25,
+      -2
+     ],
+     [
+      19,
+      -2
+     ]
+    ],
+    "fill": "b",
+    "angle": 1.5
+   },
+   {
+    "kind": "patch",
+    "pts": [
+     [
+      25,
+      -27
+     ],
+     [
+      32,
+      -29
+     ],
+     [
+      34,
+      -2
+     ],
+     [
+      28,
+      -2
+     ]
+    ],
+    "fill": "b",
+    "angle": 1.5
+   },
+   {
+    "kind": "patch",
+    "pts": [
+     [
+      -31,
+      -30
+     ],
+     [
+      -24,
+      -40
+     ],
+     [
+      0,
+      -42
+     ],
+     [
+      22,
+      -44
+     ],
+     [
+      33,
+      -37
+     ],
+     [
+      32,
+      -24
+     ],
+     [
+      18,
+      -20
+     ],
+     [
+      -10,
+      -21
+     ],
+     [
+      -29,
+      -22
+     ]
+    ],
+    "curve": 3,
+    "fill": "a",
+    "angle": 0.1
+   },
+   {
+    "kind": "stem",
+    "pts": [
+     [
+      -20,
+      -30
+     ],
+     [
+      -10,
+      -34
+     ],
+     [
+      4,
+      -33
+     ],
+     [
+      16,
+      -36
+     ]
+    ],
+    "curve": 3,
+    "color": "b",
+    "w": 0.8
+   },
+   {
+    "kind": "patch",
+    "pts": [
+     [
+      21,
+      -44
+     ],
+     [
+      27,
+      -57
+     ],
+     [
+      38,
+      -60
+     ],
+     [
+      47,
+      -53
+     ],
+     [
+      49,
+      -44
+     ],
+     [
+      43,
+      -37
+     ],
+     [
+      34,
+      -31
+     ],
+     [
+      26,
+      -31
+     ]
+    ],
+    "curve": 3,
+    "fill": "b",
+    "angle": 1.2
+   },
+   {
+    "kind": "knot",
+    "at": [
+     41,
+     -51
+    ],
+    "color": "navy",
+    "r": 1.8
+   },
+   {
+    "kind": "stem",
+    "pts": [
+     [
+      45,
+      -43
+     ],
+     [
+      52,
+      -42
+     ],
+     [
+      48,
+      -39
+     ]
+    ],
+    "color": "terracotta",
+    "w": 1
+   }
+  ],
+  "bird": [
+   {
+    "kind": "patch",
+    "pts": [
+     [
+      -20,
+      -30
+     ],
+     [
+      -36,
+      -31
+     ],
+     [
+      -38,
+      -22
+     ],
+     [
+      -24,
+      -22
+     ]
+    ],
+    "fill": "b",
+    "angle": 0.2
+   },
+   {
+    "kind": "stem",
+    "pts": [
+     [
+      -4,
+      -21
+     ],
+     [
+      -6,
+      -3
+     ]
+    ],
+    "color": "navy",
+    "w": 1
+   },
+   {
+    "kind": "stem",
+    "pts": [
+     [
+      5,
+      -22
+     ],
+     [
+      7,
+      -3
+     ]
+    ],
+    "color": "navy",
+    "w": 1
+   },
+   {
+    "kind": "stem",
+    "pts": [
+     [
+      -11,
+      -2
+     ],
+     [
+      -1,
+      -2
+     ]
+    ],
+    "color": "navy",
+    "w": 1
+   },
+   {
+    "kind": "stem",
+    "pts": [
+     [
+      2,
+      -2
+     ],
+     [
+      12,
+      -2
+     ]
+    ],
+    "color": "navy",
+    "w": 1
+   },
+   {
+    "kind": "patch",
+    "pts": [
+     [
+      -22,
+      -28
+     ],
+     [
+      -8,
+      -39
+     ],
+     [
+      9,
+      -37
+     ],
+     [
+      17,
+      -30
+     ],
+     [
+      10,
+      -21
+     ],
+     [
+      -7,
+      -19
+     ],
+     [
+      -23,
+      -22
+     ]
+    ],
+    "curve": 3,
+    "fill": "a",
+    "angle": 0.4
+   },
+   {
+    "kind": "patch",
+    "pts": [
+     [
+      -8,
+      -37
+     ],
+     [
+      -22,
+      -62
+     ],
+     [
+      -6,
+      -70
+     ],
+     [
+      4,
+      -50
+     ],
+     [
+      7,
+      -37
+     ]
+    ],
+    "fill": "b",
+    "angle": 1.1
+   },
+   {
+    "kind": "stem",
+    "pts": [
+     [
+      -14,
+      -56
+     ],
+     [
+      -2,
+      -44
+     ]
+    ],
+    "color": "a",
+    "w": 0.8
+   },
+   {
+    "kind": "patch",
+    "pts": [
+     [
+      8,
+      -37
+     ],
+     [
+      14,
+      -50
+     ],
+     [
+      22,
+      -53
+     ],
+     [
+      27,
+      -48
+     ],
+     [
+      21,
+      -43
+     ],
+     [
+      17,
+      -32
+     ]
+    ],
+    "curve": 3,
+    "fill": "a",
+    "angle": 1.3
+   },
+   {
+    "kind": "patch",
+    "pts": [
+     [
+      25,
+      -50
+     ],
+     [
+      34,
+      -47
+     ],
+     [
+      25,
+      -45
+     ]
+    ],
+    "fill": "ochre",
+    "w": 0.7
+   },
+   {
+    "kind": "knot",
+    "at": [
+     20,
+     -48.5
+    ],
+    "color": "navy",
+    "r": 1.6
+   }
+  ]
+ },
+ "tree_about": "A scenery tree after the tapestry's (ref02, ref07): two trunks interlaced, curling lobed leaves, in units of a tree 100 tall with its foot at (0, 0). Each look picks the wools a (one trunk), b (the other), c (side leaves), d (the top).",
+ "tree": [
+  {
+   "kind": "patch",
+   "pts": [
+    [
+     -10,
+     0
+    ],
+    [
+     -3,
+     -6
+    ],
+    [
+     3,
+     -6
+    ],
+    [
+     10,
+     0
+    ]
+   ],
+   "fill": "b",
+   "line": "navy",
+   "w": 0.8
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     -5,
+     -2
+    ],
+    [
+     5,
+     -14
+    ],
+    [
+     -5,
+     -27
+    ],
+    [
+     5,
+     -40
+    ],
+    [
+     0,
+     -54
+    ]
+   ],
+   "curve": 3,
+   "color": "a",
+   "w": 2.4
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     5,
+     -2
+    ],
+    [
+     -5,
+     -14
+    ],
+    [
+     5,
+     -27
+    ],
+    [
+     -5,
+     -40
+    ],
+    [
+     0,
+     -54
+    ]
+   ],
+   "curve": 3,
+   "color": "b",
+   "w": 2.4
+  },
+  {
+   "kind": "patch",
+   "pts": [
+    [
+     0,
+     -52
+    ],
+    [
+     -12,
+     -54
+    ],
+    [
+     -26,
+     -64
+    ],
+    [
+     -30,
+     -80
+    ],
+    [
+     -20,
+     -86
+    ],
+    [
+     -14,
+     -76
+    ],
+    [
+     -18,
+     -68
+    ],
+    [
+     -6,
+     -62
+    ]
+   ],
+   "curve": 3,
+   "fill": "c",
+   "line": "navy",
+   "angle": 0.9,
+   "w": 0.9
+  },
+  {
+   "kind": "patch",
+   "pts": [
+    [
+     0,
+     -52
+    ],
+    [
+     12,
+     -54
+    ],
+    [
+     26,
+     -64
+    ],
+    [
+     30,
+     -80
+    ],
+    [
+     20,
+     -86
+    ],
+    [
+     14,
+     -76
+    ],
+    [
+     18,
+     -68
+    ],
+    [
+     6,
+     -62
+    ]
+   ],
+   "curve": 3,
+   "fill": "c",
+   "line": "navy",
+   "angle": -0.9,
+   "w": 0.9
+  },
+  {
+   "kind": "patch",
+   "when": "wide",
+   "pts": [
+    [
+     -6,
+     -40
+    ],
+    [
+     -20,
+     -38
+    ],
+    [
+     -34,
+     -46
+    ],
+    [
+     -36,
+     -58
+    ],
+    [
+     -26,
+     -56
+    ],
+    [
+     -16,
+     -48
+    ]
+   ],
+   "curve": 3,
+   "fill": "d",
+   "line": "navy",
+   "angle": 0.5,
+   "w": 0.9
+  },
+  {
+   "kind": "patch",
+   "when": "wide",
+   "pts": [
+    [
+     6,
+     -40
+    ],
+    [
+     20,
+     -38
+    ],
+    [
+     34,
+     -46
+    ],
+    [
+     36,
+     -58
+    ],
+    [
+     26,
+     -56
+    ],
+    [
+     16,
+     -48
+    ]
+   ],
+   "curve": 3,
+   "fill": "d",
+   "line": "navy",
+   "angle": -0.5,
+   "w": 0.9
+  },
+  {
+   "kind": "patch",
+   "pts": [
+    [
+     -2,
+     -58
+    ],
+    [
+     -12,
+     -76
+    ],
+    [
+     -8,
+     -96
+    ],
+    [
+     4,
+     -100
+    ],
+    [
+     12,
+     -86
+    ],
+    [
+     6,
+     -74
+    ],
+    [
+     3,
+     -62
+    ]
+   ],
+   "curve": 3,
+   "fill": "d",
+   "line": "navy",
+   "angle": 1.5,
+   "w": 0.9
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     -20,
+     -80
+    ],
+    [
+     -14,
+     -66
+    ],
+    [
+     -4,
+     -60
+    ]
+   ],
+   "curve": 3,
+   "color": "a",
+   "w": 0.8
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     20,
+     -80
+    ],
+    [
+     14,
+     -66
+    ],
+    [
+     4,
+     -60
+    ]
+   ],
+   "curve": 3,
+   "color": "a",
+   "w": 0.8
+  },
+  {
+   "kind": "stem",
+   "pts": [
+    [
+     2,
+     -94
+    ],
+    [
+     2,
+     -66
+    ]
+   ],
+   "color": "b",
+   "w": 0.8
+  },
+  {
+   "kind": "knot",
+   "at": [
+    -30,
+    -82
+   ],
+   "color": "b",
+   "r": 2.4
+  },
+  {
+   "kind": "knot",
+   "at": [
+    30,
+    -82
+   ],
+   "color": "b",
+   "r": 2.4
+  }
+ ],
+ "tree_looks": [
+  {
+   "a": "terracotta",
+   "b": "tan",
+   "c": "olive",
+   "d": "bluegreen",
+   "flags": []
+  },
+  {
+   "a": "navy",
+   "b": "ochre",
+   "c": "terracotta",
+   "d": "olive",
+   "flags": [
+    "wide"
+   ]
+  },
+  {
+   "a": "tan",
+   "b": "terracotta",
+   "c": "bluegreen",
+   "d": "ochre",
+   "flags": []
+  }
+ ]
 }
