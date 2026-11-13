@@ -5,7 +5,7 @@
 // Bakes the playfield's stitched textures with tools/look/stitch.js: the
 // linen, wool tiles, water, one strip per segment material, the figures by
 // rank (standing and fallen), the huts, and the small sprites. bake_stitch.py
-// writes them to web/look/stitch/ and the sizes to data/stitch-sprites.json,
+// writes them to data/look/stitch/ and the sizes to data/stitch-sprites.json,
 // so the page only places pictures.
 import { create, parts, ellipse } from "./stitch.js";
 const K = await (await fetch("../../data/stitch.json")).json();
@@ -18,7 +18,7 @@ function canvas(w, h) { const c = document.createElement("canvas"); c.width = Ma
 function save(name, c, meta, jpeg) {
   const file = name + (jpeg ? ".jpg" : ".png");
   files[file] = jpeg ? c.toDataURL("image/jpeg", 0.88) : c.toDataURL("image/png");
-  sprites[name] = Object.assign({ file: "look/stitch/" + file, w: c.width, h: c.height }, meta || {});
+  sprites[name] = Object.assign({ file: "data/look/stitch/" + file, w: c.width, h: c.height }, meta || {});
 }
 
 // linen

@@ -1,5 +1,5 @@
 """Bakes the playfield's stitched textures (tools/look/bake.html, drawn with
-tools/look/stitch.js) into web/look/stitch/ and writes their sizes and
+tools/look/stitch.js) into data/look/stitch/ and writes their sizes and
 anchors to data/stitch-sprites.json. Chromium runs on an invisible display
 (tests/browser/engines.py). From the repo root:
   .venv/bin/python -I tools/look/bake_stitch.py
@@ -32,7 +32,7 @@ def main():
         result = pg.evaluate("window.RESULT")
         b.close()
     srv.shutdown()
-    out = ROOT / "web" / "look" / "stitch"
+    out = ROOT / "data" / "look" / "stitch"
     out.mkdir(parents=True, exist_ok=True)
     for old in out.iterdir():
         old.unlink()

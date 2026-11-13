@@ -2,7 +2,7 @@
 // the core's frame (crates/core/src/app/field.rs) on a 2D canvas as Bayeux
 // embroidery by placing pictures baked ahead of time with the stitch helpers
 // (tools/look/stitch.js, baked by tools/look/bake_stitch.py into
-// web/look/stitch/; sizes and anchors in data/stitch-sprites.json). Every
+// data/look/stitch/; sizes and anchors in data/stitch-sprites.json). Every
 // position, radius, width and segment length comes from the core in pixels;
 // scales from data/stitch.json; wool colors from data/palette.json; strain
 // and spot threads from field.css. It decides nothing and does no math of

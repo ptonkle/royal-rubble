@@ -11,7 +11,7 @@
 import { drawField, setLook } from "../../../web/field-draw.js";
 const json = async (p) => (await fetch(p)).json();
 const [table, stitch, palette, baked] = await Promise.all(["field", "stitch", "palette", "stitch-sprites"].map((n) => json("../../../data/" + n + ".json")));
-for (const sp of Object.values(baked)) if (sp.file) sp.file = "../../../web/" + sp.file;
+for (const sp of Object.values(baked)) if (sp.file) sp.file = "../../../" + sp.file;
 await setLook(table, stitch, palette, baked);
 const g = document.getElementById("c").getContext("2d");
 function frame(dx) {
