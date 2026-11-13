@@ -94,6 +94,8 @@ pub struct Tune {
     /// Fire spreads to touching wood every this many ticks.
     pub burn_spread_every: u32,
     pub phase_ticks: u32,
+    /// Hover: ticks a shot hangs still before it falls.
+    pub hover_ticks: u32,
     /// Split: angle between the pieces, in brads.
     pub split_spread: i64,
     /// Boost: added speed along the flight path.
@@ -108,6 +110,9 @@ pub struct Tune {
     pub treb_ramp: i64,
     /// Launch speed multiplier is (treb_power_base + power) / treb_power_base.
     pub treb_power_base: i64,
+    /// The sling: launch speed in percent of the arm tip's speed. It lets
+    /// the arm turn slowly (a wide release window) and still throw far.
+    pub treb_sling_pct: i64,
     /// World edge margin past which balls are removed.
     pub edge_margin: Fx,
 }
@@ -179,14 +184,16 @@ pub const TUNE: Tune = Tune {
     burn_damage: Fx::ratio(1, 600),
     burn_spread_every: 60,
     phase_ticks: 30,
+    hover_ticks: 60,
     split_spread: TURN / 36,
     boost_speed: Fx::ratio(1, 10),
     treb_pivot_height: Fx::from_int(3),
     treb_arm: Fx::from_int(4),
     treb_start_angle: TURN * 5 / 8,
-    treb_top_speed: 614,
-    treb_ramp: 40,
-    treb_power_base: 8,
+    treb_top_speed: 450,
+    treb_ramp: 30,
+    treb_power_base: 100,
+    treb_sling_pct: 490,
     edge_margin: Fx::from_int(64),
 };
 

@@ -17,6 +17,8 @@ pub struct Ball {
     pub phase: u32,
     /// Sets wood alight on contact.
     pub fire: bool,
+    /// Ticks left hanging still in the air (Hover); then it falls.
+    pub hover: u32,
     pub alive: bool,
     pub age: u32,
 }
@@ -29,6 +31,7 @@ pub enum AirEffect {
     Split,
     Dive,
     Boost,
+    Hover,
 }
 
 impl Ball {
@@ -40,6 +43,7 @@ impl Ball {
             mass,
             phase: 0,
             fire: false,
+            hover: 0,
             alive: true,
             age: 0,
         }
@@ -56,6 +60,12 @@ impl Ball {
 
     pub fn phase_for(&mut self, ticks: u32) {
         self.phase = ticks;
+    }
+
+    /// Hangs still for `ticks`, then falls from rest.
+    pub fn hover_for(&mut self, ticks: u32) {
+        self.hover = ticks;
+        self.vel = Vec2::new(Fx::ZERO, Fx::ZERO);
     }
 
     /// Straight down at twice its current speed.
@@ -107,6 +117,7 @@ impl World {
             AirEffect::Phase => ball.phase_for(TUNE.phase_ticks),
             AirEffect::Dive => ball.dive(),
             AirEffect::Boost => ball.boost(TUNE.boost_speed),
+            AirEffect::Hover => ball.hover_for(TUNE.hover_ticks),
             AirEffect::Split => {
                 let [left, mid, right] = ball.split(TUNE.split_spread);
                 *ball = mid;
@@ -153,6 +164,12 @@ impl World {
         events: &mut Vec<Event>,
     ) {
         if !ball.alive {
+            return;
+        }
+        if ball.hover > 0 {
+            ball.hover -= 1;
+            ball.age += 1;
+            self.collide_bodies(ball, index, debris, events);
             return;
         }
         ball.vel.y -= TUNE.gravity;

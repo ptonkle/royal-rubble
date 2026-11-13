@@ -705,5 +705,82 @@
     "find": "if self.swing.is_none() && !self.trail.is_empty() {",
     "replace": "if false {",
     "test": "sandbox_siege_camera_aims_at_the_trebuchet_then_settles_on_the_castle"
+  },
+  {
+    "name": "wire: hover hangs still",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "AirEffect::Hover => ball.hover_for(TUNE.hover_ticks),",
+    "replace": "AirEffect::Hover => ball.drop_down(),",
+    "test": "air_hover_hangs_still_then_falls"
+  },
+  {
+    "name": "wire: trebuchet release window",
+    "file": "crates/core/src/physics/tune.rs",
+    "find": "treb_top_speed: 450,",
+    "replace": "treb_top_speed: 614,",
+    "test": "trebuchet_release_window_is_30_to_40_ticks"
+  },
+  {
+    "name": "wire: trebuchet level one reach",
+    "file": "crates/core/src/physics/tune.rs",
+    "find": "treb_sling_pct: 490,",
+    "replace": "treb_sling_pct: 100,",
+    "test": "trebuchet_level_one_reaches_the_whole_level_one_plot"
+  },
+  {
+    "name": "wire: trebuchet level nine reach",
+    "file": "crates/core/src/physics/tune.rs",
+    "find": "treb_sling_pct: 490,",
+    "replace": "treb_sling_pct: 100,",
+    "test": "trebuchet_full_power_reaches_the_far_end_of_the_level_nine_plot"
+  },
+  {
+    "name": "wire: trebuchet far raised plot",
+    "file": "crates/core/src/physics/tune.rs",
+    "find": "treb_sling_pct: 490,",
+    "replace": "treb_sling_pct: 400,",
+    "test": "trebuchet_level_one_clears_a_far_raised_plot"
+  },
+  {
+    "name": "wire: strength upgrades",
+    "file": "crates/core/src/play/castle.rs",
+    "find": "        strengthen(&mut cw.world, &player.mods);\n",
+    "replace": "",
+    "test": "wire_strength_upgrade_raises_segment_hit_points"
+  },
+  {
+    "name": "wire: shot mods",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "ignite: mods.all_ignite,",
+    "replace": "ignite: false,",
+    "test": "wire_shot_mods_reach_the_fired_shot"
+  },
+  {
+    "name": "wire: air uses",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "self.shooter.air_used || self.shooter.air_uses.get(slot as usize).is_none_or(|n| *n == 0)",
+    "replace": "self.shooter.air_used",
+    "test": "wire_air_uses_run_out_for_the_round"
+  },
+  {
+    "name": "wire: extra lives",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "w.bodies[body].alive = true;",
+    "replace": "",
+    "test": "wire_chainmail_saves_a_squire_from_one_hit"
+  },
+  {
+    "name": "wire: second volley",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "first_copies: mods.first_shot_copies.max(1),",
+    "replace": "first_copies: 1,",
+    "test": "wire_second_volley_fires_the_first_shot_twice"
+  },
+  {
+    "name": "wire: kill order",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "                self.killed.push(i);\n",
+    "replace": "                self.killed.push(i);\n                self.killed.sort();\n",
+    "test": "wire_royals_killed_are_listed_in_kill_order"
   }
 ]

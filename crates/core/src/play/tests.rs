@@ -77,34 +77,6 @@ fn rules_plot_size_is_the_terrain_span() {
 }
 
 #[test]
-fn level_one_throw_reaches_the_plot_front() {
-    let plot = Plot::generate(1);
-    let power = super::siege::launch_power(100);
-    let span = plot.buildable(1);
-    let mut w = World::new(units::physics_terrain(&plot));
-    let i = w.fire(
-        trebuchet_launch(units::trebuchet_base(&plot), 44, power, false),
-        Fx::ratio(1, 4),
-        Fx::from_int(2),
-    );
-    let mut landed = None;
-    for _ in 0..2000 {
-        w.step();
-        let b = w.projectiles[i];
-        if b.pos.y - b.radius <= w.terrain.height_at(b.pos.x) {
-            landed = Some(b.pos.x.floor_int());
-            break;
-        }
-    }
-    let x = landed.expect("the shot lands");
-    // worked out from the probe: release 44 at level 1 lands near column 90
-    assert!(
-        x >= span.start as i64 && x < plot.plot.end as i64,
-        "landed at {x}"
-    );
-}
-
-#[test]
 fn build_segment_costs_gold_and_joins_the_castle() {
     let mut play = duel(3);
     let plot = play.rules.terrain.clone();
@@ -438,4 +410,230 @@ fn full_match_bot_trebuchet_throws_its_shots() {
     }
     // level 2 has 3 normal shots
     assert_eq!(thrown, 3);
+}
+
+/// Where a normal shot released at `release` first touches the ground.
+fn land_x(terrain: crate::physics::Terrain, base: Vec2, release: u32, power: u8) -> Option<i64> {
+    use crate::physics::{ShotKind, ShotMods};
+    let mut w = World::new(terrain);
+    let launch = trebuchet_launch(base, release, power, false);
+    if launch.vel.x <= Fx::ZERO || launch.vel.y <= Fx::ZERO {
+        return None;
+    }
+    let i = w.fire_shot(launch, ShotKind::Normal, ShotMods::default()).balls[0];
+    for _ in 0..3000 {
+        w.step();
+        let b = w.projectiles[i];
+        if !b.alive || b.pos.y - b.radius <= w.terrain.height_at(b.pos.x) + Fx::ratio(1, 64) {
+            return Some(b.pos.x.floor_int());
+        }
+    }
+    None
+}
+
+/// The farthest and nearest columns a forward throw lands at, over every
+/// release tick, from `plot`'s trebuchet at `power`.
+fn reach(plot: &Plot, power: u8) -> (i64, i64) {
+    let base = units::trebuchet_base(plot);
+    let lands: Vec<i64> = (0..120)
+        .filter_map(|r| land_x(units::physics_terrain(plot), base, r, power))
+        .collect();
+    (*lands.iter().min().unwrap(), *lands.iter().max().unwrap())
+}
+
+#[test]
+fn trebuchet_level_one_reaches_the_whole_level_one_plot() {
+    let power = super::siege::launch_power(rules::LEVELS[0].shot_power_pct);
+    for seed in 1..=4 {
+        let plot = Plot::generate(seed);
+        let span = plot.buildable(1);
+        let (near, far) = reach(&plot, power);
+        assert!(
+            near <= span.start as i64 && far >= span.end as i64,
+            "seed {seed}: {near}..{far} vs {span:?}"
+        );
+    }
+}
+
+#[test]
+fn trebuchet_full_power_reaches_the_far_end_of_the_level_nine_plot() {
+    let power = super::siege::launch_power(rules::LEVELS[8].shot_power_pct);
+    for seed in 1..=4 {
+        let plot = Plot::generate(seed);
+        let (_, far) = reach(&plot, power);
+        assert!(far >= plot.buildable(9).end as i64, "seed {seed}: {far}");
+    }
+}
+
+#[test]
+fn trebuchet_level_one_clears_a_far_raised_plot() {
+    // the far case the terrain is moving to: the plot's front 161 cells out
+    // and 30 cells above the pad, with a 40-column level-1 span
+    let mut heights = vec![Fx::ZERO; 120];
+    heights.extend((0..10).map(|k| Fx::from_int(3 * k)));
+    heights.extend(vec![Fx::from_int(30); 300]);
+    let t = crate::physics::Terrain {
+        col_width: Fx::ONE,
+        heights,
+    };
+    let base = Vec2::ints(5, 0);
+    let power = super::siege::launch_power(rules::LEVELS[0].shot_power_pct);
+    let far = (0..120)
+        .filter_map(|r| land_x(t.clone(), base, r, power))
+        .max()
+        .unwrap();
+    assert!(far >= 5 + 161 + 40, "level 1 lands at most {far}");
+}
+
+/// Into the siege after `setup` changes the match in the build phase, with
+/// player 0's squire on the ground.
+fn siege_after(seed: u64, setup: impl FnOnce(&mut Play)) -> (Play, Vec2) {
+    let mut play = duel(seed);
+    setup(&mut play);
+    let plot = play.rules.terrain.clone();
+    let g = ground(&plot, flat_col(&plot, 3));
+    play.apply(0, Input::PlaceRoyal { index: 0, at: g }).unwrap();
+    for p in [0, 1] {
+        play.apply(p, Input::Ready).unwrap();
+    }
+    play.tick();
+    assert_eq!(play.rules.phase, Phase::Siege);
+    (play, g.to_fx())
+}
+
+/// A shot dropped straight down onto `at` from 2 cells up.
+fn drop_on(f: &mut super::siege::Field, at: Vec2) -> usize {
+    let launch = Launch {
+        pos: at + Vec2::new(Fx::ZERO, Fx::from_int(2)),
+        vel: Vec2::new(Fx::ZERO, -Fx::ratio(1, 10)),
+    };
+    let i = f.castle.world.fire(launch, Fx::ratio(1, 4), Fx::from_int(2));
+    for _ in 0..60 {
+        f.step();
+    }
+    i
+}
+
+#[test]
+fn wire_strength_upgrade_raises_segment_hit_points() {
+    let mut play = duel(3);
+    let plot = play.rules.terrain.clone();
+    let g = ground(&plot, flat_col(&plot, 2));
+    play.apply(
+        0,
+        Input::PlaceSegment {
+            piece: WOOD,
+            a: g,
+            b: up(g, 2),
+        },
+    )
+    .unwrap();
+    let id = *play.castles[0].geo.keys().next().unwrap();
+    play.rules.players[0].mods.strength_pct.push((Material::Wood, 25));
+    let cw = play.castles[0].world(&play.rules.players[0], false);
+    let i = cw.seg_ids.iter().position(|s| *s == id).unwrap();
+    // wood's 1/2 hit point plus 25%
+    assert_eq!(cw.world.segments[i].hp, Fx::ratio(5, 8));
+}
+
+#[test]
+fn wire_shot_mods_reach_the_fired_shot() {
+    use crate::game::upgrades::AmmoKind;
+    let (mut play, _) = siege_after(3, |p| {
+        let m = &mut p.rules.players[1].mods;
+        m.weight_pct = 25;
+        m.blast_pct = 50;
+        m.all_ignite = true;
+        m.ammo.push((AmmoKind::Exploding, 1));
+    });
+    let f = field_on(&mut play, 0);
+    f.select(1).unwrap();
+    f.swing(0).unwrap();
+    f.release(45).unwrap();
+    let b = f.castle.world.projectiles[f.shooter.live[0]];
+    // a normal shot's 6 plus 25%, alight; blast 3/2 plus 50%
+    assert_eq!(b.mass, Fx::ratio(15, 2));
+    assert!(b.fire);
+    assert_eq!(f.fuses[0].radius, Fx::ratio(9, 4));
+}
+
+#[test]
+fn wire_air_uses_run_out_for_the_round() {
+    use crate::game::upgrades::AirKind;
+    let (mut play, _) = siege_after(3, |p| {
+        let m = &mut p.rules.players[1].mods;
+        m.air.push(AirKind::Drop);
+        m.air_uses.push(2);
+        m.extra_shots = 3;
+    });
+    let f = field_on(&mut play, 0);
+    let mut used = Vec::new();
+    for k in 0..3 {
+        f.swing(k * 100).unwrap();
+        f.release(k * 100 + 45).unwrap();
+        used.push(f.air(0));
+    }
+    assert_eq!(used, vec![Ok(()), Ok(()), Err(Refusal::Limit)]);
+}
+
+#[test]
+fn wire_chainmail_saves_a_squire_from_one_hit() {
+    let (mut play, at) = siege_after(3, |p| {
+        p.rules.players[0]
+            .mods
+            .royal_saves
+            .push((Some(RoyalKind::Squire), 1));
+    });
+    let f = field_on(&mut play, 0);
+    let first = drop_on(f, at);
+    assert!(f.castle.world.bodies[0].alive, "the first hit is saved");
+    assert!(!f.castle.world.projectiles[first].alive, "and stops the shot");
+    drop_on(f, at);
+    assert!(!f.castle.world.bodies[0].alive);
+}
+
+#[test]
+fn wire_second_volley_fires_the_first_shot_twice() {
+    let (mut play, _) = siege_after(3, |p| p.rules.players[1].mods.first_shot_copies = 2);
+    let f = field_on(&mut play, 0);
+    f.swing(0).unwrap();
+    f.release(45).unwrap();
+    assert_eq!(f.castle.world.projectiles.len(), 2);
+    f.swing(100).unwrap();
+    f.release(145).unwrap();
+    assert_eq!(f.castle.world.projectiles.len(), 3);
+}
+
+#[test]
+fn wire_royals_killed_are_listed_in_kill_order() {
+    let (mut play, _) = siege_after(3, |p| {
+        let plot = p.rules.terrain.clone();
+        p.rules.players[0].royals.push(crate::game::royals::Royal {
+            kind: RoyalKind::King,
+            spot: None,
+        });
+        let g = ground(&plot, flat_col(&plot, 3 + 8));
+        p.apply(0, Input::PlaceRoyal { index: 1, at: g }).unwrap();
+    });
+    let royals = play.rules.players[0].royals.clone();
+    let f = field_on(&mut play, 0);
+    let king = f
+        .castle
+        .bodies
+        .iter()
+        .position(|b| *b == BodyOwner::Royal(1))
+        .unwrap();
+    let squire = f
+        .castle
+        .bodies
+        .iter()
+        .position(|b| *b == BodyOwner::Royal(0))
+        .unwrap();
+    // the king (the later body) dies first
+    f.castle.world.bodies[king].alive = false;
+    f.step();
+    f.castle.world.bodies[squire].alive = false;
+    f.step();
+    let out = f.outcome(&royals);
+    assert_eq!(out.royals_killed, vec![RoyalKind::King, RoyalKind::Squire]);
 }

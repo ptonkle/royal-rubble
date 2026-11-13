@@ -321,13 +321,14 @@ impl Play {
             let o = &self.rules.players[owner as usize];
             let a = &self.rules.players[attacker as usize];
             let mut cw = self.castles[owner as usize].world(o, true);
+            let cw_bodies = cw.bodies.clone();
             cw.world.wind = wind;
             let difficulty = match a.seat {
                 Seat::Bot(d) => Some(d),
                 Seat::Human => None,
             };
             let bot = stand_in || difficulty.is_some();
-            let mut shooter = Shooter::new(attacker, bot, &a.loadout());
+            let mut shooter = Shooter::new(attacker, bot, &a.loadout(), &a.mods);
             let base = units::trebuchet_base(&o.terrain);
             if bot {
                 let view = SiegeView {
@@ -349,6 +350,9 @@ impl Play {
                 shooter,
                 base,
                 plot: o.terrain.clone(),
+                fuses: Vec::new(),
+                lives: siege::body_lives(&cw_bodies, o),
+                killed: Vec::new(),
             });
         }
         self.siege = Some(Siege {

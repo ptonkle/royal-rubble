@@ -31,7 +31,7 @@ pub enum AmmoKind {
 }
 
 /// Air effects. The play layer maps each to `physics::AirEffect` of the
-/// same name; Hover has no physics yet (Kestrel is not dealt).
+/// same name.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AirKind {
     Drop,
@@ -227,7 +227,7 @@ pub const UPGRADES: &[UpgradeRow] = &[
         key: "kestrel",
         tier: Tier::Silver,
         effects: &[Effect::Air(AirKind::Hover, 2)],
-        dealable: false,
+        dealable: true,
     },
     UpgradeRow {
         key: "ghost_stone",
@@ -1080,7 +1080,7 @@ mod tests {
                 })
                 .unwrap()],
             // Not built yet (never dealt): their numbers have no table to check.
-            "kestrel" => vec!["1".into()],
+            "kestrel" => vec![(TUNE.hover_ticks / crate::physics::tune::TICKS_PER_SECOND).to_string()],
             "spur" => vec!["50".into()],
             "splinter" => {
                 let ball =
