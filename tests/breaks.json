@@ -859,5 +859,40 @@
     "find": "a: units::grid_pt(s.a),",
     "replace": "a: units::grid_pt(s.b),",
     "test": "ai_castle_plan_goes_through_the_match_inputs"
+  },
+  {
+    "name": "terrain far: plot front distance comes from the tune table",
+    "file": "crates/core/src/terrain/gen.rs",
+    "find": "let dist = rng.range(DIST.0, DIST.1) as usize;",
+    "replace": "let dist = 100usize;",
+    "test": "terrain_plot_front_is_far_from_the_trebuchet"
+  },
+  {
+    "name": "terrain far: the pad stands above or below the plot by seed",
+    "file": "crates/core/src/terrain/gen.rs",
+    "find": "    } else {\n        pad_h - rise\n    };",
+    "replace": "    } else {\n        pad_h + rise\n    };",
+    "test": "terrain_relief_is_strong_and_varies_by_seed"
+  },
+  {
+    "name": "terrain far: the arc cap rises above the chord",
+    "file": "crates/core/src/terrain/mod.rs",
+    "find": "let arc = x * (d - x) * COL_W as i64 / d;",
+    "replace": "let arc = 0;",
+    "test": "terrain_open_country_stays_under_the_arc_cap"
+  },
+  {
+    "name": "terrain far: open country is capped under the arc",
+    "file": "crates/core/src/terrain/gen.rs",
+    "find": "let cap = |i: usize| arc_cap(launch_col, launch_h, plot_start, front, PAD_W + i);",
+    "replace": "let cap = |i: usize| arc_cap(launch_col, launch_h, plot_start, front, PAD_W + i) + 40 * CELL;",
+    "test": "terrain_hundred_seeds_all_playable"
+  },
+  {
+    "name": "terrain far: plot slopes stay buildable",
+    "file": "crates/core/src/terrain/gen.rs",
+    "find": "clamp_slope_from(&mut h, front, PLOT_STEEP);",
+    "replace": "clamp_slope_from(&mut h, front, 3 * CELL);",
+    "test": "terrain_hundred_seeds_all_playable"
   }
 ]
