@@ -71,7 +71,7 @@ Decided 2026-11-12 in a question session (log at the bottom).
 ## Tech
 - Builder template, Rust core, **our own deterministic fixed-point physics** (segments, nodes, stress, rigid shots), so online matches play out identically everywhere and the AI can simulate shots. No floats or HashMap in the core; the page JS holds no numbers.
 - Menus and lobby ported from **Fleeced and Ape Race**: Copy code and link, invite links, names, bots, version button and What's New, volume (low), settings in browser storage, tab icon.
-- Look: make 2–3 mockups (painted storybook, illuminated manuscript, Bayeux tapestry, maybe woodcut) of the same castle scene. The person picks one before any UI. Not Builder's default style.
+- **Look: Bayeux tapestry** (chosen 2026-11-12 from four mockups, journal Look page): wool on linen, beast-and-bar border strips, laid-and-couched fills in terracotta, ochre, sage and blue-green, stitched outlines, plain linen sky. Reference render: ../ctc-journal/img/look/tapestry.png, source ../ctc-journal/mockups/look/. (Earlier plan: make 2–3 mockups (painted storybook, illuminated manuscript, Bayeux tapestry, maybe woodcut) of the same castle scene. The person picks one before any UI. Not Builder's default style.
 - Deploy: public `ptonkle/royal-rubble` on Pages once a vs-AI build is playable; ask "deploy?" first.
 
 ## First playable
