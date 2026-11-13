@@ -131,7 +131,7 @@ impl Pair {
     }
 
     fn play(&mut self, ticks: u32) {
-        while self.browsers.iter().any(|s| s.tick < ticks) && self.frame < 40_000 {
+        while self.browsers.iter().any(|s| s.tick < ticks) && self.frame < 60_000 {
             for k in 0..2 {
                 let keys = script(k, self.browsers[k].tick + DELAY);
                 self.browsers[k].local(keys);
@@ -174,9 +174,9 @@ fn truth(m: &MatchStart, people: usize, ticks: u32) -> NetMatch {
 #[test]
 fn online_two_lagged_browsers_play_a_whole_match_and_agree_every_second() {
     let m = start(2, 2, 41);
-    // the whole match: this script plays to the results in 27,357 ticks
+    // the whole match: this script plays to the results in 41,187 ticks
     // (bots grow their castles every round, R1.1451)
-    let ticks = 27_600;
+    let ticks = 41_400;
     let mut pair = Pair::new(&m);
     pair.play(ticks);
     let want = truth(&m, 2, ticks);

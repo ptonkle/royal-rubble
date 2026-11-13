@@ -10,15 +10,13 @@
 use std::collections::BTreeMap;
 
 use super::field::{
-    cell_units, ground_line, material_name, terrain_of, world_parts, Camera, Cue, Dot, Engine, Figure, Flag,
+    cell_units, ground_line, material_name, terrain_of, world_parts, Camera, Cue, Engine, Figure, Flag,
     Frame, Preview, Ring, CELL_TO_RAW,
 };
 use crate::game::royals::RoyalKind;
-use crate::physics::fixed::{cos, sin, TURN};
+use crate::physics::trebuchet::{pose, Phase as Arm};
 use crate::physics::world::snap;
-use crate::physics::{
-    arm_at, trebuchet_launch, AirEffect, BreakCause, Event, Fx, Material, Vec2, World, TUNE,
-};
+use crate::physics::{trebuchet_launch, AirEffect, BreakCause, Event, Fx, Material, Vec2, World, TUNE};
 use crate::strings::Strings;
 use crate::terrain::{Plot, COL_W};
 use crate::view::{BarOption, Item, Panel};
@@ -215,6 +213,8 @@ pub struct Sandbox {
     /// the world tick the swing started on
     swing: Option<u32>,
     released: bool,
+    /// The swing tick the last shot left at.
+    release_at: u32,
     shot: Option<usize>,
     effect_used: bool,
     path: Vec<Vec2>,
@@ -248,6 +248,7 @@ impl Sandbox {
             size: (1920, 1080),
             swing: None,
             released: false,
+            release_at: 0,
             shot: None,
             effect_used: false,
             path: Vec::new(),
@@ -457,22 +458,11 @@ impl Sandbox {
 
     /// The tick the arm stops, when a held swing throws by itself.
     pub fn swing_end() -> u32 {
-        let mut t = 0;
-        while arm_at(t).0 > -TURN / 4 && t < 1000 {
-            t += 1;
-        }
-        t
+        crate::physics::SWING_END
     }
 
     fn swing_tick(&self) -> Option<u32> {
         self.swing.map(|s| self.world.tick - s)
-    }
-
-    fn arm_angle(&self) -> i64 {
-        match self.swing_tick() {
-            Some(t) => arm_at(t).0,
-            None => TUNE.treb_start_angle,
-        }
     }
 
     fn shot_alive(&self) -> bool {
@@ -509,6 +499,7 @@ impl Sandbox {
         }
         self.shot = Some(i);
         self.released = true;
+        self.release_at = t;
         self.effect_used = false;
         self.path.clear();
         self.cue("trebuchet_release", 0);
@@ -1003,36 +994,17 @@ impl Sandbox {
     }
 
     fn engine(&self, cam: &Camera) -> Engine {
-        let base = self.engine_base();
-        let pivot = base + Vec2::new(Fx::ZERO, TUNE.treb_pivot_height);
-        let a = self.arm_angle();
-        let dir = Vec2::new(cos(a), sin(a));
-        let tip = pivot + dir * TUNE.treb_arm;
-        let weight = pivot - dir * (TUNE.treb_arm / 3);
-        let foot = Fx::from_int(3) / 2;
-        let loaded = (self.mode == Mode::Siege && !self.released).then(|| {
-            let p = cam.px(tip);
-            Dot {
-                x: p[0],
-                y: p[1],
-                r: cam.len(AMMO[self.ammo].radius, 2),
-                hot: AMMO[self.ammo].fire,
-            }
-        });
-        Engine {
-            feet: [
-                cam.px(base - Vec2::new(foot, Fx::ZERO)),
-                cam.px(base + Vec2::new(foot, Fx::ZERO)),
-            ],
-            pivot: cam.px(pivot),
-            tip: cam.px(tip),
-            weight: cam.px(weight),
-            arm_w: cam.len(Fx::ratio(1, 6), 3),
-            weight_r: cam.len(Fx::ratio(1, 2), 4),
-            lens: [0; 4],
-            loaded,
-        }
-        .measured()
+        let phase = match (self.swing_tick(), self.released) {
+            (None, _) => Arm::Rest,
+            (Some(t), false) => Arm::Swing(t),
+            (Some(t), true) => Arm::After {
+                at: self.release_at,
+                since: t.saturating_sub(self.release_at),
+            },
+        };
+        let ammo = AMMO[self.ammo];
+        let shot = (self.mode == Mode::Siege).then_some((ammo.radius, ammo.fire));
+        Engine::of(&pose(self.engine_base(), phase, false), shot, cam)
     }
 
     /// The wind flag at the top right, in pixels: longer for stronger wind,

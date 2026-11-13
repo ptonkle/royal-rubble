@@ -301,17 +301,17 @@
     "test": "air_boost_adds_speed_along_the_path"
   },
   {
-    "name": "physics trebuchet throws along the arm tip path",
+    "name": "physics trebuchet throws along the pouch path",
     "file": "crates/core/src/physics/trebuchet.rs",
-    "find": "let vel = Vec2::new(s, -c) * tip_speed;",
-    "replace": "let vel = Vec2::new(c, s) * tip_speed;",
+    "find": "let along = |a: i64| Vec2::new(sin(a), -cos(a));",
+    "replace": "let along = |a: i64| Vec2::new(cos(a), sin(a));",
     "test": "a_later_release_throws_a_flatter_arc"
   },
   {
     "name": "physics trebuchet power",
     "file": "crates/core/src/physics/trebuchet.rs",
-    "find": "Fx::ratio(TUNE.treb_power_base + power as i64, TUNE.treb_power_base)",
-    "replace": "Fx::ratio(TUNE.treb_power_base + (power as i64) / 8, TUNE.treb_power_base)",
+    "find": "speed * (TUNE.treb_power_base + power as i64) * TUNE.treb_time_scale",
+    "replace": "speed * (TUNE.treb_power_base + power as i64 / 8) * TUNE.treb_time_scale",
     "test": "more_power_throws_faster"
   },
   {
@@ -770,31 +770,31 @@
     "test": "air_hover_hangs_still_then_falls"
   },
   {
-    "name": "wire: trebuchet release window",
-    "file": "crates/core/src/physics/tune.rs",
-    "find": "(78, 80),\n        (150, 80),",
-    "replace": "(78, 40),\n        (150, 40),",
-    "test": "trebuchet_forward_release_window_ends_by_tick_160"
+    "name": "trebuchet a late release throws into the ground",
+    "file": "crates/core/src/physics/trebuchet.rs",
+    "find": "    let (arm, speed) = arm_at(t);\n    let phi = sling_angle(arm);",
+    "replace": "    let (arm, speed) = arm_at(t.min(150));\n    let phi = sling_angle(arm);",
+    "test": "trebuchet_forward_release_window_is_one_block_before_the_arm_stops"
   },
   {
     "name": "wire: trebuchet level one reach",
     "file": "crates/core/src/physics/tune.rs",
-    "find": "treb_sling_pct: 2470,",
-    "replace": "treb_sling_pct: 600,",
+    "find": "treb_time_scale: 1340,",
+    "replace": "treb_time_scale: 600,",
     "test": "trebuchet_level_one_reaches_the_whole_level_one_plot"
   },
   {
     "name": "wire: trebuchet level nine reach",
     "file": "crates/core/src/physics/tune.rs",
-    "find": "treb_sling_pct: 2470,",
-    "replace": "treb_sling_pct: 600,",
+    "find": "treb_time_scale: 1340,",
+    "replace": "treb_time_scale: 600,",
     "test": "trebuchet_full_power_reaches_the_far_end_of_the_level_nine_plot"
   },
   {
     "name": "trebuchet best throw lands just past the farthest plot back",
     "file": "crates/core/src/physics/tune.rs",
-    "find": "treb_sling_pct: 2470,",
-    "replace": "treb_sling_pct: 2756,",
+    "find": "treb_time_scale: 1340,",
+    "replace": "treb_time_scale: 1600,",
     "test": "trebuchet_best_throw_lands_just_past_the_farthest_plot_back"
   },
   {
@@ -891,23 +891,23 @@
   {
     "name": "wire: trebuchet level one plot window",
     "file": "crates/core/src/physics/trebuchet.rs",
-    "find": "let sling = speed.min(TUNE.treb_sling_full);",
-    "replace": "let sling = speed.min(TUNE.treb_sling_full) * 2;",
+    "find": "arm + (lead + past) * (arm - END_ANGLE) / (SLOW_ANGLE - END_ANGLE) - past",
+    "replace": "arm + 2 * (lead + past) * (arm - END_ANGLE) / (SLOW_ANGLE - END_ANGLE) - past - lead",
     "test": "trebuchet_level_one_plot_window_is_at_least_12_ticks"
   },
   {
     "name": "wire: trebuchet level nine plot window",
     "file": "crates/core/src/physics/trebuchet.rs",
-    "find": "let sling = speed.min(TUNE.treb_sling_full);",
-    "replace": "let sling = speed.min(TUNE.treb_sling_full) * 2;",
+    "find": "arm + (lead + past) * (arm - END_ANGLE) / (SLOW_ANGLE - END_ANGLE) - past",
+    "replace": "arm + 2 * (lead + past) * (arm - END_ANGLE) / (SLOW_ANGLE - END_ANGLE) - past - lead",
     "test": "trebuchet_level_nine_plot_window_is_at_least_12_ticks"
   },
   {
-    "name": "wire: trebuchet arm slows through the forward arc",
+    "name": "trebuchet arm speeds up once and slows once without jerks",
     "file": "crates/core/src/physics/tune.rs",
-    "find": "(24, 80),\n        (54, 80),",
-    "replace": "(24, 240),\n        (54, 240),",
-    "test": "trebuchet_level_one_plot_window_is_at_least_12_ticks"
+    "find": "(14, 1300), (30, 21)",
+    "replace": "(14, 1300), (15, 21)",
+    "test": "trebuchet_arm_speeds_up_once_and_slows_once_without_jerks"
   },
   {
     "name": "the arena builds bot castles",
@@ -1013,5 +1013,12 @@
     "find": "                    r.queue(i);",
     "replace": "                    let _ = i;",
     "test": "online_two_apps_play_the_same_match_from_the_lobby"
+  },
+  {
+    "name": "trebuchet pose holds the shot until release",
+    "file": "crates/core/src/physics/trebuchet.rs",
+    "find": "(arm, tip, rope.p, false)",
+    "replace": "(arm, tip, rope.p, true)",
+    "test": "trebuchet_pose_holds_the_shot_until_release_then_the_arm_rocks_and_rests"
   }
 ]

@@ -62,8 +62,8 @@ fn shots_to_kill(
 
 #[test]
 fn ai_hard_bot_hits_a_lone_royal_within_three_shots() {
-    // 17 sits in a gap between plain landings (R1.902); see the drop test
-    for x in [12, 21, 25] {
+    // plot distances: the sling trebuchet cannot lob short (R1.1601)
+    for x in [FAR - 20, FAR, FAR + 30] {
         let (mut w, targets) = lone_royal(x, Fx::ZERO);
         let n = shots_to_kill(&mut w, &targets, &[], Difficulty::Hard, 3);
         assert!(n.is_some(), "royal at {x} survived three shots");

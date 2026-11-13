@@ -108,6 +108,9 @@ pub struct Shooter {
     pub power: u8,
     /// Siege tick the current swing started.
     pub swing_from: Option<u32>,
+    /// The last throw: the swing tick it left at and the siege tick it left,
+    /// for drawing the arm's follow-through.
+    pub thrown: Option<(u32, u32)>,
     /// Projectiles of the last shot, and whether its air effect is used.
     pub live: Vec<usize>,
     pub air_used: bool,
@@ -141,6 +144,7 @@ impl Shooter {
             selected: 0,
             power: launch_power(loadout.power_pct),
             swing_from: None,
+            thrown: None,
             live: Vec::new(),
             air_used: false,
             plan: Vec::new(),
@@ -207,6 +211,7 @@ impl Field {
         }
         self.shooter.ammo[slot].1 -= 1;
         self.shooter.swing_from = None;
+        self.shooter.thrown = Some((now - from, now));
         let launch = trebuchet_launch(self.base, now - from, self.shooter.power, false);
         let copies = if self.shooter.fired == 0 {
             self.shooter.first_copies

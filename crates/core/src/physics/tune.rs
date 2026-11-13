@@ -109,22 +109,29 @@ pub struct Tune {
     /// Arm angle at swing start (brads, 0 = pointing forward).
     pub treb_start_angle: i64,
     /// Arm speed through the swing: (tick, brads per tick) knots, joined by
-    /// straight lines and held after the last. The arm whips up from rest,
-    /// then turns slowly through the lobs, quicker over the top (throws there
-    /// overshoot every plot), and slowly again through the flat throws, so
-    /// each release window is wide enough to aim; past the last flat throw
-    /// that clears a hill it drops quickly.
-    pub treb_swing: [(i64, i64); 8],
-    /// The sling is fully swung at this arm speed (brads per tick): from
-    /// there on every release leaves at the same speed, so the release tick
-    /// sets only the angle.
-    pub treb_sling_full: i64,
+    /// straight lines. The counterweight drops: the arm speeds up once and
+    /// slows once, never stalling (R1.1601). The last knot is where it stops.
+    pub treb_swing: [(i64, i64); 6],
     /// Launch speed multiplier is (treb_power_base + power) / treb_power_base.
     pub treb_power_base: i64,
-    /// The sling: launch speed in percent of the arm tip's speed (at most
-    /// `treb_sling_full`). It lets the arm turn slowly (a wide release
-    /// window) and still throw far.
-    pub treb_sling_pct: i64,
+    /// The swing is shown slowed down so it can be timed: the shot leaves at
+    /// this percent of the pouch's speed (R1.1602).
+    pub treb_time_scale: i64,
+    /// Sling length (tip to pouch).
+    pub treb_sling: Fx,
+    /// How far ahead of the arm's line the sling starts (brads): it lies
+    /// forward along the ground and catches up with the arm as the arm stops.
+    pub treb_sling_lead: i64,
+    /// How far past the arm's line the sling ends (brads), when the arm stops.
+    pub treb_sling_past: i64,
+    /// Short arm (pivot to the counterweight's hinge), the hinge rod, and
+    /// the counterweight box's side.
+    pub treb_short_arm: Fx,
+    pub treb_hinge: Fx,
+    pub treb_weight_side: Fx,
+    /// Half the base beam's length, and the wheels' radius.
+    pub treb_base_half: Fx,
+    pub treb_wheel_r: Fx,
     /// World edge margin past which balls are removed.
     pub edge_margin: Fx,
 }
@@ -202,19 +209,17 @@ pub const TUNE: Tune = Tune {
     treb_pivot_height: Fx::from_int(3),
     treb_arm: Fx::from_int(4),
     treb_start_angle: TURN * 5 / 8,
-    treb_swing: [
-        (0, 0),
-        (14, 800),
-        (24, 80),
-        (54, 80),
-        (66, 400),
-        (78, 80),
-        (150, 80),
-        (165, 700),
-    ],
-    treb_sling_full: 80,
+    treb_swing: [(0, 0), (14, 1300), (30, 21), (150, 17), (230, 15), (260, 0)],
     treb_power_base: 100,
-    treb_sling_pct: 2470,
+    treb_time_scale: 1340,
+    treb_sling: Fx::from_int(4),
+    treb_sling_lead: TURN * 3 / 8,
+    treb_sling_past: TURN / 36,
+    treb_short_arm: Fx::ratio(4, 3),
+    treb_hinge: Fx::ratio(1, 2),
+    treb_weight_side: Fx::ONE,
+    treb_base_half: Fx::ratio(3, 2),
+    treb_wheel_r: Fx::ratio(1, 4),
     edge_margin: Fx::from_int(64),
 };
 

@@ -48,7 +48,7 @@ pub fn aim(d: Difficulty) -> AimTune {
 /// The aimer tries every release tick up to this one (from the swing start)
 /// that throws forward with the real trebuchet, so a retune of the arm moves
 /// the window by itself.
-pub const RELEASE_SCAN_MAX: u32 = 200;
+pub const RELEASE_SCAN_MAX: u32 = crate::physics::SWING_END;
 
 /// Longest flight the quick pass follows, in ticks.
 pub const FLIGHT_MAX: u32 = 360;

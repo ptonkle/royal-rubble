@@ -14,8 +14,8 @@
 use std::collections::BTreeMap;
 
 use super::field::{
-    ground_line, material_name, world_parts, Camera, Cue, Dot, Engine, Figure, Flag, Frame, Inset, Preview,
-    Ring, SpotMark,
+    ground_line, material_name, world_parts, Camera, Cue, Engine, Figure, Flag, Frame, Inset, Preview, Ring,
+    SpotMark,
 };
 use super::sandbox::{num, pair, reach_end};
 use crate::game::flow::Phase;
@@ -24,9 +24,9 @@ use crate::game::royals::RoyalKind;
 use crate::game::upgrades::{AirKind, AmmoKind, Tier, UPGRADES};
 use crate::game::PlayerId;
 use crate::lobby::MatchStart;
-use crate::physics::fixed::{cos, sin, TURN};
+use crate::physics::trebuchet::{pose, Phase as Arm};
 use crate::physics::world::snap;
-use crate::physics::{arm_at, Fx, Material, Vec2, World, TUNE};
+use crate::physics::{Fx, Material, Vec2, World, TUNE};
 use crate::play::castle::{self, BodyOwner, CastleWorld};
 use crate::play::online::{self, Logged, NetMatch, SiegeLog};
 use crate::play::siege::{Ammo, Field};
@@ -645,11 +645,7 @@ impl Arena {
 
     /// The tick a held swing throws by itself.
     fn swing_end() -> u32 {
-        let mut t = 0;
-        while arm_at(t).0 > -TURN / 4 && t < 1000 {
-            t += 1;
-        }
-        t
+        crate::physics::SWING_END
     }
 
     fn counts(f: Option<&Field>) -> (u32, u32) {
@@ -1171,34 +1167,8 @@ impl Arena {
             .collect()
     }
 
-    fn engine(&self, base: Vec2, angle: i64, loaded: Option<(Fx, bool)>, cam: &Camera) -> Engine {
-        let pivot = base + Vec2::new(Fx::ZERO, TUNE.treb_pivot_height);
-        let dir = Vec2::new(cos(angle), sin(angle));
-        let tip = pivot + dir * TUNE.treb_arm;
-        let weight = pivot - dir * (TUNE.treb_arm / 3);
-        let foot = Fx::from_int(3) / 2;
-        Engine {
-            feet: [
-                cam.px(base - Vec2::new(foot, Fx::ZERO)),
-                cam.px(base + Vec2::new(foot, Fx::ZERO)),
-            ],
-            pivot: cam.px(pivot),
-            tip: cam.px(tip),
-            weight: cam.px(weight),
-            arm_w: cam.len(Fx::ratio(1, 6), 3),
-            weight_r: cam.len(Fx::ratio(1, 2), 4),
-            lens: [0; 4],
-            loaded: loaded.map(|(r, hot)| {
-                let p = cam.px(tip);
-                Dot {
-                    x: p[0],
-                    y: p[1],
-                    r: cam.len(r, 2),
-                    hot,
-                }
-            }),
-        }
-        .measured()
+    fn engine(&self, base: Vec2, phase: Arm, loaded: Option<(Fx, bool)>, cam: &Camera) -> Engine {
+        Engine::of(&pose(base, phase, false), loaded, cam)
     }
 
     fn flag(&self) -> Flag {
@@ -1224,9 +1194,13 @@ impl Arena {
         let (beams, nodes, shots, debris) = world_parts(world, &cam, None, false);
         let royals = self.figures(world, &f.castle.bodies, f.owner, &cam);
         let s = &f.shooter;
-        let angle = match s.swing_from {
-            Some(t) => arm_at(now.saturating_sub(t)).0,
-            None => TUNE.treb_start_angle,
+        let phase = match (s.swing_from, s.thrown) {
+            (Some(t), _) => Arm::Swing(now.saturating_sub(t)),
+            (None, Some((at, when))) => Arm::After {
+                at,
+                since: now.saturating_sub(when),
+            },
+            (None, None) => Arm::Rest,
         };
         let loaded = (s.swing_from.is_some()
             || s.live
@@ -1257,7 +1231,7 @@ impl Arena {
             royals,
             shots,
             debris,
-            engine: self.engine(f.base, angle, loaded, &cam),
+            engine: self.engine(f.base, phase, loaded, &cam),
             trail: if mine {
                 self.trail.iter().map(|&p| cam.px(p)).collect()
             } else {
@@ -1347,7 +1321,7 @@ impl Arena {
             royals,
             shots,
             debris,
-            engine: self.engine(base, TUNE.treb_start_angle, None, &cam),
+            engine: self.engine(base, Arm::Rest, None, &cam),
             trail: Vec::new(),
             preview,
             ring,
@@ -1375,7 +1349,7 @@ impl Arena {
             royals: Vec::new(),
             shots: Vec::new(),
             debris: Vec::new(),
-            engine: self.engine(Vec2::new(Fx::ZERO, Fx::ZERO), TUNE.treb_start_angle, None, &cam),
+            engine: self.engine(Vec2::new(Fx::ZERO, Fx::ZERO), Arm::Rest, None, &cam),
             trail: Vec::new(),
             preview: None,
             ring: None,

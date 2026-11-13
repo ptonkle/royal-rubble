@@ -357,26 +357,28 @@ fn air_boost_adds_speed_along_the_path() {
 
 fn launch_angle_order(a: Launch, b: Launch) -> bool {
     // a is steeper than b (both moving forward): a.vy/a.vx > b.vy/b.vx
-    a.vel.y * b.vel.x > b.vel.y * a.vel.x
+    a.vel.y.raw() * b.vel.x.raw() > b.vel.y.raw() * a.vel.x.raw()
 }
 
 #[test]
 fn a_later_release_throws_a_flatter_arc() {
     let base = Vec2::ints(0, 0);
-    let useful: Vec<Launch> = (0..200)
+    let forward = |l: &Launch| l.vel.x > Fx::ZERO && l.vel.y > Fx::ZERO;
+    let useful: Vec<Launch> = (0..trebuchet::SWING_END)
         .map(|t| trebuchet_launch(base, t, 3, false))
-        .filter(|l| l.vel.x > Fx::ZERO && l.vel.y > Fx::ZERO)
+        .filter(forward)
         .collect();
     assert!(useful.len() >= 10, "useful window {}", useful.len());
     for pair in useful.windows(2) {
-        assert!(launch_angle_order(pair[0], pair[1]));
+        assert!(launch_angle_order(pair[0], pair[1]), "{pair:?}");
     }
-    // just past the top of the backswing it throws nearly straight up
-    let up = trebuchet_launch(base, 30, 3, false);
-    assert!(up.vel.x > Fx::ZERO && up.vel.y > up.vel.x * 3);
+    // the first forward throw goes nearly straight up
+    let up = useful[0];
+    assert!(up.vel.y > up.vel.x * 3, "{up:?}");
     // too early throws backward, too late throws into the ground
     assert!(trebuchet_launch(base, 10, 3, false).vel.x < Fx::ZERO);
-    assert!(trebuchet_launch(base, 190, 3, false).vel.y < Fx::ZERO);
+    let late = trebuchet_launch(base, trebuchet::SWING_END - 1, 3, false);
+    assert!(late.vel.y <= Fx::ZERO, "{late:?}");
     // facing left mirrors it
     let r = trebuchet_launch(base, 50, 3, false);
     let l = trebuchet_launch(base, 50, 3, true);
@@ -440,7 +442,7 @@ fn air_hover_hangs_still_then_falls() {
 }
 
 #[test]
-fn trebuchet_forward_release_window_ends_by_tick_160() {
+fn trebuchet_forward_release_window_is_one_block_before_the_arm_stops() {
     let base = Vec2::ints(0, 0);
     let forward: Vec<u32> = (0..300)
         .filter(|&t| {
@@ -449,7 +451,11 @@ fn trebuchet_forward_release_window_ends_by_tick_160() {
         })
         .collect();
     let last = *forward.last().unwrap();
-    assert!(forward.len() >= 120 && last <= 160, "forward and up {forward:?}");
+    let first = forward[0];
+    assert!(
+        forward.len() as u32 == last - first + 1 && forward.len() >= 120 && last < trebuchet::SWING_END,
+        "forward and up {forward:?}"
+    );
 }
 
 #[test]
@@ -472,4 +478,41 @@ fn a_full_speed_shot_cannot_skip_a_single_stone_wall() {
         let s = &w.segments[wall];
         assert!(s.broken || s.hp < hp, "offset {k}/8: the shot passed through");
     }
+}
+
+#[test]
+fn trebuchet_arm_speeds_up_once_and_slows_once_without_jerks() {
+    // R1.1601: one rise, one fall, and no tick-to-tick jump over 100 brads
+    let speeds: Vec<i64> = (0..=trebuchet::SWING_END).map(|t| arm_at(t).1).collect();
+    let mut turns = 0;
+    let mut rising = true;
+    for w in speeds.windows(2) {
+        assert!((w[1] - w[0]).abs() <= 100, "jump {} to {}", w[0], w[1]);
+        if rising && w[1] < w[0] {
+            rising = false;
+            turns += 1;
+        } else if !rising && w[1] > w[0] {
+            turns += 1;
+        }
+    }
+    assert_eq!(turns, 1, "{speeds:?}");
+    assert_eq!(*speeds.last().unwrap(), 0);
+}
+
+#[test]
+fn trebuchet_pose_holds_the_shot_until_release_then_the_arm_rocks_and_rests() {
+    let base = Vec2::ints(0, 0);
+    let rest = pose(base, Phase::Rest, false);
+    assert!(rest.loaded);
+    // in the pouch: the sling's last point is where the shot leaves
+    let t = 120;
+    let swing = pose(base, Phase::Swing(t), false);
+    assert_eq!(swing.sling[2], trebuchet_launch(base, t, 0, false).pos);
+    let after = pose(base, Phase::After { at: t, since: 10 }, false);
+    assert!(!after.loaded);
+    // the arm follows through past where it let go
+    assert!(after.tip.x > swing.tip.x, "{:?} {:?}", after.tip, swing.tip);
+    // and once rocked and winched back it is cocked again
+    let done = trebuchet::ROCK_TICKS + trebuchet::WINCH_TICKS;
+    assert_eq!(pose(base, Phase::After { at: t, since: done }, false), rest);
 }

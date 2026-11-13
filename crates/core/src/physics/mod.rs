@@ -21,7 +21,7 @@ pub use ammo::{Blast, Fuse, Shot, ShotKind, ShotMods, ShotTune};
 pub use balls::{AirEffect, Ball};
 pub use bodies::Body;
 pub use fixed::{Fx, Vec2};
-pub use trebuchet::{arm_at, trebuchet_launch, Launch};
+pub use trebuchet::{arm_at, pose, trebuchet_launch, Launch, Phase, Pose, SWING_END};
 pub use tune::{Material, TUNE};
 pub use world::{BreakCause, BuildError, Event, Segment, StaticReport, Terrain, World};
 

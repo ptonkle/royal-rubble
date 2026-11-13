@@ -182,21 +182,32 @@ pub struct Figure {
     pub dead: bool,
 }
 
-/// The trebuchet: its frame and its arm, as pixel points.
+/// The trebuchet, as pixel points (R1.1603): a wheeled base, the A-frame,
+/// the arm on its pivot, the counterweight box swinging on its hinge, and
+/// the sling with the shot in its pouch until release.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Engine {
-    /// the two feet and the pivot: the frame's triangle
+    /// the base beam's two ends (the uprights' feet), and the wheels under them
     pub feet: [[i32; 2]; 2],
+    pub wheels: [[i32; 2]; 2],
+    pub wheel_r: i32,
     pub pivot: [i32; 2],
-    /// the long arm's tip and the counterweight's end
+    /// the brace across the two uprights
+    pub brace: [[i32; 2]; 2],
+    /// the long arm's tip and the short arm's end, where the box hangs
     pub tip: [i32; 2],
     pub weight: [i32; 2],
+    /// the counterweight box's corners, in order
+    #[serde(rename = "box")]
+    pub box_: [[i32; 2]; 4],
+    /// the sling: tip, middle, pouch
+    pub sling: [[i32; 2]; 3],
     pub arm_w: i32,
-    pub weight_r: i32,
-    /// pixel lengths of the two legs (feet to pivot), the base (foot to
-    /// foot) and the arm (weight to tip), for placing textures
-    pub lens: [i32; 4],
-    /// a shot sitting at the tip, waiting to be thrown
+    pub rope_w: i32,
+    /// pixel lengths of the two uprights (feet to pivot), the base (foot to
+    /// foot), the arm (weight to tip) and the brace, for placing textures
+    pub lens: [i32; 5],
+    /// the shot in the pouch, waiting to be thrown
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loaded: Option<Dot>,
 }
@@ -222,15 +233,41 @@ pub fn px_len(a: [i32; 2], b: [i32; 2]) -> i32 {
 }
 
 impl Engine {
-    /// Fills in `lens` from the points.
-    pub fn measured(mut self) -> Engine {
-        self.lens = [
-            px_len(self.feet[0], self.pivot),
-            px_len(self.feet[1], self.pivot),
-            px_len(self.feet[0], self.feet[1]),
-            px_len(self.weight, self.tip),
-        ];
-        self
+    /// The drawing of a trebuchet pose; `shot` is the loaded shot's radius
+    /// and whether it burns.
+    pub fn of(p: &crate::physics::Pose, shot: Option<(Fx, bool)>, cam: &Camera) -> Engine {
+        let feet = p.base.map(|v| cam.px(v));
+        let pivot = cam.px(p.pivot);
+        let tip = cam.px(p.tip);
+        let weight = cam.px(p.short);
+        let brace = p.brace.map(|v| cam.px(v));
+        let sling = p.sling.map(|v| cam.px(v));
+        Engine {
+            feet,
+            wheels: p.wheels.map(|v| cam.px(v)),
+            wheel_r: cam.len(p.wheel_r, 2),
+            pivot,
+            brace,
+            tip,
+            weight,
+            box_: p.box_.map(|v| cam.px(v)),
+            sling,
+            arm_w: cam.len(Fx::ratio(1, 6), 3),
+            rope_w: cam.len(Fx::ratio(1, 24), 1),
+            lens: [
+                px_len(feet[0], pivot),
+                px_len(feet[1], pivot),
+                px_len(feet[0], feet[1]),
+                px_len(weight, tip),
+                px_len(brace[0], brace[1]),
+            ],
+            loaded: shot.filter(|_| p.loaded).map(|(r, hot)| Dot {
+                x: sling[2][0],
+                y: sling[2][1],
+                r: cam.len(r, 2),
+                hot,
+            }),
+        }
     }
 }
 

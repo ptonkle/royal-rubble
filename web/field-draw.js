@@ -8,6 +8,8 @@
 // and spot threads from field.css. It decides nothing and does no math of
 // its own beyond scaling what it is given.
 
+import { drawTreb } from "./treb-draw.js";
+
 let look = null;
 let G = null;
 let K = null;
@@ -287,16 +289,7 @@ function balls(g, f) {
 }
 
 function engine(g, f) {
-  const e = f.engine;
-  const [f0, f1] = e.feet;
-  const [l0, l1, base, arm] = e.lens;
-  beam(g, f0, e.pivot, e.arm_w, l0, "frame");
-  beam(g, f1, e.pivot, e.arm_w, l1, "frame");
-  beam(g, f0, f1, e.arm_w, base, "base");
-  beam(g, e.weight, e.tip, e.arm_w, arm, "arm");
-  place(g, "weight", e.weight[0], e.weight[1], e.weight_r / sprites.weight.r);
-  place(g, "knot-ochre", e.pivot[0], e.pivot[1], e.arm_w / sprites["knot-ochre"].r);
-  if (e.loaded) place(g, e.loaded.hot ? "ball-hot" : "ball", e.loaded.x, e.loaded.y, e.loaded.r / sprites.ball.r);
+  drawTreb(g, f.engine, { beam, place, dashed, pattern, sprites, wool, look });
 }
 
 function marks(g, f) {
