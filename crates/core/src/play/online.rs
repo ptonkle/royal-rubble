@@ -128,7 +128,7 @@ pub fn new_play(start: &MatchStart) -> Result<Play, Refusal> {
         seed: start.seed,
     })?;
     play.start()?;
-    play.set_shot_planner(crate::ai::planner::plan_siege);
+    play.set_shot_planner(crate::ai::planner::plan_siege_job);
     bots_build(&mut play);
     Ok(play)
 }

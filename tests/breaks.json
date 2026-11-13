@@ -1034,5 +1034,33 @@
     "find": "                    .min(Fx::from_int(CAM_FLY_TALL_W)),",
     "replace": "                    .min(Fx::ZERO),",
     "test": "arena_a_high_shot_widens_the_view_and_keeps_the_ground_in_it"
+  },
+  {
+    "name": "botplan slice keeps to its budget",
+    "file": "crates/core/src/play/mod.rs",
+    "find": "if need > 0 && need <= left {",
+    "replace": "if need > 0 {",
+    "test": "botplan_slice_takes_turns_and_never_passes_the_budget"
+  },
+  {
+    "name": "botplan late shot waits for now",
+    "file": "crates/core/src/play/siege.rs",
+    "find": "planned.max(now).max(after_last)",
+    "replace": "planned.max(after_last)",
+    "test": "botplan_late_shot_swings_when_ready_and_keeps_its_spacing"
+  },
+  {
+    "name": "botplan slice costs no more than it said",
+    "file": "crates/core/src/ai/aim.rs",
+    "find": "PlayState::Run(_) => tune::WORLD_STEP_COST,",
+    "replace": "PlayState::Run(_) => 1,",
+    "test": "ai_botplan_sliced_siege_matches_planning_all_at_once"
+  },
+  {
+    "name": "botplan shots reach the bot's plan",
+    "file": "crates/core/src/play/mod.rs",
+    "find": "                    f.take_planned(s.tick);\n",
+    "replace": "",
+    "test": "ai_botplan_bot_waits_for_each_planned_shot"
   }
 ]

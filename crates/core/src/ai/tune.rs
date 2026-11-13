@@ -63,6 +63,14 @@ pub const AFTER_TICKS: u32 = 10;
 /// when deciding where the full physics takes over.
 pub const BOX_MARGIN_RAW: i64 = 1 << 16;
 
+/// Work units the sliced aimer charges (R1.2000): one free-flight tick of
+/// one shot costs 1 plus 1 per target it is measured against; one
+/// full-physics step of the castle costs `WORLD_STEP_COST`; cloning the
+/// castle's world costs `CLONE_COST`. Calibrated on the 201-segment probe
+/// castle (MEASUREMENTS.md), where one unit is roughly 25 ns.
+pub const WORLD_STEP_COST: u64 = 6_000;
+pub const CLONE_COST: u64 = 1_000;
+
 /// Score of a verified shot: per point of royal damage killed, per segment
 /// broken near a royal, and a bonus that falls off with the closest approach.
 pub const KILL_SCORE: i64 = 1_000;

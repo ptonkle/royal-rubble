@@ -31,3 +31,7 @@ pub const VOLLEY_SLOWER_PCT: i64 = 6;
 pub const BOT_RELEASE_TICK: u32 = 45;
 pub const BOT_SHOT_EVERY: u32 = 150;
 pub const BOT_FIRST_SWING: u32 = 30;
+/// Bot shot planning per tick, across every field, in the aimer's work
+/// units (`ai::tune::WORLD_STEP_COST`): about 4 ms on the 201-segment probe
+/// castle (R1.2000, MEASUREMENTS.md).
+pub const BOT_PLAN_BUDGET: u64 = 160_000;

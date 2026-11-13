@@ -71,9 +71,54 @@ pub struct SiegeView<'a> {
     pub royals: &'a [(usize, u32)],
 }
 
-/// Chooses a bot trebuchet's shots for a siege. The aiming AI plugs in
-/// here (`Play::set_shot_planner`).
-pub type ShotPlanner = fn(&SiegeView) -> Vec<PlannedShot>;
+/// A bot trebuchet's shot planning, done a slice at a time so no tick
+/// spends long on it (R1.2000). Work is counted in fixed units, never
+/// clock time, so every browser of an online match plans the same shots
+/// on the same ticks.
+pub trait PlanJob: std::fmt::Debug + Send {
+    /// The most the next `advance` can cost, in work units; 0 when done.
+    fn next_cost(&self) -> u64;
+    /// One slice of work; returns what it cost.
+    fn advance(&mut self) -> u64;
+    /// Shots finished since the last call, in firing order. `swing_at` is
+    /// the earliest tick from the siege start to swing.
+    fn take_ready(&mut self) -> Vec<PlannedShot>;
+    fn box_clone(&self) -> Box<dyn PlanJob>;
+}
+
+impl Clone for Box<dyn PlanJob> {
+    fn clone(&self) -> Self {
+        self.box_clone()
+    }
+}
+
+/// A plan made all at once.
+#[derive(Clone, Debug)]
+pub struct ReadyPlan(pub Vec<PlannedShot>);
+
+impl PlanJob for ReadyPlan {
+    fn next_cost(&self) -> u64 {
+        0
+    }
+    fn advance(&mut self) -> u64 {
+        0
+    }
+    fn take_ready(&mut self) -> Vec<PlannedShot> {
+        std::mem::take(&mut self.0)
+    }
+    fn box_clone(&self) -> Box<dyn PlanJob> {
+        Box::new(self.clone())
+    }
+}
+
+/// Starts a bot trebuchet's shot planning for a siege. The aiming AI plugs
+/// in here (`Play::set_shot_planner`).
+pub type ShotPlanner = fn(&SiegeView) -> Box<dyn PlanJob>;
+
+/// The stand-in planner as a `ShotPlanner`.
+pub fn simple_job(v: &SiegeView) -> Box<dyn PlanJob> {
+    Box::new(ReadyPlan(simple_planner(v)))
+}
 
 /// The stand-in planner: every shot in bar order, same arc, evenly spaced.
 pub fn simple_planner(v: &SiegeView) -> Vec<PlannedShot> {
@@ -91,6 +136,14 @@ pub fn simple_planner(v: &SiegeView) -> Vec<PlannedShot> {
         }
     }
     out
+}
+
+/// When a newly planned shot swings: at its planned tick, but never before
+/// `now` (the tick it is ready) nor sooner than one shot's spacing after
+/// the shot before it.
+pub fn swing_tick(last: Option<&PlannedShot>, planned: u32, now: u32) -> u32 {
+    let after_last = last.map_or(0, |l| l.swing_at + tune::BOT_SHOT_EVERY);
+    planned.max(now).max(after_last)
 }
 
 /// A trebuchet and its shots for one siege.
@@ -181,6 +234,8 @@ pub struct Field {
     pub lives: Vec<u32>,
     /// Bodies of royals killed, in the order they died (R1.958).
     pub killed: Vec<usize>,
+    /// A bot's shot planning still under way (R1.2000).
+    pub job: Option<Box<dyn PlanJob>>,
 }
 
 impl Field {
@@ -293,6 +348,22 @@ impl Field {
         }
     }
 
+    /// Moves the bot's newly planned shots into its plan. A shot never
+    /// swings before now, nor sooner than one shot's spacing after the
+    /// shot before it, so a late plan delays the bot and never loses a shot.
+    pub fn take_planned(&mut self, now: u32) {
+        let Some(job) = self.job.as_mut() else { return };
+        for mut p in job.take_ready() {
+            p.swing_at = swing_tick(self.shooter.plan.last(), p.swing_at, now);
+            self.shooter.plan.push(p);
+        }
+    }
+
+    /// Planning work still to do.
+    pub fn planning(&self) -> bool {
+        self.job.as_ref().is_some_and(|j| j.next_cost() > 0)
+    }
+
     /// One physics tick; shots in the water are spent.
     pub fn step(&mut self) -> Vec<Event> {
         let ev = self.castle.world.step();
@@ -337,6 +408,7 @@ impl Field {
     /// A bot is done when its plan is spent and nothing it threw still flies.
     pub fn bot_done(&self, now: u32) -> bool {
         self.shooter.bot
+            && !self.planning()
             && self.shooter.pending_air.is_none()
             && self
                 .shooter

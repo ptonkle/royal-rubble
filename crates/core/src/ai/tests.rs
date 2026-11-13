@@ -344,7 +344,7 @@ fn ai_castle_plan_goes_through_the_match_inputs() {
 #[test]
 fn ai_planner_kills_a_royal_through_the_match() {
     let mut play = match_with(vec![Seat::Human, Seat::Bot(Difficulty::Hard)], 3);
-    play.set_shot_planner(super::planner::plan_siege);
+    play.set_shot_planner(super::planner::plan_siege_job);
     let plot = play.rules.terrain.clone();
     let col = plot.buildable(1).start + 3;
     // the ground at the column's left edge, to the nearest grid step
@@ -472,4 +472,85 @@ fn ai_siege_targets_carry_each_royals_damage() {
         .map(|t| (t.body, t.value))
         .collect();
     assert_eq!(t, vec![(0, 1), (1, 10)]);
+}
+
+/// The sliced siege planner, stepped a slice at a time and copied midway
+/// (as an online rollback copies the match), plans the same shots as
+/// planning them all at once, and no slice costs more than it said.
+#[test]
+fn ai_botplan_sliced_siege_matches_planning_all_at_once() {
+    use super::planner::{plan_siege, SiegePlanner};
+    use crate::game::upgrades::AirKind;
+    use crate::play::siege::{Ammo, PlanJob, SiegeView};
+    let (w, targets) = lone_royal(FAR, Fx::ZERO);
+    let plot = crate::terrain::Plot::generate(1);
+    let ammo = [(Ammo::Normal, 2u32)];
+    let air = [AirKind::Drop];
+    let royals = [(targets[0].body, 1u32)];
+    let v = SiegeView {
+        world: &w,
+        plot: &plot,
+        base: BASE,
+        power: 0,
+        ammo: &ammo,
+        air: &air,
+        difficulty: Some(Difficulty::Normal),
+        royals: &royals,
+    };
+    let whole = plan_siege(&v);
+    assert_eq!(whole.len(), 2);
+    let mut job: Box<dyn PlanJob> = Box::new(SiegePlanner::new(&v));
+    let mut got = Vec::new();
+    let mut slices = 0;
+    while job.next_cost() > 0 {
+        let need = job.next_cost();
+        let cost = job.advance();
+        assert!(cost <= need, "slice {slices} cost {cost} over {need}");
+        slices += 1;
+        if slices == 40 {
+            job = job.clone();
+        }
+        got.extend(job.take_ready());
+    }
+    assert!(slices > 40);
+    assert_eq!(got, whole);
+}
+
+/// Through the match: the bot's shots come in while the siege runs, each
+/// swings no sooner than the tick it was ready, and the bot never swings
+/// with no shot planned.
+#[test]
+fn ai_botplan_bot_waits_for_each_planned_shot() {
+    let mut play = match_with(vec![Seat::Human, Seat::Bot(Difficulty::Hard)], 3);
+    play.set_shot_planner(super::planner::plan_siege_job);
+    let plot = play.rules.terrain.clone();
+    let col = plot.buildable(1).start + 3;
+    let step = crate::terrain::CELL / 4;
+    let at = crate::play::units::GridPt::new(col as i32 * 4, (plot.heights[col] + step / 2).div_euclid(step));
+    play.apply(0, Input::PlaceRoyal { index: 0, at }).unwrap();
+    play.apply(0, Input::Ready).unwrap();
+    let mut seen = 0;
+    let mut n = 0;
+    while play.last_result.is_none() {
+        play.tick();
+        n += 1;
+        assert!(n < 20_000, "stuck in {:?}", play.rules.phase);
+        let Some(s) = &play.siege else { continue };
+        let f = s.fields.iter().find(|f| f.attacker == 1).unwrap();
+        let plan = &f.shooter.plan;
+        if plan.is_empty() {
+            assert!(f.shooter.swing_from.is_none());
+        }
+        // the tick that just ran was s.tick - 1
+        for p in &plan[seen..] {
+            assert!(
+                p.swing_at + 1 >= s.tick,
+                "swing {} before ready {}",
+                p.swing_at,
+                s.tick
+            );
+        }
+        seen = plan.len();
+    }
+    assert!(seen > 0);
 }
