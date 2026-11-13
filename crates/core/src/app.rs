@@ -450,6 +450,7 @@ impl App {
 
     fn button(&self, id: &str, key: &str) -> Item {
         Item::Button {
+            tip: String::new(),
             id: id.into(),
             text: self.strings.get(key),
             quiet: false,
@@ -459,6 +460,7 @@ impl App {
 
     fn quiet(&self, id: &str, key: &str) -> Item {
         Item::Button {
+            tip: String::new(),
             id: id.into(),
             text: self.strings.get(key),
             quiet: true,

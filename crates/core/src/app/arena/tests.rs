@@ -43,6 +43,34 @@ fn arena_starts_a_real_match_in_build_with_you_in_the_first_seat() {
 }
 
 #[test]
+fn arena_picking_a_card_shows_the_build_view_with_short_tips() {
+    let mut a = arena(1);
+    while a.phase() != Phase::Upgrade {
+        a.queue(Input::Ready);
+        a.tick();
+    }
+    a.replay = None;
+    assert_eq!(a.view_phase(), Phase::Upgrade);
+    // as if the bot were a person still choosing, so the phase runs on
+    a.play.rules.players[1].ready = false;
+    a.queue(Input::Pick(0));
+    a.tick();
+    assert_eq!(a.phase(), Phase::Upgrade);
+    assert_eq!(a.view_phase(), Phase::Build);
+    let s = Strings::parse(&sample()).unwrap();
+    let panels = a.panels(&s, &CardText::default());
+    let tips: Vec<String> = panels
+        .iter()
+        .flat_map(|p| p.items.iter())
+        .filter_map(|i| match i {
+            Item::Button { id, tip, .. } if id == "match.test" => Some(tip.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(tips, vec!["tip.test".to_string()]);
+}
+
+#[test]
 fn arena_a_press_and_release_in_build_places_a_wood_segment_through_play() {
     let mut a = arena(1);
     a.set_size("1920,1080").unwrap();

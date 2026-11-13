@@ -64,6 +64,7 @@ function button(item) {
   b.type = "button";
   b.id = item.id;
   b.disabled = item.disabled === true;
+  if (item.tip) b.title = item.tip;
   on(item.id, "click", () => send(item.id, ""));
   return b;
 }
@@ -248,6 +249,7 @@ function bar(item) {
     b.id = item.id + "." + o.value;
     b.disabled = o.disabled === true;
     if (o.selected) b.dataset.selected = "on";
+    if (o.tip) b.title = o.tip;
     b.append(make("span", "bar-key", o.key), make("span", "bar-text", o.text));
     on(b.id, "click", () => send(item.id, o.value));
     row.append(b);
@@ -293,7 +295,8 @@ builders.seat = seat;
 // A word that is a glossary term shows its definition on hover.
 function hint(node) {
   const found = ui.hints.find((h) => h.term === node.textContent);
-  if (found) {
+  // a core tip wins over the glossary
+  if (found && !node.title) {
     node.dataset.term = found.term;
     node.title = found.definition;
   }

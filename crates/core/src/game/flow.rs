@@ -270,6 +270,28 @@ impl Match {
         }
     }
 
+    /// Whether `p` may build now: in the build phase, or in the upgrade
+    /// phase once they have picked their card (R1.3400). The phase clock
+    /// stays shared.
+    pub fn builds_now(&self, p: PlayerId) -> bool {
+        match self.phase {
+            Phase::Build => true,
+            Phase::Upgrade => self
+                .player(p)
+                .and_then(|pl| pl.offer.as_ref())
+                .is_some_and(|o| o.picked.is_some()),
+            _ => false,
+        }
+    }
+
+    fn need_build(&self, p: PlayerId) -> Result<(), Refusal> {
+        if self.builds_now(p) {
+            Ok(())
+        } else {
+            Err(Refusal::WrongPhase)
+        }
+    }
+
     /// The castle `p` attacks this round, and whether it is a ghost.
     pub fn target_of(&self, p: PlayerId) -> Option<(PlayerId, bool)> {
         self.pairings.iter().find_map(|pr| pr.target_of(p))
@@ -279,7 +301,15 @@ impl Match {
 
     fn begin_round(&mut self, round: u32) {
         self.round = round;
-        self.pairings.clear();
+        // Pairings and wind are set at the round's start, so a player who
+        // builds early in the upgrade phase sees their target (R1.3400).
+        let alive = self.alive();
+        self.pairings = pairing::pair_round(
+            &alive,
+            &mut self.history,
+            &mut Dice::derive(self.settings.seed, round, SALT_PAIRS),
+        );
+        self.wind = self.wind_for(round);
         if is_upgrade_round(round) {
             self.begin_upgrade();
         } else {
@@ -314,13 +344,6 @@ impl Match {
     fn begin_build(&mut self) {
         self.set_phase(Phase::Build, tune::BUILD_SECONDS);
         let seed = self.settings.seed;
-        let alive = self.alive();
-        self.pairings = pairing::pair_round(
-            &alive,
-            &mut self.history,
-            &mut Dice::derive(seed, self.round, SALT_PAIRS),
-        );
-        self.wind = self.wind_for(self.round);
         let arriving = royals::arrivals(self.round);
         for p in self.players.iter_mut().filter(|p| p.alive()) {
             p.offer = None;
@@ -498,7 +521,7 @@ impl Match {
     // ---- Player actions ------------------------------------------------------
 
     pub fn buy_xp(&mut self, p: PlayerId) -> Result<(), Refusal> {
-        self.need(Phase::Build)?;
+        self.need_build(p)?;
         self.player_mut(p)?.purse.buy_xp()
     }
 
@@ -512,7 +535,7 @@ impl Match {
     /// Place a segment or rope; returns its ledger id for the physics world.
     /// Buildings go through `place_at`.
     pub fn place(&mut self, p: PlayerId, piece: Piece) -> Result<u32, Refusal> {
-        self.need(Phase::Build)?;
+        self.need_build(p)?;
         if matches!(piece, Piece::Building(_)) {
             return Err(Refusal::BadSpot);
         }
@@ -525,7 +548,7 @@ impl Match {
     /// Place a building with its footprint at terrain column `col`, which
     /// must lie in the player's buildable span. Returns its ledger id.
     pub fn place_at(&mut self, p: PlayerId, piece: Piece, col: usize) -> Result<u32, Refusal> {
-        self.need(Phase::Build)?;
+        self.need_build(p)?;
         let round = self.round;
         let pl = self.player_mut(p)?;
         let spot = sites::site(&pl.terrain, pl.purse.level, col)?;
@@ -537,14 +560,14 @@ impl Match {
     }
 
     pub fn sell(&mut self, p: PlayerId, id: u32) -> Result<u32, Refusal> {
-        self.need(Phase::Build)?;
+        self.need_build(p)?;
         let round = self.round;
         let pl = self.player_mut(p)?;
         pl.ledger.sell(id, round, &mut pl.purse.gold)
     }
 
     pub fn place_royal(&mut self, p: PlayerId, index: usize, spot: Spot) -> Result<(), Refusal> {
-        self.need(Phase::Build)?;
+        self.need_build(p)?;
         let pl = self.player_mut(p)?;
         if index >= pl.royals.len() {
             return Err(Refusal::Unknown);
@@ -577,6 +600,8 @@ impl Match {
         let i = offer.pick(slot)?;
         upgrades::apply_upgrade(i, &mut pl.purse, &mut pl.ledger.stock, &mut pl.mods);
         pl.upgrades.push(i);
+        // Picking is being done with the upgrade phase (R1.3400).
+        pl.ready = true;
         Ok(())
     }
 
@@ -819,6 +844,30 @@ mod tests {
         // player 1 never picked: the first card is taken for them at phase end
         run_out(&mut m);
         assert_eq!(m.players[1].upgrades.len(), 1);
+    }
+
+    #[test]
+    fn early_build_opens_for_a_player_once_they_pick_while_the_clock_runs() {
+        let mut m = humans(3);
+        run_out(&mut m);
+        m.apply_siege(&SiegeResult::default()).unwrap();
+        assert_eq!(m.phase, Phase::Upgrade);
+        let wood = Piece::Segment(Material::Wood);
+        assert_eq!(m.place(0, wood), Err(Refusal::WrongPhase));
+        // the round's target is known before anyone builds
+        assert!(m.target_of(0).is_some());
+        m.pick(0, 0).unwrap();
+        assert!(m.place(0, wood).is_ok());
+        // player 1 has not picked: still choosing, so cannot build
+        assert_eq!(m.place(1, wood), Err(Refusal::WrongPhase));
+        let left = m.ticks_left;
+        m.tick();
+        assert_eq!((m.phase, m.ticks_left), (Phase::Upgrade, left - 1));
+        // the last pick ends the upgrade phase for everyone
+        m.pick(1, 0).unwrap();
+        m.pick(2, 0).unwrap();
+        m.tick();
+        assert_eq!(m.phase, Phase::Build);
     }
 
     fn give(m: &mut Match, p: PlayerId, key: &str) {

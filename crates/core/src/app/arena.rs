@@ -177,6 +177,21 @@ fn air_name(a: AirKind) -> &'static str {
     }
 }
 
+/// The hover tip's string key for a HUD button, by the button's action.
+fn button_tip(id: &str) -> Option<&'static str> {
+    Some(match id {
+        "match.ready" => "tip.ready",
+        "match.buy_xp" => "tip.buy_xp",
+        "match.buy_shot" => "tip.buy_shot",
+        "match.test" => "tip.test",
+        "match.scout" => "tip.scout",
+        "match.skip" => "tip.skip",
+        "match.reroll" => "tip.reroll",
+        "play.leave" => "tip.leave",
+        _ => return None,
+    })
+}
+
 fn tier_name(t: Tier) -> &'static str {
     match t {
         Tier::Silver => "silver",
@@ -375,6 +390,18 @@ impl Arena {
 
     pub fn phase(&self) -> Phase {
         self.play.rules.phase
+    }
+
+    /// The phase this player sees: the build view once they pick their
+    /// upgrade card, while the shared clock still runs the upgrade phase
+    /// (R1.3400).
+    pub fn view_phase(&self) -> Phase {
+        let phase = self.phase();
+        if phase == Phase::Upgrade && self.play.rules.builds_now(self.me) {
+            Phase::Build
+        } else {
+            phase
+        }
     }
 
     pub fn over(&self) -> bool {
@@ -697,7 +724,7 @@ impl Arena {
     }
 
     fn digit(&mut self, k: usize) {
-        match self.phase() {
+        match self.view_phase() {
             Phase::Siege => self.queue(Input::SelectAmmo(k as u8)),
             Phase::Build => {
                 if let Some((p, _)) = BEAMS.get(k) {
@@ -861,7 +888,7 @@ impl Arena {
                 self.replay = None;
             }
         }
-        let phase = self.phase();
+        let phase = self.view_phase();
         let round = self.play.rules.round;
         let moved = phase != self.seen_phase || round != self.seen_round;
         if moved {
@@ -961,7 +988,7 @@ impl Arena {
     // ---- build actions ----
 
     fn building_now(&self) -> bool {
-        self.phase() == Phase::Build && self.scout.is_none() && self.replay.is_none()
+        self.view_phase() == Phase::Build && self.scout.is_none() && self.replay.is_none()
     }
 
     fn built_world(&self) -> Option<&World> {
@@ -1531,12 +1558,14 @@ impl Arena {
             return self.results_panels(s);
         }
         let button = |id: &str, text: String, disabled: bool| Item::Button {
+            tip: String::new(),
             id: id.into(),
             text,
             quiet: false,
             disabled,
         };
         let quiet = |id: &str, text: String| Item::Button {
+            tip: String::new(),
             id: id.into(),
             text,
             quiet: true,
@@ -1546,8 +1575,8 @@ impl Arena {
         let Some(me) = rules.player(self.me) else {
             return Vec::new();
         };
-        let phase = self.phase();
-        let phase_key = match phase {
+        let phase = self.view_phase();
+        let phase_key = match self.phase() {
             Phase::Upgrade => "phase.upgrade",
             Phase::Build => "phase.build",
             _ => "phase.siege",
@@ -1596,14 +1625,20 @@ impl Arena {
                 });
                 top.push(button(
                     "match.buy_xp",
-                    s.fill("hud.buy_xp", &[("n", crate::game::tune::XP_BUY_COST.to_string())]),
+                    s.fill(
+                        "hud.buy_xp",
+                        &[
+                            ("x", crate::game::tune::XP_BUY_AMOUNT.to_string()),
+                            ("n", crate::game::tune::XP_BUY_COST.to_string()),
+                        ],
+                    ),
                     me.purse.xp_needed().is_none() || me.purse.gold < crate::game::tune::XP_BUY_COST,
                 ));
                 let shot = me.mods.shot_price();
                 top.push(button(
                     "match.buy_shot",
                     s.fill("hud.buy_shot", &[("n", shot.to_string())]),
-                    me.purse.gold < shot,
+                    me.purse.gold < shot || self.phase() != Phase::Build,
                 ));
                 if let Some((t, _)) = rules.target_of(self.me) {
                     top.push(Item::Lines {
@@ -1663,6 +1698,15 @@ impl Arena {
             Panel::new("field-bar", String::new(), bar),
         ];
         panels.extend(extra);
+        for panel in &mut panels {
+            for item in &mut panel.items {
+                if let Item::Button { id, tip, .. } = item {
+                    if let Some(key) = button_tip(id) {
+                        *tip = s.get(key);
+                    }
+                }
+            }
+        }
         panels
     }
 
@@ -1709,7 +1753,14 @@ impl Arena {
             } else {
                 s.fill("tool.priced", &[("name", tool), ("n", cost.to_string())])
             };
+            let unlock = ledger::unlock_level(*piece);
+            let tip = if level < unlock {
+                s.fill("tip.locked", &[("n", unlock.to_string())])
+            } else {
+                s.fill("tip.segment", &[("n", cost.to_string())])
+            };
             options.push(BarOption {
+                tip,
                 value: name.to_string(),
                 text,
                 key: (k + 1).to_string(),
@@ -1730,6 +1781,7 @@ impl Arena {
             .count();
         if unplaced > 0 {
             options.push(BarOption {
+                tip: s.get("tip.royal"),
                 value: "royal".into(),
                 text: s.fill("tool.royals", &[("n", unplaced.to_string())]),
                 key: (BEAMS.len() + 1).to_string(),
@@ -1742,7 +1794,12 @@ impl Arena {
             if level < ledger::unlock_level(piece) {
                 continue;
             }
+            let made = match ledger::building_row(*kind).yields {
+                crate::game::tune::Yield::Stock(_, n) => n + me.mods.producer_bonus,
+                crate::game::tune::Yield::Shots(n) => me.mods.armory_shots.unwrap_or(n),
+            };
             options.push(BarOption {
+                tip: s.fill(&format!("tip.{name}"), &[("n", made.to_string())]),
                 value: name.to_string(),
                 text: s.fill(
                     "tool.priced",
@@ -1773,6 +1830,7 @@ impl Arena {
                 .enumerate()
                 .take(KEY_DIGITS.len())
                 .map(|(k, (a, n))| BarOption {
+                    tip: s.get(&format!("tip.ammo.{}", ammo_name(*a))),
                     value: k.to_string(),
                     text: s.fill(
                         "hud.ammo",
@@ -1802,6 +1860,7 @@ impl Arena {
                     .zip(KEY_AIR.iter())
                     .enumerate()
                     .map(|(k, (a, (code, _)))| BarOption {
+                        tip: s.get(&format!("tip.air.{}", air_name(*a))),
                         value: k.to_string(),
                         text: s.get(&format!("air.{}", air_name(*a))),
                         key: code.trim_start_matches("Key").to_string(),
@@ -1834,11 +1893,12 @@ impl Arena {
             }
             let cost = crate::game::upgrades::reroll_cost(offer.rerolls);
             let text = if cost == 0 {
-                s.get("hud.reroll_free")
+                s.get("hud.reroll_plain")
             } else {
                 s.fill("hud.reroll", &[("n", cost.to_string())])
             };
             items.push(Item::Button {
+                tip: String::new(),
                 id: "match.reroll".into(),
                 text,
                 quiet: true,
@@ -1874,6 +1934,7 @@ impl Arena {
                 },
                 if self.is_online() {
                     Item::Button {
+                        tip: String::new(),
                         id: "play.lobby".into(),
                         text: s.get("results.lobby"),
                         quiet: false,
@@ -1881,6 +1942,7 @@ impl Arena {
                     }
                 } else {
                     Item::Button {
+                        tip: String::new(),
                         id: "match.again".into(),
                         text: s.get("results.again"),
                         quiet: false,
@@ -1888,6 +1950,7 @@ impl Arena {
                     }
                 },
                 Item::Button {
+                    tip: String::new(),
                     id: "play.leave".into(),
                     text: s.get("results.menu"),
                     quiet: true,

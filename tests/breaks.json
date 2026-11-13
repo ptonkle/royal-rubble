@@ -1216,5 +1216,33 @@
     "find": "p.attacker == attacker && p.key == key)",
     "replace": "p.attacker == attacker)",
     "test": "botplan_build_planning_starts_again_when_the_castle_changed"
+  },
+  {
+    "name": "hudpick early build opens on pick",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "            Phase::Upgrade => self\n                .player(p)",
+    "replace": "            Phase::Upgrade if false => self\n                .player(p)",
+    "test": "early_build_opens_for_a_player_once_they_pick_while_the_clock_runs"
+  },
+  {
+    "name": "hudpick picking makes you ready",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "        pl.ready = true;\n        Ok(())",
+    "replace": "        Ok(())",
+    "test": "early_build_opens_for_a_player_once_they_pick_while_the_clock_runs"
+  },
+  {
+    "name": "hudpick build view on pick",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "if phase == Phase::Upgrade && self.play.rules.builds_now(self.me) {",
+    "replace": "if false {",
+    "test": "arena_picking_a_card_shows_the_build_view_with_short_tips"
+  },
+  {
+    "name": "hudpick hud buttons carry tips",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                        *tip = s.get(key);",
+    "replace": "                        let _ = key;",
+    "test": "arena_picking_a_card_shows_the_build_view_with_short_tips"
   }
 ]

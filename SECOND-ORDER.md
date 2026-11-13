@@ -254,6 +254,10 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R1.3005 | worklist | The siege view frames the shot | While aiming, the camera sits over the target plot and your trebuchet is cut off at the bottom right, under the version label (`notes/shots/late-r7-siege0-1200ms.png`, `late-r8-siege1-2000ms.png`); the earlier round (`late-r5-siege0-250ms.png`) shows your trebuchet and no target. The version label overlaps the field during play | | | open |
 | R1.3006 | finding | 250 ms after release is mid-flight | ?fast runs 8x, so a 2 s flight is over in 250 ms and every first run frame was after impact with no shot or debris in view. Frames now at 40, 90, 150 and 300 ms. A second run showed the real cause: the ammo count does not drop after the two Space presses (Normal 3 before and after), so the script throws nothing and no flight or debris was ever captured; `play_match.py` uses the same presses. Next: hold Space with keyboard.down/up across 42 game ticks, or check where the page listens for keys | `scripts/play_late.py` `SIEGE_AT_MS` | | open |
 | R1.3007 | finding | 8 players crowd the HUD | The health list holds 8 names without clipping (`notes/shots/late-r5-build.png`) and Results lists 8 places (`notes/shots/late-results.png`); the lobby holds 8 seats (`late-lobby.png`). Nothing to fix there | | | done |
+| R1.3400 | divergence | Picking an upgrade card waits for everyone | The person: "immediately go to build once you choose your upgrade". Picking now makes you ready, and opens building for you (`Match::builds_now`) while the upgrade clock runs on; the shared Build clock starts when the last player picks or the upgrade timer ends. Pairings and wind moved from `begin_build` to `begin_round` so the early builder sees their target. Income, free XP, stock yields and new royals still come at the shared build start, so an early builder spends last round's gold. Buying a shot stays build-phase only (bought shots reset at build start). Online stays deterministic: picks and placements are ordinary inputs on the shared tick | `game/flow.rs` `builds_now`, `app/arena.rs` `view_phase` | | done |
+| R1.3401 | divergence | "Air effect" makes no sense to players | Renamed to "Trick" (the coordinator's call) in GLOSSARY.md (with `Not: air effect`, so the copy lint keeps it out), upgrades.json, upgrades.draft.json, sounds.json and its compiled bank, and notes. Code identifiers (`AirKind`, `air.*` string keys, `match.air`) and BRIEF.md (the person's file) keep the old word | GLOSSARY.md `Trick` | | done |
+| R1.3402 | divergence | HUD buttons explained the brief on hover | Buttons and bar options carry a core `tip` (1-4 words, or a label and a cost); the page shows it as the title and a tip wins over the glossary hover hint. Ready's glossary text is shortened too. Free reroll reads "Reroll" (no price means free); a stocked material reads "Wood · 6 in stock" in place of "Wood 6 free"; prices read "· N gold"; Buy XP reads "+4 XP · 4 gold" and Buy shot "Extra shot · 2 gold" | `view.rs` `tip`, `app/arena.rs` `button_tip`, `web/app.js` | | done |
+| R1.3403 | finding | The sound bank's group label changed | `data/sounds.json` and `data/sound-programs.json` held the label "Shots and air effects"; both now say "Shots and tricks". The sound agent may regenerate the bank; keep the new label | `data/sounds.json` | | done |
 
 ## Strings written by the agent
 
@@ -333,3 +337,37 @@ Each reader-visible string the agent wrote, with its key, for the person to read
 | results.lobby | Back to lobby |
 | online.desync | Out of sync |
 | GLOSSARY.md | Armory, Boost, Carpenter, Chain, Dive, Exploding, Gold, Hover, Level, Meteor, Mine, Prismatic, Quarry, Ready, Reroll, Results, Round, Scout, Silver, Target, XP |
+| hud.buy_xp | +{x} XP · {n} gold |
+| hud.buy_shot | Extra shot · {n} gold |
+| hud.reroll_plain | Reroll |
+| tool.priced | {name} · {n} gold |
+| tool.stocked | {name} · {n} in stock |
+| tip.ready | Finish this phase |
+| tip.buy_xp | Level up sooner |
+| tip.buy_shot | One more shot this siege |
+| tip.test | Show strain |
+| tip.scout | See other castles |
+| tip.skip | Skip the replay |
+| tip.reroll | New cards |
+| tip.leave | Quit the match |
+| tip.segment | {n} gold a segment |
+| tip.locked | Unlocks at level {n} |
+| tip.royal | Place your royals |
+| tip.carpenter | On a floor: +{n} wood each round |
+| tip.quarry | On a floor: +{n} stone each round |
+| tip.mine | On a floor: +{n} metal each round |
+| tip.armory | On a floor: +{n} shot next round |
+| tip.ammo.normal | Plain shot |
+| tip.ammo.heavy | Smashes harder |
+| tip.ammo.fire | Sets wood alight |
+| tip.ammo.spread | Breaks into three |
+| tip.ammo.exploding | Blows up on contact |
+| tip.ammo.chain | Cuts ropes and wood |
+| tip.ammo.meteor | Huge, heavy, burning |
+| tip.air.drop | Fall straight down |
+| tip.air.reverse | Turn back |
+| tip.air.phase | Pass through walls |
+| tip.air.split | Break into three |
+| tip.air.dive | Dive straight down |
+| tip.air.boost | Speed up |
+| tip.air.hover | Hang still |

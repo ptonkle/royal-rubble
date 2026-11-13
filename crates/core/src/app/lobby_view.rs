@@ -111,6 +111,7 @@ impl App {
             read_only: false,
         });
         items.push(Item::Button {
+            tip: String::new(),
             id: "online.accept_answer".into(),
             text: self.strings.get("online.connect"),
             quiet: false,
@@ -131,6 +132,7 @@ impl App {
                 read_only: false,
             },
             Item::Button {
+                tip: String::new(),
                 id: "online.make_answer".into(),
                 text: self.strings.get("online.make_reply"),
                 quiet: false,
@@ -219,6 +221,7 @@ impl App {
         items.push(self.quiet("lobby.leave", "lobby.leave"));
         if host {
             items.push(Item::Button {
+                tip: String::new(),
                 id: "lobby.start".into(),
                 text: self.strings.get("lobby.start"),
                 quiet: false,
