@@ -27,8 +27,6 @@ pub const SHOTS_PER_CASTLE: u32 = 6;
 const PAUSE_TICKS: u32 = 70;
 /// Ticks the fallen castle lies before it stands again.
 const RESET_TICKS: u32 = 150;
-/// Aim search slices worked per display frame.
-const SLICES_PER_FRAME: u32 = 24;
 /// Keeps the pick's stream apart from the plot's.
 const PICK_SALT: u64 = 0xDE30_CA57;
 
@@ -315,11 +313,11 @@ impl Demo {
                 }
             }
             Step::Aim(mut s) => {
-                for _ in 0..SLICES_PER_FRAME {
-                    if s.plan().is_some() {
-                        break;
-                    }
-                    s.advance(&self.sandbox.world);
+                // the match's per-tick planning budget, so a frame never
+                // stalls on the search (R1.4600)
+                let mut spent = 0u64;
+                while s.plan().is_none() && spent < crate::play::tune::BOT_PLAN_BUDGET {
+                    spent += s.advance(&self.sandbox.world).max(1);
                 }
                 match s.plan() {
                     Some(plan) => {
@@ -430,3 +428,4 @@ mod tests {
         );
     }
 }
+
