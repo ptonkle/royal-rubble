@@ -99,6 +99,7 @@ Decided 2026-11-12 in a question session (log at the bottom).
 - The person, 2026-11-12: "parallelize as much as you can from the outset." Subagents are approved, in worktrees, merged into main as they land.
 - Deploy: build the first playable locally, then ask "deploy?" (public repo ptonkle/royal-rubble, Pages).
 - 2026-11-13: the person answered "Deploy now". 0.2.0 is live at https://ptonkle.github.io/royal-rubble/. Later feedback fixes from their play ship unasked; a new x.y.0 feature asks first.
+- 2026-11-13 overnight: "don't ask me any more questions tonight I'm going to bed and wil not be able to answer them. Continue working and making your best judgement". Decide alone, record each call in SECOND-ORDER and the journal, ship fixes as 0.2.x; questions for the morning go in one journal entry.
 - Questions: inline in the chat, a few at a time, recommendation first (the person's rule in ~/.claude/game-lessons.md); record them in the journal afterwards.
 
 ## Journal
