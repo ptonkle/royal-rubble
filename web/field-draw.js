@@ -190,6 +190,9 @@ function background(slot, f) {
     g.lineTo(first, h);
     g.closePath();
     g.clip();
+    // solid earth down to the bottom, the stitched bands laid over it
+    g.fillStyle = pattern(g, "wool-" + K.ground_fill);
+    g.fillRect(0, 0, w, h);
     for (const [name, a, b] of K.ground_bands) {
       const top = pts.map(([x, y]) => [x, y + G[a]]);
       const bot = pts.map(([x, y]) => [x, y + G[b]]);

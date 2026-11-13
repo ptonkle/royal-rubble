@@ -1020,5 +1020,19 @@
     "find": "(arm, tip, rope.p, false)",
     "replace": "(arm, tip, rope.p, true)",
     "test": "trebuchet_pose_holds_the_shot_until_release_then_the_arm_rocks_and_rests"
+  },
+  {
+    "name": "arena the eye snaps to the siege view on a phase change",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "            Some(e) if !snap && self.my_field().is_some() => e,",
+    "replace": "            Some(e) if self.my_field().is_some() || snap => e,",
+    "test": "arena_the_first_siege_tick_shows_the_trebuchet_and_the_ground_under_it"
+  },
+  {
+    "name": "arena a high shot widens the view",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                    .min(Fx::from_int(CAM_FLY_TALL_W)),",
+    "replace": "                    .min(Fx::ZERO),",
+    "test": "arena_a_high_shot_widens_the_view_and_keeps_the_ground_in_it"
   }
 ]

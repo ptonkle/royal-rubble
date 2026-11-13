@@ -110,3 +110,84 @@ fn arena_a_match_vs_one_bot_reaches_the_results_with_one_player_left() {
         .collect();
     assert_eq!(ids, ["match.again", "play.leave"]);
 }
+
+/// A few build ticks (the view follows the build), then Ready in every
+/// phase until the siege's first tick.
+fn to_siege(a: &mut Arena) {
+    for _ in 0..10 {
+        a.tick();
+    }
+    let mut n = 0;
+    while a.phase() != Phase::Siege && n < 100_000 {
+        a.queue(Input::Ready);
+        a.tick();
+        n += 1;
+    }
+}
+
+/// Whether world point `p` lands on the screen in the shown view.
+fn on_screen(a: &Arena, p: Vec2) -> bool {
+    let [x, y] = a.camera().px(p);
+    (0..1920).contains(&x) && (0..1080).contains(&y)
+}
+
+#[test]
+fn arena_the_first_siege_tick_shows_the_trebuchet_and_the_ground_under_it() {
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    to_siege(&mut a);
+    assert_eq!(a.phase(), Phase::Siege);
+    let f = a.my_field().unwrap();
+    let base = f.base;
+    let ground = crate::play::units::physics_terrain(&f.plot).height_at(base.x);
+    assert!(on_screen(&a, base), "base {:?} off {:?}", base, a.camera());
+    assert!(
+        on_screen(&a, Vec2::new(base.x, ground - Fx::ONE)),
+        "ground off {:?}",
+        a.camera()
+    );
+}
+
+#[test]
+fn arena_a_high_shot_widens_the_view_and_keeps_the_ground_in_it() {
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    to_siege(&mut a);
+    // a short swing throws nearly straight up
+    a.space();
+    for _ in 0..20 {
+        a.tick();
+    }
+    a.space();
+    for _ in 0..80 {
+        a.tick();
+    }
+    let f = a.my_field().unwrap();
+    let w = &f.castle.world;
+    let ball = f
+        .shooter
+        .live
+        .iter()
+        .filter_map(|&i| w.projectiles.get(i))
+        .find(|b| b.alive)
+        .unwrap();
+    // from the run: the ball near 94 units up, the base near 40
+    assert!(
+        ball.pos.y > f.base.y + Fx::from_int(40),
+        "ball only at {:?}",
+        ball.pos
+    );
+    // the view heads for one with the ball in it (the eased eye lags it)
+    let [bx, by] = a.camera_target().px(ball.pos);
+    assert!(
+        (0..1920).contains(&bx) && (0..1080).contains(&by),
+        "ball off {:?}",
+        a.camera_target()
+    );
+    let ground = crate::play::units::physics_terrain(&f.plot).height_at(ball.pos.x);
+    assert!(
+        on_screen(&a, Vec2::new(ball.pos.x, ground)),
+        "ground off {:?}",
+        a.camera()
+    );
+}
