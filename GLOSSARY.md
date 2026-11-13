@@ -222,3 +222,87 @@ Shows how hard each segment of your castle is working, from easy to breaking.
 ### Wood
 
 The cheapest segment. It burns.
+
+### Armory
+
+A building that gives you an extra shot next round if it survives the siege.
+
+### Boost
+
+An air effect: the shot speeds up along its path.
+
+### Carpenter
+
+A building that gives you wood each round it survives.
+
+### Chain
+
+A chain shot, on the ammo bar.
+
+### Dive
+
+An air effect: the shot turns straight down and speeds up.
+
+### Exploding
+
+An exploding shot, on the ammo bar.
+
+### Gold
+
+What you spend on segments, buildings, XP and shots. Also the middle tier of upgrade cards.
+
+### Hover
+
+An air effect: the shot hangs still for a moment.
+
+### Level
+
+How far your castle has grown. A higher level gives a wider plot, more shots and more materials.
+
+### Meteor
+
+A meteor shot, on the ammo bar.
+
+### Mine
+
+A building that gives you metal each round it survives.
+
+### Prismatic
+
+The rarest tier of upgrade cards.
+
+### Quarry
+
+A building that gives you stone each round it survives.
+
+### Ready
+
+Says you are done with this phase. The timer ends early once everyone is ready.
+
+### Reroll
+
+Swaps your three upgrade cards for three new ones. The first is free.
+
+### Results
+
+The order players finished in, last one standing first.
+
+### Round
+
+One upgrade, build and siege. Royal damage grows with each round.
+
+### Scout
+
+Looks at another player's castle during the build phase.
+
+### Silver
+
+The commonest tier of upgrade cards.
+
+### Target
+
+The castle you attack this round.
+
+### XP
+
+Experience toward your next level. You get some each round and can buy more with gold.

@@ -63,6 +63,7 @@
   /* the field's bars */
   --bar-bg: rgba(46, 58, 85, 0.88);
   --bar-chosen: #f0e2b6;
+  --hud-ink: #f0e2b6;
   /* upgrade cards' edges by tier */
   --card-silver: #b9bcc2;
   --card-gold: #d4a83a;

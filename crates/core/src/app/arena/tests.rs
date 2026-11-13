@@ -71,9 +71,7 @@ fn play_out(a: &mut Arena) -> (u32, usize) {
                 let swinging = a.my_field().is_some_and(|f| f.shooter.swing_from.is_some());
                 if left == 0 {
                     a.queue(Input::Ready);
-                } else if !swinging && ticks % 90 == 0 {
-                    a.space();
-                } else if swinging && ticks % 90 == 40 {
+                } else if (!swinging && ticks % 90 == 0) || (swinging && ticks % 90 == 40) {
                     a.space();
                 }
             }

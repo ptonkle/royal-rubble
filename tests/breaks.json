@@ -894,5 +894,26 @@
     "find": "clamp_slope_from(&mut h, front, PLOT_STEEP);",
     "replace": "clamp_slope_from(&mut h, front, 3 * CELL);",
     "test": "terrain_hundred_seeds_all_playable"
+  },
+  {
+    "name": "the arena builds bot castles",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "            for input in crate::ai::build::to_inputs(&plan, &unplaced) {",
+    "replace": "            for input in crate::ai::build::to_inputs(&plan, &unplaced).into_iter().take(0) {",
+    "test": "arena_a_match_vs_one_bot_reaches_the_results_with_one_player_left"
+  },
+  {
+    "name": "a build drag becomes a segment input",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "        if a != b && self.in_zone(b) {",
+    "replace": "        if a == b && self.in_zone(b) {",
+    "test": "arena_a_press_and_release_in_build_places_a_wood_segment_through_play"
+  },
+  {
+    "name": "you sit in your own seat",
+    "file": "crates/core/src/app/arena.rs",
+    "find": ".position(|st| st.person == client)",
+    "replace": ".position(|st| st.person != client)",
+    "test": "arena_starts_a_real_match_in_build_with_you_in_the_first_seat"
   }
 ]

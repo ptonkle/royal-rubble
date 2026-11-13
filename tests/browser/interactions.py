@@ -96,9 +96,38 @@ def solo_lobby(page, check):
     page.select_option(by_id("seat.3.level"), "hard")
     check(page.input_value(by_id("seat.3.level")) == "hard", "a bot's difficulty can be set")
     page.click(by_id("lobby.start"))
-    on_screen(page, "play")
-    page.wait_for_selector(f"h2:has-text('{STRINGS['play.placeholder']}')", timeout=10000)
-    page.click(by_id("play.leave"))
+    on_screen(page, "match")
+    check(page.locator(by_id("match.tool")).count() == 1, "a match opens on the build phase's tools")
+    page.locator(by_id("play.leave")).dispatch_event("click")
+    on_screen(page, "title")
+    fast_match(page, check)
+
+
+def press(page, name):
+    """A click by event: the match's HUD redraws every frame, so it is never still."""
+    loc = page.locator(by_id(name))
+    if loc.count() and loc.is_enabled():
+        loc.dispatch_event("click")
+
+
+def fast_match(page, check):
+    """With ?fast, a match vs one bot where you only press Ready (and take
+    the first card) runs to the results: the bot knocks you out."""
+    page.click(by_id("menu.solo"))
+    on_screen(page, "lobby")
+    page.click(by_id("lobby.start"))
+    on_screen(page, "match")
+    for _ in range(3000):
+        if page.locator(by_id("match.results")).count():
+            break
+        press(page, "match.skip")
+        press(page, "match.card.0")
+        press(page, "match.ready")
+        page.wait_for_timeout(50)
+    lines = page.inner_text(by_id("match.results")) if page.locator(by_id("match.results")).count() else ""
+    you = STRINGS["seat.you"]
+    check(lines.endswith(f"2. {you}"), f"a fast match reaches the results with you placed second: {lines!r}")
+    press(page, "play.leave")
     on_screen(page, "title")
 
 

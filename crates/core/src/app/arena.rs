@@ -708,12 +708,11 @@ impl Arena {
             Phase::Build | Phase::Upgrade | Phase::Results => {
                 if matches!(was, Phase::Siege | Phase::SiegeOver) {
                     if let Some(field) = self.own_start.take() {
-                        let end = self
-                            .play
-                            .last_result
-                            .as_ref()
-                            .map_or(REPLAY_MAX_TICKS, |_| REPLAY_MAX_TICKS);
-                        self.replay = Some(Replay { field, tick: 0, end });
+                        self.replay = Some(Replay {
+                            field,
+                            tick: 0,
+                            end: REPLAY_MAX_TICKS,
+                        });
                     }
                 }
                 if phase == Phase::Build {
@@ -1472,7 +1471,9 @@ impl Arena {
                 bar.push(self.tool_bar(s));
             }
             Phase::Upgrade if alive => {
-                extra.push(self.cards_panel(s, cards));
+                if self.replay.is_none() {
+                    extra.push(self.cards_panel(s, cards));
+                }
                 top.push(button("match.ready", ready_text, me.ready));
             }
             Phase::Siege | Phase::SiegeOver if alive => {
@@ -1675,7 +1676,7 @@ impl Arena {
                     tier: s.get(&format!("tier.{}", tier_name(row.tier))),
                     look: tier_name(row.tier).to_string(),
                     text,
-                    picked: offer.picked == Some(k),
+                    picked: offer.picked == Some(i),
                     disabled: offer.picked.is_some(),
                 });
             }
