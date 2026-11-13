@@ -1,0 +1,245 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Tapestry</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script src="scene.js"></script>
+<script>
+const c = document.getElementById("c"), ctx = c.getContext("2d");
+const R = rng(1066);
+// wool palette from the tapestry: terracotta, ochre, sage, blue-green, deep blue, buff
+const LINEN = "#e6dbbf", TERRA = "#a5503a", OCHRE = "#c49a45", SAGE = "#8b9662", BLUEGREEN = "#4d6f68", NAVY = "#2e3a55", BUFF = "#d8c49a", OLIVE = "#6d7444";
+const SERIF = "'Palatino Linotype', Palatino, Georgia, serif";
+
+function shade(hex, k) {
+  const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const f = v => Math.max(0, Math.min(255, Math.round(v * k)));
+  return `rgb(${f(r)},${f(g)},${f(b)})`;
+}
+// laid-and-couched fill: parallel wool threads, then couching stitches across them
+function laid(path, col, angle = 0, gap = 3.2) {
+  ctx.save(); path(); ctx.clip();
+  ctx.fillStyle = col; ctx.fill();
+  const s = Math.sin(angle), co = Math.cos(angle);
+  ctx.lineWidth = 2;
+  for (let d = -1400; d < 1400; d += gap) {
+    ctx.strokeStyle = R() < .5 ? shade(col, 1.12) : shade(col, .9);
+    ctx.globalAlpha = .55;
+    ctx.beginPath(); ctx.moveTo(960 + co * -1400 - s * d, 540 + s * -1400 + co * d); ctx.lineTo(960 + co * 1400 - s * d, 540 + s * 1400 + co * d); ctx.stroke();
+  }
+  ctx.globalAlpha = .7; ctx.strokeStyle = shade(col, .72); ctx.lineWidth = 1.3; ctx.setLineDash([2, 5]);
+  for (let d = -1400; d < 1400; d += 15) {
+    ctx.beginPath(); ctx.moveTo(960 + s * -1400 + co * d, 540 - co * -1400 + s * d); ctx.lineTo(960 + s * 1400 + co * d, 540 - co * 1400 + s * d); ctx.stroke();
+  }
+  ctx.restore();
+}
+// stem-stitch outline: a twisted cord of short slanted stitches
+function stem(path, col = NAVY, w = 4.2) {
+  path(); ctx.save(); ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.strokeStyle = col; ctx.lineWidth = w; ctx.stroke();
+  ctx.strokeStyle = shade(col, 1.6); ctx.globalAlpha = .55; ctx.lineWidth = w * .4; ctx.setLineDash([3, 4]); ctx.stroke();
+  ctx.restore();
+}
+function rectP(x, y, w, h) { return () => { ctx.beginPath(); ctx.rect(x, y, w, h); }; }
+function polyP(pts) { return () => { ctx.beginPath(); ctx.moveTo(...pts[0]); for (const p of pts.slice(1)) ctx.lineTo(...p); ctx.closePath(); }; }
+function beamP(x1, y1, x2, y2, t) {
+  const a = Math.atan2(y2 - y1, x2 - x1), nx = -Math.sin(a) * t / 2, ny = Math.cos(a) * t / 2;
+  return polyP([[x1 + nx, y1 + ny], [x2 + nx, y2 + ny], [x2 - nx, y2 - ny], [x1 - nx, y1 - ny]]);
+}
+
+// --- linen weave
+ctx.fillStyle = LINEN; ctx.fillRect(0, 0, W, H);
+for (let y = 0; y < H; y += 3) { ctx.fillStyle = `rgba(120,95,50,${.03 + R() * .05})`; ctx.fillRect(0, y, W, 1); }
+for (let x = 0; x < W; x += 3) { ctx.fillStyle = `rgba(255,250,235,${.03 + R() * .05})`; ctx.fillRect(x, 0, 1, H); }
+for (let i = 0; i < 260; i++) { ctx.fillStyle = "rgba(150,110,60,.05)"; ctx.beginPath(); ctx.ellipse(R() * W, R() * H, 30 + R() * 90, 10 + R() * 30, 0, 0, 7); ctx.fill(); }
+
+// --- borders: stitched rules, slanted bars, paired beasts
+const TOPB = [0, 112], BOTB = [946, 1080];
+function beast(x, y, s, col, flip, kind) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(flip ? -s : s, s);
+  let p;
+  if (kind === "bird") p = polyP([[-26, 10], [-10, 4], [-4, -14], [6, -26], [8, -14], [16, -16], [10, -6], [22, 4], [10, 8], [4, 22], [0, 10], [-8, 12]]);
+  else p = polyP([[-32, 6], [-26, -10], [-8, -12], [10, -12], [18, -22], [26, -20], [28, -12], [22, -6], [20, 8], [24, 22], [18, 22], [12, 8], [-14, 8], [-18, 22], [-24, 22], [-24, 8], [-36, -6], [-42, -20], [-36, -8]]);
+  laid(p, col, kind === "bird" ? .7 : 0);
+  stem(p, NAVY, 3);
+  ctx.fillStyle = NAVY; ctx.beginPath(); ctx.arc(kind === "bird" ? 7 : 22, kind === "bird" ? -18 : -16, 2, 0, 7); ctx.fill();
+  ctx.restore();
+}
+function border(y0, y1, skipX0 = 9999, skipX1 = -1) {
+  const mid = (y0 + y1) / 2, h = y1 - y0;
+  stem(() => { ctx.beginPath(); ctx.moveTo(0, y0 + 8); ctx.lineTo(W, y0 + 8); }, TERRA, 4);
+  stem(() => { ctx.beginPath(); ctx.moveTo(0, y1 - 8); ctx.lineTo(W, y1 - 8); }, TERRA, 4);
+  const cols = [TERRA, SAGE, OCHRE, BLUEGREEN];
+  let k = 0;
+  for (let x = 20; x < W; x += 190, k++) {
+    if (x + 190 > skipX0 && x < skipX1) continue;
+    // slanted bar pair
+    const bar = polyP([[x, y1 - 12], [x + 14, y1 - 12], [x + 44, y0 + 12], [x + 30, y0 + 12]]);
+    laid(bar, cols[k % 4], 1.2); stem(bar, NAVY, 2.6);
+    const bar2 = polyP([[x + 22, y1 - 12], [x + 36, y1 - 12], [x + 66, y0 + 12], [x + 52, y0 + 12]]);
+    laid(bar2, cols[(k + 2) % 4], 1.2); stem(bar2, NAVY, 2.6);
+    // a beast in the panel, facing its neighbor
+    beast(x + 128, mid + 2, h / 112 * 1.2, cols[(k + 1) % 4], k % 2 === 1, k % 3 === 1 ? "bird" : "lion");
+  }
+}
+border(TOPB[0], TOPB[1]);
+border(BOTB[0], BOTB[1], 540, 1380);
+
+// --- main register: the scene scaled into the band
+const S = 0.855, TX = (W - W * S) / 2, TY = 128 - 40 * S;
+ctx.save();
+ctx.beginPath(); ctx.rect(0, TOPB[1], W, BOTB[0] - TOPB[1]); ctx.clip();
+ctx.translate(TX, TY); ctx.scale(S, S);
+
+// ground on the left: a stitched wavy line with tufts; the castle motte in striped bands
+const gpts = GROUND.map(p => p);
+// motte: everything from the moat's far bank right, filled in contour bands
+const motte = () => { ctx.beginPath(); ctx.moveTo(1176, 1010); for (const [x, y] of GROUND) if (x >= 1176) ctx.lineTo(x, y); ctx.lineTo(W, 1010); ctx.closePath(); };
+const bandCols = [OCHRE, TERRA, SAGE, BLUEGREEN, OCHRE, TERRA];
+const MOTTE = GROUND.filter(([x]) => x >= 1176).concat([[1990, 800], [2030, 1010]]);
+const mx = (x, i) => x < 1240 ? x + i * 8 : x > 1900 ? x - i * 10 : x;
+for (let i = 0; i < bandCols.length; i++) {
+  const off = i * 40;
+  const p = () => { ctx.beginPath(); ctx.moveTo(1176 + i * 4, 1010); for (const [x, y] of MOTTE) ctx.lineTo(mx(x, i), Math.min(1010, y + off)); ctx.closePath(); };
+  laid(p, bandCols[i], i % 2 ? .12 : -.12);
+  stem(() => { ctx.beginPath(); MOTTE.forEach(([x, y], k) => k ? ctx.lineTo(mx(x, i), Math.min(1010, y + off)) : ctx.moveTo(mx(x, i), y + off)); }, NAVY, 3);
+}
+// left ground: a strip of sage under a stitched contour, like the tapestry's ground lines
+const leftGround = () => { ctx.beginPath(); ctx.moveTo(-20, 1010); for (const [x, y] of GROUND) if (x <= 1180) ctx.lineTo(x, y); ctx.lineTo(1180, 1010); ctx.closePath(); };
+laid(() => { ctx.beginPath(); ctx.moveTo(-20, 800); for (const [x, y] of GROUND) if (x <= 1060) ctx.lineTo(x, y); for (let i = GROUND.length - 1; i >= 0; i--) { const [x, y] = GROUND[i]; if (x <= 1060) ctx.lineTo(x, y + 26); } ctx.closePath(); }, SAGE, 0);
+stem(() => { ctx.beginPath(); ctx.moveTo(-20, 770); for (const [x, y] of GROUND) if (x <= 1060) ctx.lineTo(x, y); }, NAVY, 4);
+stem(() => { ctx.beginPath(); ctx.moveTo(-20, 796); for (const [x, y] of GROUND) if (x <= 1060) ctx.lineTo(x, y + 26); }, OLIVE, 3);
+// moat: wavy wool lines and a fish
+for (let row = 0; row < 4; row++) {
+  const y = MOAT.top + 4 + row * 9;
+  stem(() => { ctx.beginPath(); for (let x = 1064 - row * 4; x < 1172 + row * 2; x += 2) { const yy = y + Math.sin(x / 7 + row) * 3; x === 1064 - row * 4 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy); } }, row % 2 ? BLUEGREEN : NAVY, 3);
+}
+// a stylized tree as in the tapestry: interlaced branches
+function tree(x, foot, h) {
+  const trunk = polyP([[x - 7, foot], [x + 7, foot], [x + 4, foot - h * .5], [x - 4, foot - h * .5]]);
+  laid(trunk, TERRA, 1.57); stem(trunk, NAVY, 3);
+  for (const [dx, dy, col] of [[-26, -.62, SAGE], [26, -.62, BLUEGREEN], [-16, -.84, OCHRE], [16, -.84, SAGE], [0, -.98, BLUEGREEN]]) {
+    const cx = x + dx, cy = foot + dy * h;
+    const leafP = () => { ctx.beginPath(); ctx.moveTo(x, foot - h * .45); ctx.bezierCurveTo(cx - 20, cy + 14, cx - 18, cy - 22, cx, cy - 26); ctx.bezierCurveTo(cx + 18, cy - 22, cx + 20, cy + 14, x, foot - h * .45); };
+    laid(leafP, col, .9); stem(leafP, NAVY, 2.6);
+  }
+}
+tree(700, 800, 170); tree(910, 856, 140);
+
+// --- castle
+for (const [x1, y1, x2, y2] of ROPES) stem(() => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo((x1 + x2) / 2 + 10, (y1 + y2) / 2 + 24, x2, y2); }, OCHRE, 3.4);
+// turret roof: overlapping scale tiles, as on the tapestry's halls
+const roof = polyP(ROOF); laid(roof, TERRA, 0);
+ctx.save(); roof(); ctx.clip(); ctx.strokeStyle = shade(TERRA, .6); ctx.lineWidth = 2;
+for (let y = 200; y < 266; y += 12) for (let x = 1230 + ((y / 12) % 2) * 7; x < 1330; x += 14) { ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI); ctx.stroke(); }
+ctx.restore(); stem(roof, NAVY, 3.6);
+const STONE_COLS = [BUFF, OCHRE, SAGE];
+BLOCKS.forEach(([x, y, w, h, m], i) => {
+  const p = rectP(x, y, w, h);
+  if (m === "stone") {
+    laid(p, STONE_COLS[i % 3], w > h ? 0 : 1.57);
+    // courses picked out in contrasting wool
+    ctx.save(); p(); ctx.clip(); ctx.strokeStyle = TERRA; ctx.lineWidth = 2.4; ctx.setLineDash([5, 3]);
+    for (let yy = y + 22; yy < y + h; yy += 22) { ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + w, yy); ctx.stroke(); }
+    if (w > h) for (let xx = x + 40; xx < x + w; xx += 40) { ctx.beginPath(); ctx.moveTo(xx, y); ctx.lineTo(xx, y + h); ctx.stroke(); }
+    ctx.restore();
+  } else laid(p, TERRA, w > h ? 0 : 1.57);
+  stem(p, NAVY, 3.6);
+});
+for (const [x1, y1, x2, y2, m, t] of BRACES) { const p = beamP(x1, y1, x2, y2, t + 2); laid(p, m === "metal" ? BLUEGREEN : TERRA, Math.atan2(y2 - y1, x2 - x1)); stem(p, NAVY, 3.2); }
+for (const [x, y, w, n] of CRENELS) { const mw = w / (n * 2 - 1); for (let i = 0; i < n; i++) { const p = rectP(x + i * 2 * mw, y - 22, mw, 22); laid(p, i % 2 ? OCHRE : BUFF, 1.57); stem(p, NAVY, 3); } }
+// banner: the tapestry's dragon standard reduced to a pennon
+const fx = FLAG.x, fy = FLAG.y - 22 - FLAG.h;
+stem(() => { ctx.beginPath(); ctx.moveTo(fx, FLAG.y - 22); ctx.lineTo(fx, fy - 4); }, NAVY, 5);
+const pen = polyP([[fx, fy], [fx + 70, fy + 6], [fx + 110, fy + 18], [fx + 70, fy + 26], [fx + 100, fy + 40], [fx, fy + 42]]);
+laid(pen, OCHRE, 0); stem(pen, TERRA, 3.4);
+stem(() => { ctx.beginPath(); ctx.moveTo(fx + 10, fy + 21); ctx.lineTo(fx + 80, fy + 21); }, TERRA, 3);
+
+// --- royals: outlined linen faces, laid tunics, three-fleuron crowns
+const TUNIC = { king: [TERRA, OCHRE], queen: [BLUEGREEN, OCHRE], prince: [SAGE, TERRA], princess: [OCHRE, BLUEGREEN], squire: [BUFF, TERRA] };
+function royal(x, foot, kind) {
+  const [tunic, cloak] = TUNIC[kind], s = kind === "king" ? 1.18 : kind === "squire" ? .9 : 1.04;
+  ctx.save(); ctx.translate(x, foot); ctx.scale(s, s);
+  const robe = polyP([[-16, -4], [-12, -44], [10, -44], [16, -4]]);
+  laid(robe, tunic, 1.57); stem(robe, NAVY, 3);
+  const cl = polyP([[-12, -44], [-22, -12], [-14, -10], [-6, -40]]);
+  laid(cl, cloak, 1.2); stem(cl, NAVY, 2.4);
+  // legs in two colors, as the tapestry does with near and far legs
+  const l1 = rectP(-9, -4, 6, 6), l2 = rectP(3, -4, 6, 6); laid(l1, NAVY); laid(l2, TERRA);
+  // face: linen left bare inside an outline
+  stem(() => { ctx.beginPath(); ctx.ellipse(0, -55, 9, 11, 0, 0, 7); }, NAVY, 2.6);
+  ctx.fillStyle = NAVY; ctx.beginPath(); ctx.arc(4, -57, 1.6, 0, 7); ctx.fill();
+  stem(() => { ctx.beginPath(); ctx.moveTo(8, -54); ctx.lineTo(11, -50); ctx.lineTo(7, -50); }, NAVY, 1.8);
+  if (kind === "king") { const beard = polyP([[-6, -48], [8, -48], [3, -36], [-2, -38]]); laid(beard, BLUEGREEN, 1.57); stem(beard, NAVY, 2); }
+  const crown = kind === "squire" ? polyP([[-9, -64], [9, -64], [9, -69], [-9, -69]]) : polyP([[-10, -63], [-11, -76], [-6, -70], [0, -80], [6, -70], [11, -76], [10, -63]]);
+  laid(crown, OCHRE, 1.57); stem(crown, NAVY, 2.4);
+  if (kind === "king") { stem(() => { ctx.beginPath(); ctx.moveTo(14, -24); ctx.lineTo(20, -70); }, NAVY, 3); const orb = () => { ctx.beginPath(); ctx.arc(20, -74, 6, 0, 7); }; laid(orb, OCHRE); stem(orb, NAVY, 2); }
+  ctx.restore();
+}
+for (const [x, y, k] of ROYALS) royal(x, y, k);
+
+// --- trebuchet
+const T = trebParts();
+const beams = [
+  [290, TREB.baseY - 22, T.px + 8, T.py + 4, 12, OCHRE], [430, TREB.baseY - 22, T.px + 8, T.py + 4, 12, OCHRE],
+  [200, TREB.baseY - 14, 500, TREB.baseY - 14, 20, TERRA],
+  [268, TREB.baseY - 22, T.px, T.py, 18, TERRA], [436, TREB.baseY - 22, T.px, T.py, 18, TERRA],
+  [296, TREB.baseY - 110, 408, TREB.baseY - 110, 12, SAGE],
+];
+for (const [x1, y1, x2, y2, t, col] of beams) { const p = beamP(x1, y1, x2, y2, t); laid(p, col, Math.atan2(y2 - y1, x2 - x1)); stem(p, NAVY, 3); }
+for (const wx of [236, 466]) { const wp = () => { ctx.beginPath(); ctx.arc(wx, TREB.baseY - 4, 20, 0, 7); }; laid(wp, OCHRE, 0); stem(wp, NAVY, 3.4); stem(() => { ctx.beginPath(); for (let k = 0; k < 4; k++) { const a = k * Math.PI / 4; ctx.moveTo(wx - Math.cos(a) * 18, TREB.baseY - 4 - Math.sin(a) * 18); ctx.lineTo(wx + Math.cos(a) * 18, TREB.baseY - 4 + Math.sin(a) * 18); } }, NAVY, 2.4); }
+const cwx = T.shortEnd[0], cwy = T.shortEnd[1];
+stem(() => { ctx.beginPath(); ctx.moveTo(cwx, cwy); ctx.lineTo(cwx - 22, cwy + 32); ctx.moveTo(cwx, cwy); ctx.lineTo(cwx + 22, cwy + 32); }, NAVY, 3);
+const box = polyP([[cwx - 40, cwy + 32], [cwx + 40, cwy + 32], [cwx + 32, cwy + 86], [cwx - 32, cwy + 86]]);
+laid(box, BLUEGREEN, 0); stem(box, NAVY, 3.4);
+stem(() => { ctx.beginPath(); ctx.moveTo(cwx - 36, cwy + 56); ctx.lineTo(cwx + 36, cwy + 56); }, OCHRE, 3);
+const arm = beamP(T.shortEnd[0], T.shortEnd[1], T.longEnd[0], T.longEnd[1], 22);
+laid(arm, OCHRE, Math.atan2(T.longEnd[1] - T.shortEnd[1], T.longEnd[0] - T.shortEnd[0])); stem(arm, NAVY, 3.6);
+stem(() => { ctx.beginPath(); ctx.arc(T.px, T.py, 7, 0, 7); }, NAVY, 4);
+stem(() => { ctx.beginPath(); ctx.moveTo(...T.longEnd); ctx.quadraticCurveTo(T.longEnd[0] + 50, T.longEnd[1] - 6, T.pouch[0], T.pouch[1]); }, TERRA, 2.6);
+for (let i = 0; i < 3; i++) stem(() => { ctx.beginPath(); ctx.arc(T.px, T.py, TREB.long - 12 - i * 16, -0.4, -0.85, true); }, BLUEGREEN, 2.4);
+
+// last shot: a running stitch
+ctx.save(); ctx.strokeStyle = TERRA; ctx.lineWidth = 3.4; ctx.lineCap = "round"; ctx.setLineDash([9, 9]);
+ctx.beginPath(); for (let t = 0.03; t <= 1; t += 0.01) { const [x, y] = ghostArc(t); t < 0.04 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); } ctx.stroke(); ctx.restore();
+// the shot in flight with stitched speed lines
+const [sx, sy] = arc(SHOT_T), [bx, by] = arc(SHOT_T - .05), ang = Math.atan2(sy - by, sx - bx);
+for (const o of [-11, 0, 11]) stem(() => { ctx.beginPath(); ctx.moveTo(sx - Math.cos(ang) * 28 - Math.sin(ang) * o, sy - Math.sin(ang) * 28 + Math.cos(ang) * o); ctx.lineTo(sx - Math.cos(ang) * 74 - Math.sin(ang) * o, sy - Math.sin(ang) * 74 + Math.cos(ang) * o); }, BLUEGREEN, 3);
+const ball = () => { ctx.beginPath(); ctx.arc(sx, sy, SHOT.r + 3, 0, 7); };
+laid(ball, NAVY, .6); stem(ball, NAVY, 3);
+// wind pennant
+stem(() => { ctx.beginPath(); ctx.moveTo(120, 768); ctx.lineTo(120, 650); }, NAVY, 4);
+const wf = polyP([[120, 652], [186, 664], [120, 680]]); laid(wf, TERRA, 0); stem(wf, NAVY, 2.6);
+ctx.restore();
+// trees close the scene at each end, as the tapestry parts its episodes
+ctx.save(); ctx.translate(0, 0);
+tree(62, 900, 300); tree(1866, 900, 300);
+ctx.restore();
+
+// --- inscription in deep blue wool, words parted by stops
+ctx.save();
+ctx.font = `700 34px ${SERIF}`; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+const words = "HIC · TREBVCHETVM · LAPIDEM · IACIT";
+ctx.lineWidth = 2; ctx.strokeStyle = NAVY; ctx.fillStyle = NAVY; ctx.setLineDash([4, 2]);
+ctx.fillText(words, 150, 172); ctx.strokeText(words, 150, 172);
+ctx.restore();
+
+// --- HUD sliver in the lower border: stitched panels
+(function hud() {
+  const y = BOTB[0] + 16, h = BOTB[1] - BOTB[0] - 32, x0 = 556, w = 808;
+  const panel = rectP(x0, y, w, h);
+  ctx.fillStyle = "rgba(240,232,210,.6)"; panel(); ctx.fill(); stem(panel, TERRA, 4);
+  const sw = { Wood: TERRA, Stone: BUFF, Metal: BLUEGREEN };
+  ctx.font = `700 25px ${SERIF}`; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+  HUD.mats.forEach(([name, cost, have], i) => {
+    const x = x0 + 22 + i * 196, cy = y + h / 2;
+    const swatch = rectP(x, cy - 24, 44, 48); laid(swatch, sw[name], i === 1 ? 0 : 1.57); stem(swatch, NAVY, 3);
+    if (i === 0) stem(rectP(x - 8, cy - 32, 180, 64), OCHRE, 3.2);
+    ctx.fillStyle = NAVY; ctx.font = `700 24px ${SERIF}`; ctx.fillText(name.toUpperCase(), x + 54, cy - 11);
+    ctx.font = `600 19px ${SERIF}`; ctx.fillStyle = TERRA; ctx.fillText(cost + " GOLD · " + have, x + 54, cy + 15);
+  });
+  const gx = x0 + 628, cy = y + h / 2;
+  const coin = () => { ctx.beginPath(); ctx.arc(gx, cy - 12, 14, 0, 7); }; laid(coin, OCHRE); stem(coin, NAVY, 2.6);
+  ctx.fillStyle = NAVY; ctx.font = `700 26px ${SERIF}`; ctx.fillText(String(HUD.gold), gx + 24, cy - 11);
+  ctx.font = `600 19px ${SERIF}`; ctx.fillStyle = TERRA; ctx.fillText(HUD.phase.toUpperCase() + " " + HUD.time, gx - 14, cy + 22);
+})();
+</script></body></html>
