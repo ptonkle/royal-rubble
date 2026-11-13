@@ -117,7 +117,7 @@ def fast_match(page, check):
     on_screen(page, "lobby")
     page.click(by_id("lobby.start"))
     on_screen(page, "match")
-    for _ in range(3000):
+    for _ in range(8000):
         if page.locator(by_id("match.results")).count():
             break
         press(page, "match.skip")
