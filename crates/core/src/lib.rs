@@ -7,6 +7,7 @@
 //!
 //! Keep `api.rs` as the one door the shim calls through.
 
+pub mod ai;
 pub mod api;
 pub mod app;
 pub mod game;
