@@ -141,3 +141,8 @@ name = "tests of the words"
 files = ["crates/core/src/glossary.rs", "crates/core/src/strings.rs", "crates/core/tests/copy.rs", "data/strings.json", "GLOSSARY.md", "TONE.md"]
 steps = ["core"]
 tags = ["copy"]
+[[rule]]
+name = "the sound tools"
+# they write data/sound*.json, which crates/core/tests/sound.rs reads
+files = ["tools/sound/**"]
+steps = ["core"]

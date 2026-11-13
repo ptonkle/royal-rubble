@@ -43,6 +43,12 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R1.407 | worklist | The browser check would run from this repo's .venv. | ctc has no .venv yet, and installs were out of scope. | The check and the shots ran with Fleeced's `.venv/bin/python` via BUILDER_PYTHON. Run `scripts/setup.sh` once (network) to give ctc its own. |  | person |
 | R1.408 | finding | The online status lines would need new words. | Fleeced's online.* and save.* lines are plain functional messages with no game flavor. | They were kept word for word; every other string is new. Listed below for the person to read. |  | done |
 | R1.409 | divergence | Version 0.1.0 would carry "First playable build." | The game is not playable yet, and the core refuses a version with no line. | 0.1.0's one line is "Menus, settings and the online lobby."; reword it at the first playable deploy. |  | open |
+| R1.500 | divergence | Fleeced compiles sound recipes in the core (`sound.rs`). | Royal Rubble's core is busy with physics; sound needs no game rule. | Recipes compile in a build step, `tools/sound/compile.py`, to `data/sound-programs.json`; the page still holds no numbers. | `notes/sound.md` | done |
+| R1.501 | finding | Sound variants would be picked at random. | The boundary test bans `Math` in page JS. | Groups (`impact_wood` and the like) play their variants in turn. | `web/sound/sound.js` | done |
+| R1.502 | finding | The noise buffer would sit in `web/sound/`. | The page scan reads every file under `web/` as text and would fail on a WAV. | It lives at `data/sound-noise.wav`. | | done |
+| R1.503 | divergence | The volume curve belongs in the core (Fleeced's `master_gain`). | No core settings exist yet. | `sound.js` squares the slider share and applies `master_scale` 0.6 from data; move to the core when settings land. | `crates/core/tests/sound.rs` caps `master_scale` at 0.6 | open |
+| R1.504 | finding | Compiled music would be small. | Every note is compiled out: `data/sound-programs.json` is about 1.3 MB. | Left as is; compile the score at load if the size matters. | | open |
+| R1.505 | worklist | The sounds are tuned by ear from renders only, not heard in a browser. | Only the person can judge them. | Listen on `notes/sound/preview.html`; build music, siege music and the king's sting most of all. | | person |
 
 ## Strings written by the agent
 
