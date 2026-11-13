@@ -41,7 +41,7 @@ The volume fractions should come from the core or settings, not be computed in p
 | Moat | `play("splash")` |
 | Exploding ammo | `play("explosion")` |
 | Fire | `play("fire_ignite")`, then `startLoop("fire_crackle", "fire")` while anything burns, `stopLoop("fire")` |
-| Air effects | `phase_shimmer`, `split_pop`, `dive_whistle`, `air_drop`, `air_reverse` |
+| Tricks | `phase_shimmer`, `split_pop`, `dive_whistle`, `air_drop`, `air_reverse` |
 | Royal killed | `play("royal_" + rank)`: squire, knight, princess, prince, queen, king |
 | Build actions | `place_segment`, `sell_segment`, `coin` (gold gained), `buy_xp`, `level_up` |
 | Upgrades | `cards_reveal`, `card_pick`, `reroll` |

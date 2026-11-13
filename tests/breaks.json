@@ -1225,6 +1225,90 @@
     "test": "botplan_build_planning_starts_again_when_the_castle_changed"
   },
   {
+    "name": "hudpick early build opens on pick",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "            Phase::Upgrade => self\n                .player(p)",
+    "replace": "            Phase::Upgrade if false => self\n                .player(p)",
+    "test": "early_build_opens_for_a_player_once_they_pick_while_the_clock_runs"
+  },
+  {
+    "name": "hudpick picking makes you ready",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "        pl.ready = true;\n        Ok(())",
+    "replace": "        Ok(())",
+    "test": "early_build_opens_for_a_player_once_they_pick_while_the_clock_runs"
+  },
+  {
+    "name": "hudpick build view on pick",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "if phase == Phase::Upgrade && self.play.rules.builds_now(self.me) {",
+    "replace": "if false {",
+    "test": "arena_picking_a_card_shows_the_build_view_with_short_tips"
+  },
+  {
+    "name": "hudpick hud buttons carry tips",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                        *tip = s.get(key);",
+    "replace": "                        let _ = key;",
+    "test": "arena_picking_a_card_shows_the_build_view_with_short_tips"
+  },
+  {
+    "name": "pause resume skips the paused time",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "            *c += ms;\n",
+    "replace": "",
+    "test": "pause_menu_stops_a_solo_match_and_resume_skips_the_time_paused"
+  },
+  {
+    "name": "pause holds a solo match still",
+    "file": "crates/core/src/app.rs",
+    "find": "                (_, Some(_)) => {}\n",
+    "replace": "                (_, Some(_)) => a.pump(now_ms, 0, None, net_tick),\n",
+    "test": "pause_menu_stops_a_solo_match_and_resume_skips_the_time_paused"
+  },
+  {
+    "name": "pause esc backs out of pause settings",
+    "file": "crates/core/src/app.rs",
+    "find": "            (Screen::Play, Pause::Settings) => \"pause.back\",\n",
+    "replace": "",
+    "test": "pause_escape_walks_pause_settings_and_back"
+  },
+  {
+    "name": "flat map levels the ground",
+    "file": "crates/core/src/terrain/mod.rs",
+    "find": "        plot.heights.iter_mut().for_each(|v| *v = h);\n",
+    "replace": "",
+    "test": "flat_map_option_levels_every_column_and_drains_the_water"
+  },
+  {
+    "name": "flat map reaches the match",
+    "file": "crates/core/src/play/online.rs",
+    "find": "        flat: start.options.flat,",
+    "replace": "        flat: false,",
+    "test": "flat_map_option_levels_every_column_and_drains_the_water"
+  },
+  {
+    "name": "bot names never repeat",
+    "file": "crates/core/src/app/bot_names.rs",
+    "find": "out.push(list[pool.swap_remove(i)].clone());",
+    "replace": "out.push(list[pool[i]].clone());",
+    "test": "bot_names_never_repeat_within_the_list"
+  },
+  {
+    "name": "bot names follow the seed",
+    "file": "crates/core/src/app/bot_names.rs",
+    "find": "let mut rng = Rng::new(seed ^ SALT);",
+    "replace": "let mut rng = Rng::new(SALT);",
+    "test": "bot_names_follow_the_seed"
+  },
+  {
+    "name": "bot names reach the arena",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                    bot_names.next().unwrap_or_default()",
+    "replace": "                    st.name.clone()",
+    "test": "bot_names_come_from_the_list_and_differ_by_seat"
+  },
+  {
     "name": "eightseat match ends only with one player left",
     "file": "crates/core/src/game/flow.rs",
     "find": "        if alive.len() <= 1 {\n",

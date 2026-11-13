@@ -24,6 +24,7 @@ fn start(bots: usize, seed: u64) -> MatchStart {
         options: Options {
             players: bots as u32 + 1,
             wind: true,
+            flat: false,
         },
     }
 }
@@ -40,6 +41,34 @@ fn arena_starts_a_real_match_in_build_with_you_in_the_first_seat() {
     assert_eq!(a.me, 0);
     assert_eq!(a.play.rules.players.len(), 2);
     assert_eq!(a.play.rules.players[1].seat, Seat::Bot(Difficulty::Normal));
+}
+
+#[test]
+fn arena_picking_a_card_shows_the_build_view_with_short_tips() {
+    let mut a = arena(1);
+    while a.phase() != Phase::Upgrade {
+        a.queue(Input::Ready);
+        a.tick();
+    }
+    a.replay = None;
+    assert_eq!(a.view_phase(), Phase::Upgrade);
+    // as if the bot were a person still choosing, so the phase runs on
+    a.play.rules.players[1].ready = false;
+    a.queue(Input::Pick(0));
+    a.tick();
+    assert_eq!(a.phase(), Phase::Upgrade);
+    assert_eq!(a.view_phase(), Phase::Build);
+    let s = Strings::parse(&sample()).unwrap();
+    let panels = a.panels(&s, &CardText::default());
+    let tips: Vec<String> = panels
+        .iter()
+        .flat_map(|p| p.items.iter())
+        .filter_map(|i| match i {
+            Item::Button { id, tip, .. } if id == "match.test" => Some(tip.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(tips, vec!["tip.test".to_string()]);
 }
 
 #[test]
@@ -334,4 +363,32 @@ fn arena_the_siege_view_never_shows_past_the_world_edges() {
             panic!("tick {k}: {e}");
         }
     }
+}
+
+#[test]
+fn flat_map_option_levels_every_column_and_drains_the_water() {
+    let s = Strings::parse(&sample()).unwrap();
+    let mut st = start(1, 7);
+    st.options.flat = true;
+    let a = Arena::new(&st, "me", true, &s).unwrap();
+    let t = &a.play.rules.terrain;
+    let h = t.heights[t.launch_col];
+    assert!(t.heights.iter().all(|&v| v == h));
+    assert!(t.water.cols.is_empty());
+    assert!(!t.spots.is_empty(), "spots still land on level ground");
+    // the same seed without the option keeps its hills
+    let hilly = arena(1);
+    let ht = &hilly.play.rules.terrain;
+    assert!(ht.heights.iter().any(|&v| v != ht.heights[ht.launch_col]));
+}
+
+#[test]
+fn bot_names_come_from_the_list_and_differ_by_seat() {
+    let a = arena(3);
+    let list = crate::app::bot_names::all();
+    assert_eq!(a.names[0], "seat.you");
+    for n in &a.names[1..] {
+        assert!(list.contains(n), "{n} not in the list");
+    }
+    assert!(a.names[1] != a.names[2] && a.names[2] != a.names[3] && a.names[1] != a.names[3]);
 }

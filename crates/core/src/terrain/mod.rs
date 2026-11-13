@@ -185,6 +185,22 @@ impl Plot {
         plot
     }
 
+    /// The lobby's Flat map: the same plot layout with every column at the
+    /// launch pad's height, and no hills, cliffs or water.
+    pub fn generate_flat(seed: u64) -> Plot {
+        let mut plot = gen::ground(seed);
+        let h = plot.heights[plot.launch_col];
+        plot.heights.iter_mut().for_each(|v| *v = h);
+        let at = plot.gap.start;
+        plot.water = Water {
+            cols: ColRange { start: at, end: at },
+            level: h - CELL,
+        };
+        plot.features.clear();
+        spots::place(&mut plot, seed);
+        plot
+    }
+
     /// The buildable columns at `level` (clamped to 1..=9). The plot is
     /// anchored at its front edge by the gap and grows away from it.
     pub fn buildable(&self, level: u8) -> ColRange {

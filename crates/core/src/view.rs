@@ -67,6 +67,9 @@ pub enum Item {
         quiet: bool,
         #[serde(skip_serializing_if = "is_false")]
         disabled: bool,
+        /// a short hover tip, 1-4 words or a label and a cost
+        #[serde(skip_serializing_if = "String::is_empty")]
+        tip: String,
     },
     Slider {
         id: String,
@@ -200,6 +203,9 @@ pub struct BarOption {
     pub selected: bool,
     #[serde(skip_serializing_if = "is_false")]
     pub disabled: bool,
+    /// a short hover tip, 1-4 words or a label and a cost
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub tip: String,
 }
 
 /// A term and its definition, for the page's hover hints.
@@ -259,6 +265,8 @@ pub struct Ui {
     /// An online match, for the two-browser check to compare: round, then
     /// the newest checksum's tick and value (`body[data-sync]`).
     pub sync: String,
+    /// The action Esc sends on this screen, or empty.
+    pub escape: String,
 }
 
 #[cfg(test)]
@@ -272,6 +280,7 @@ mod tests {
             text: "A".into(),
             quiet: false,
             disabled: false,
+            tip: String::new(),
         };
         assert_eq!(
             serde_json::to_string(&b).unwrap(),

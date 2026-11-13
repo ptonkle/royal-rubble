@@ -126,6 +126,7 @@ pub fn new_play(start: &MatchStart) -> Result<Play, Refusal> {
         seats,
         wind: start.options.wind,
         seed: start.seed,
+        flat: start.options.flat,
     })?;
     play.start()?;
     play.set_shot_planner(crate::ai::planner::plan_siege_job);

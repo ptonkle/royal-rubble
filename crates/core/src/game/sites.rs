@@ -64,6 +64,7 @@ mod tests {
             seats: vec![Seat::Human; 2],
             wind,
             seed: 11,
+            flat: false,
         })
         .unwrap();
         m.start().unwrap();
@@ -199,6 +200,7 @@ mod tests {
             seats: vec![Seat::Human; 2],
             wind: false,
             seed: 11,
+            flat: false,
         })
         .unwrap();
         let segs: usize = m.terrain.spots.iter().map(|s| s.segments.len()).sum();

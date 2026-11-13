@@ -123,6 +123,7 @@ mod tests {
             seats: vec![Seat::Human; 2],
             wind: false,
             seed: 1,
+            flat: false,
         })
         .unwrap();
         m.start().unwrap();

@@ -33,7 +33,8 @@ Every `SECOND-ORDER.md` row with status *person*, by number, with what the perso
 - R1.407: run `scripts/setup.sh` once (it needs the network) so ctc has its own `.venv` with Playwright; until then the browser check borrows Fleeced's through `BUILDER_PYTHON`.
 - R1.505: listen to every sound and both music loops on `notes/sound/preview.html`, and say what to change.
 - R1.1803: decided by the coordinator while you slept: the release is timed in sixteenths of a tick (R1.2100-R1.2102), so bots hit a lone royal again. Say if you would rather have had power steps or bots that accept near misses.
-- R1.3903: read the renamed card: "Skipping Stone", "Air effect: the next hit bounces off. 2 uses per round" (was Kestrel, the Hover card).
+- R1.3502: read the bots' names in `data/bot-names.json` and strike or add any.
+- R1.3903: read the renamed card: "Skipping Stone", "Trick: the next hit bounces off. 2 uses per round" (was Kestrel, the Hover card).
 
 ## Mistakes so far
 
