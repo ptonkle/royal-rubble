@@ -1244,5 +1244,19 @@
     "find": "        if level < unlock_level(piece) && !stocked {",
     "replace": "        if level < unlock_level(piece) {",
     "test": "stockpiled_stone_places_before_its_level_and_buys_none"
+  },
+  {
+    "name": "slopebounce reflect about the slope",
+    "file": "crates/core/src/physics/balls.rs",
+    "find": "            let n = self.terrain.normal_at(ball.pos.x);",
+    "replace": "            let n = Vec2::new(Fx::ZERO, Fx::ONE);",
+    "test": "a_ball_landing_on_an_upward_slope_bounces_and_does_not_ride_up_it"
+  },
+  {
+    "name": "roomrule one royal per room",
+    "file": "crates/core/src/play/mod.rs",
+    "find": "            if mates as u32 >= pl.mods.royal_spacing.unwrap_or(1) {",
+    "replace": "            if mates as u32 >= 99 {",
+    "test": "royals_room_rule_allows_one_royal_under_a_roof_beam"
   }
 ]

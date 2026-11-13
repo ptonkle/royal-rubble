@@ -58,6 +58,12 @@ A noble you place in your castle. Each royal killed in a siege costs you health.
 
 Not: VIP, unit
 
+### Room
+
+The space under one roof beam. One royal to a room; a royal on the floor above is in another room.
+
+Not: hall, chamber
+
 ### Segment
 
 One beam of a castle between two points on the build grid: wood, stone, metal or rope. Each material has a longest length.

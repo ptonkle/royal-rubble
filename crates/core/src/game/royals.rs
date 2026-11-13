@@ -70,7 +70,7 @@ pub struct Royal {
 }
 
 pub fn spacing_cells() -> i32 {
-    tune::ROYAL_SPACING_SEGMENTS * tune::GRID_PER_SEGMENT
+    tune::ROYAL_SPACING_CELLS
 }
 
 pub fn in_plot(s: Spot, plot: Plot) -> bool {
@@ -172,13 +172,13 @@ mod tests {
     }
 
     #[test]
-    fn spacing_needs_four_segment_lengths() {
+    fn spacing_needs_two_cells() {
+        // R1.3706: 2 cells so royals never overlap (was 4 segment lengths)
         let a = Spot { x: 0, y: 0 };
-        // four segment lengths of 2 cells each (R1.700): 8 cells
-        assert!(!spaced(Spot { x: 7, y: 0 }, &[a]));
-        assert!(spaced(Spot { x: 8, y: 0 }, &[a]));
-        assert!(!spaced(Spot { x: 5, y: 5 }, &[a]));
-        assert!(spaced(Spot { x: 6, y: 6 }, &[a]));
+        assert!(!spaced(Spot { x: 1, y: 0 }, &[a]));
+        assert!(spaced(Spot { x: 2, y: 0 }, &[a]));
+        assert!(!spaced(Spot { x: 1, y: 1 }, &[a]));
+        assert!(spaced(Spot { x: 0, y: 2 }, &[a]));
     }
 
     #[test]

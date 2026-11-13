@@ -61,8 +61,6 @@ const TRAIL_EVERY: u32 = 2;
 /// Ticks a Test runs the castle for.
 const TEST_TICKS: u32 = 240;
 use crate::play::tune::{ROYAL_RADIUS, ROYAL_UPRIGHT};
-/// One segment length, for the royal spacing (wood's longest, as play/ has it).
-const SEGMENT_LENGTH: Fx = Fx::from_int(2);
 /// Breaks in one frame that sound as a collapse.
 const COLLAPSE_MIN: u32 = 3;
 /// Cues kept for the page.
@@ -827,7 +825,7 @@ impl Sandbox {
     }
 
     fn spacing(&self) -> Fx {
-        SEGMENT_LENGTH * crate::game::tune::ROYAL_SPACING_SEGMENTS as i64
+        Fx::from_int(crate::game::tune::ROYAL_SPACING_CELLS as i64)
     }
 
     fn spaced(&self, p: Vec2) -> bool {

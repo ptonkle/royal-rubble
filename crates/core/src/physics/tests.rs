@@ -601,3 +601,46 @@ fn trebuchet_sixteenth_release_lands_between_whole_ticks() {
         assert_eq!(prev, b);
     }
 }
+
+#[test]
+fn a_ball_landing_on_an_upward_slope_bounces_and_does_not_ride_up_it() {
+    // R1.3705, the person: "a ball traveling towards a 20 degree upwards
+    // slope hit it while traveling at a 10 degree downwards trajectory and
+    // instead of hitting the ground and bouncing it just kinda stuck and slid
+    // up the slope". Level to x = 20, then rising tan(20 deg) = 0.364 a column.
+    let heights = (0..80i64)
+        .map(|c| Fx::ratio(364 * (c - 20).max(0), 1000))
+        .collect();
+    let mut w = World::new(Terrain {
+        col_width: Fx::ONE,
+        heights,
+    });
+    let r = Fx::HALF;
+    let start = Vec2::new(
+        Fx::from_int(21),
+        w.terrain.height_at(Fx::from_int(21)) + r + Fx::ratio(1, 10),
+    );
+    // half a unit a tick, 10 degrees down: (cos 10, -sin 10)
+    let vel = Vec2::new(Fx::ratio(492, 1000), -Fx::ratio(87, 1000));
+    let i = w.fire(shot(start, vel), r, Fx::from_int(6));
+    let (mut touched, mut bounced, mut run, mut longest) = (false, false, 0, 0);
+    for _ in 0..240 {
+        w.step();
+        let b = w.projectiles[i];
+        if !b.alive {
+            break;
+        }
+        let on = b.pos.y - b.radius <= w.terrain.height_at(b.pos.x) + Fx::ratio(1, 64);
+        touched |= on;
+        bounced |= touched && !on && b.vel.y > Fx::ZERO;
+        // sliding up: on the ground and still moving uphill
+        run = if on && b.vel.x > Fx::ratio(1, 100) {
+            run + 1
+        } else {
+            0
+        };
+        longest = longest.max(run);
+    }
+    assert!(touched && bounced, "touched {touched}, bounced {bounced}");
+    assert!(longest <= 2, "slid up the slope for {longest} ticks");
+}
