@@ -129,6 +129,8 @@ pub struct Player {
 impl Player {
     fn new(id: PlayerId, seat: Seat, terrain: terrain::Plot) -> Self {
         let mut ledger = Ledger::default();
+        ledger.stock.wood = tune::START_WOOD;
+        ledger.stock.stone = tune::START_STONE;
         let ruin_pieces = terrain
             .spots
             .iter()
@@ -325,7 +327,9 @@ impl Match {
         for p in self.players.iter_mut().filter(|p| p.alive()) {
             p.offer = None;
             p.ledger.shots_bought = 0;
-            p.purse.collect_income();
+            if self.round >= tune::FIRST_INCOME_ROUND {
+                p.purse.collect_income();
+            }
             p.purse.gold += p.mods.gold_per_round;
             p.purse.add_xp(tune::FREE_XP_PER_ROUND + p.mods.xp_per_round);
             for m in [Material::Wood, Material::Stone, Material::Metal] {
@@ -698,13 +702,24 @@ mod tests {
     }
 
     #[test]
-    fn round_one_pays_income_and_free_xp_and_brings_a_squire() {
+    fn round_one_pays_free_xp_and_brings_a_squire() {
         let m = humans(2);
         let p = &m.players[0];
-        assert_eq!(p.purse.gold, tune::BASE_INCOME);
+        assert_eq!(p.purse.gold, 0);
         assert_eq!(p.purse.level, 2);
         assert_eq!(p.royals.len(), 1);
         assert_eq!(m.target_of(0), Some((1, false)));
+    }
+
+    #[test]
+    fn round_one_starts_with_a_stockpile_and_no_gold() {
+        // R1.3701, the person: "start with a set amount of stone and wood and zero gold"
+        let m = humans(2);
+        let p = &m.players[0];
+        assert_eq!(
+            (p.purse.gold, p.ledger.stock.wood, p.ledger.stock.stone),
+            (0, 12, 6)
+        );
     }
 
     #[test]
@@ -722,8 +737,8 @@ mod tests {
         };
         m.apply_siege(&r).unwrap();
         assert_eq!(m.players[1].health, 99);
-        // 5 income round 1, +1 kill gold, and round 2 has not paid yet (upgrade phase)
-        assert_eq!(m.players[0].purse.gold, 6);
+        // no income round 1 (R1.3701), +1 kill gold, and round 2 has not paid yet (upgrade phase)
+        assert_eq!(m.players[0].purse.gold, 1);
     }
 
     #[test]
@@ -797,6 +812,8 @@ mod tests {
     fn level_unlocks_stone_at_four_and_grow_the_plot() {
         let mut m = humans(2);
         m.players[0].purse.gold = 100;
+        // the starting stone is usable early (R1.3701); gold can't buy more
+        m.players[0].ledger.stock.stone = 0;
         assert_eq!(m.place(0, Piece::Segment(Material::Stone)), Err(Refusal::Locked));
         let small = m.players[0].plot();
         m.players[0].purse.add_xp(8); // level 2 -> 4
@@ -852,7 +869,7 @@ mod tests {
         let (a, b) = (&m.players[0], &m.players[1]);
         // both got base income on the same bank; player 0 got 1 more
         assert_eq!(a.purse.gold - b.purse.gold, 1);
-        assert_eq!(a.ledger.stock.wood, 6);
+        assert_eq!(a.ledger.stock.wood, tune::START_WOOD + 6);
         // level 2 to 3 takes 2 XP: 4 free XP leaves 2, against 0
         assert_eq!((a.purse.level, a.purse.xp, b.purse.xp), (3, 2, 0));
     }
@@ -909,6 +926,7 @@ mod tests {
     fn quartermaster_makes_bought_shots_cost_one() {
         let mut m = humans(2);
         give(&mut m, 0, "quartermaster");
+        m.players[0].purse.gold = 5; // round 1 pays no gold (R1.3701)
         let gold = m.players[0].purse.gold;
         m.buy_shot(0).unwrap();
         assert_eq!(m.players[0].purse.gold, gold - 1);

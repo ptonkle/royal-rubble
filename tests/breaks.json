@@ -1216,5 +1216,33 @@
     "find": "p.attacker == attacker && p.key == key)",
     "replace": "p.attacker == attacker)",
     "test": "botplan_build_planning_starts_again_when_the_castle_changed"
+  },
+  {
+    "name": "stage1 castle box window wide",
+    "file": "crates/core/src/physics/tune.rs",
+    "find": "treb_swing: [(0, 0), (30, 152), (100, 152), (160, 152), (204, 152), (220, 0)],",
+    "replace": "treb_swing: [(0, 0), (15, 305), (50, 305), (80, 305), (102, 305), (110, 0)],",
+    "test": "trebuchet_level_one_castle_box_window_is_at_least_24_ticks"
+  },
+  {
+    "name": "stage1 start stockpile",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "        ledger.stock.stone = tune::START_STONE;\n",
+    "replace": "",
+    "test": "round_one_starts_with_a_stockpile_and_no_gold"
+  },
+  {
+    "name": "stage1 start no gold",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "            if self.round >= tune::FIRST_INCOME_ROUND {",
+    "replace": "            if true {",
+    "test": "round_one_starts_with_a_stockpile_and_no_gold"
+  },
+  {
+    "name": "stage1 stocked stone before level",
+    "file": "crates/core/src/game/ledger.rs",
+    "find": "        if level < unlock_level(piece) && !stocked {",
+    "replace": "        if level < unlock_level(piece) {",
+    "test": "stockpiled_stone_places_before_its_level_and_buys_none"
   }
 ]
