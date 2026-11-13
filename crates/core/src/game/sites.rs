@@ -110,7 +110,10 @@ mod tests {
         let (mut m, col) = on_spot(SpotKind::StoneDeposit, false);
         let id = build(&mut m, BuildingKind::Quarry, col);
         siege(&mut m, vec![id]);
-        assert_eq!(m.players[0].ledger.stock.stone, 2);
+        assert_eq!(
+            m.players[0].ledger.stock.stone,
+            crate::game::tune::START_STONE + 2
+        );
     }
 
     #[test]
@@ -127,7 +130,10 @@ mod tests {
         let on = build(&mut m, BuildingKind::Carpenter, col);
         let off = build(&mut m, BuildingKind::Carpenter, col + 10);
         siege(&mut m, vec![on, off]);
-        assert_eq!(m.players[0].ledger.stock.wood, 6 + 3);
+        assert_eq!(
+            m.players[0].ledger.stock.wood,
+            crate::game::tune::START_WOOD + 6 + 3
+        );
     }
 
     #[test]

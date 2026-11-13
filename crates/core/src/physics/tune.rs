@@ -13,7 +13,7 @@ pub const TICKS_PER_SECOND: u32 = 60;
 pub const MAX_SUBSTEPS: i64 = 8;
 
 /// Gravity: 10 units/s^2 at 60 Hz, as a raw Q16.16 per tick squared.
-const G_RAW: i64 = 182;
+pub const G_RAW: i64 = 182;
 
 /// The load of holding mass `m` (whole units) against gravity.
 pub const fn weight(m: i64) -> Fx {
@@ -97,8 +97,9 @@ pub struct Tune {
     /// Fire spreads to touching wood every this many ticks.
     pub burn_spread_every: u32,
     pub phase_ticks: u32,
-    /// Hover: ticks a shot hangs still before it falls.
-    pub hover_ticks: u32,
+    /// Bounce: fraction of its speed into a surface an armed shot keeps,
+    /// reflected, on its next contact.
+    pub bounce_restitution: Fx,
     /// Split: angle between the pieces, in brads.
     pub split_spread: i64,
     /// Boost: added speed along the flight path.
@@ -203,15 +204,15 @@ pub const TUNE: Tune = Tune {
     burn_damage: Fx::ratio(1, 600),
     burn_spread_every: 60,
     phase_ticks: 30,
-    hover_ticks: 60,
+    bounce_restitution: Fx::ratio(4, 5),
     split_spread: TURN / 36,
     boost_speed: Fx::ratio(1, 10),
     treb_pivot_height: Fx::ratio(7, 2),
     treb_arm: Fx::from_int(4),
     treb_start_angle: TURN * 5 / 8,
-    treb_swing: [(0, 0), (15, 305), (50, 305), (80, 305), (102, 305), (110, 0)],
+    treb_swing: [(0, 0), (30, 152), (100, 152), (160, 152), (204, 152), (220, 0)],
     treb_power_base: 100,
-    treb_speed_pct: 234,
+    treb_speed_pct: 377,
     treb_sling: Fx::from_int(4),
     treb_sling_lead: TURN * 3 / 8,
     treb_sling_past: TURN / 36,

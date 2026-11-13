@@ -82,6 +82,9 @@ fn build_segment_costs_gold_and_joins_the_castle() {
     let mut play = duel(3);
     let plot = play.rules.terrain.clone();
     let g = ground(&plot, flat_col(&plot, 2));
+    // no stockpile and some gold, so the beam is bought (R1.3701)
+    play.rules.players[0].ledger.stock.wood = 0;
+    play.rules.players[0].purse.gold = 5;
     let gold = play.rules.players[0].purse.gold;
     assert_eq!(
         play.apply(
@@ -289,6 +292,7 @@ fn spot_gold_vein_building_that_survives_pays() {
         .unwrap()
         .cols;
     let at = ground(&plot, vein.start + 1);
+    play.rules.players[0].purse.gold = 5; // round 1 pays no gold (R1.3701)
     play.apply(
         0,
         Input::PlaceBuilding {
@@ -302,7 +306,7 @@ fn spot_gold_vein_building_that_survives_pays() {
     ready_through(&mut play); // siege -> upgrade (round 2), nobody fired
     let pl = &play.rules.players[0];
     assert_eq!(pl.purse.gold, gold + rules::GOLD_VEIN_GOLD);
-    assert_eq!(pl.ledger.stock.wood, 3);
+    assert_eq!(pl.ledger.stock.wood, rules::START_WOOD + 3);
 }
 
 /// Two scripted players: build a post each round, fire every shot at one
@@ -436,7 +440,7 @@ fn land_x(terrain: crate::physics::Terrain, base: Vec2, release: u32, power: u8)
 }
 
 /// Release ticks the tests try: past the end of the swing.
-const SCAN: u32 = 240;
+const SCAN: u32 = 300;
 
 /// The farthest and nearest columns a forward throw lands at, over every
 /// release tick, from `plot`'s trebuchet at `power`.
@@ -858,4 +862,59 @@ fn botplan_build_planning_starts_again_when_the_castle_changed() {
         job.advance();
     }
     assert_eq!(job.take_ready(), want);
+}
+
+/// Whether a plain throw released on tick `release` passes through
+/// `level`'s castle box: the buildable columns, from the ground up to the
+/// build height over the plot's front ground.
+fn hits_castle_box(plot: &Plot, level: u8, release: u32, power: u8) -> bool {
+    use crate::physics::{ShotKind, ShotMods};
+    let base = units::trebuchet_base(plot);
+    let mut w = World::new(units::physics_terrain(plot));
+    let launch = trebuchet_launch(base, release, power, false);
+    if launch.vel.x <= Fx::ZERO {
+        return false;
+    }
+    let span = plot.buildable(level);
+    let top = units::terrain_to_fx(plot.heights[span.start] + Plot::build_height(level));
+    let i = w.fire_shot(launch, ShotKind::Normal, ShotMods::default()).balls[0];
+    for _ in 0..3000 {
+        w.step();
+        let b = w.projectiles[i];
+        let x = b.pos.x.floor_int();
+        if x >= span.start as i64 && x < span.end as i64 && b.pos.y - b.radius <= top {
+            return true;
+        }
+        if !b.alive || b.pos.y - b.radius <= w.terrain.height_at(b.pos.x) + Fx::ratio(1, 64) {
+            return false;
+        }
+    }
+    false
+}
+
+/// Release ticks that hit `level`'s castle box from `plot`, and the longest
+/// back-to-back run of them.
+fn castle_box_window(plot: &Plot, level: u8) -> (u32, u32) {
+    let power = super::siege::launch_power(rules::LEVELS[level as usize - 1].shot_power_pct);
+    let (mut all, mut best, mut run) = (0, 0, 0);
+    for r in 0..SCAN {
+        if hits_castle_box(plot, level, r, power) {
+            all += 1;
+            run += 1;
+            best = best.max(run);
+        } else {
+            run = 0;
+        }
+    }
+    (all, best)
+}
+
+#[test]
+fn trebuchet_level_one_castle_box_window_is_at_least_24_ticks() {
+    // R1.3700, the person: "The difficulty of shooting the trebuchet should not
+    // be hitting the enemy castle at all"; was 8-11 ticks at 0.2.8, now 28-32
+    for seed in 1..=4 {
+        let (all, _) = castle_box_window(&Plot::generate(seed), 1);
+        assert!(all >= 24, "seed {seed}: {all} ticks");
+    }
 }

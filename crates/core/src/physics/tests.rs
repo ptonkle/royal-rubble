@@ -427,18 +427,68 @@ fn fire_spreads_through_touching_wood_but_not_stone() {
     assert!(w.segments[lit].hp < TUNE.wood.hp);
 }
 
-#[test]
-fn air_hover_hangs_still_then_falls() {
-    let (mut w, p) = flying();
-    let at = w.projectiles[p].pos;
-    w.air_effect(p, AirEffect::Hover);
-    for _ in 0..TUNE.hover_ticks {
-        w.step();
+/// A light shot flying level into a braced stone tower at x = 2; returns
+/// its sideways speed on the first tick it is no longer heading right, and
+/// whether Bounce is still armed then.
+fn into_stone_wall(armed: bool) -> (Fx, bool) {
+    let mut w = flat_world();
+    tower_of(&mut w, 5, Material::Stone);
+    w.build();
+    let p = w.fire(
+        shot(Vec2::ints(0, 3), Vec2::new(Fx::HALF, Fx::ZERO)),
+        Fx::ratio(1, 4),
+        Fx::ratio(1, 10),
+    );
+    if armed {
+        w.air_effect(p, AirEffect::Bounce);
     }
-    assert_eq!(w.projectiles[p].pos, at);
-    w.step();
-    // falls from rest: straight down, one tick of gravity
-    assert_eq!(w.projectiles[p].pos, Vec2::new(at.x, at.y - TUNE.gravity));
+    for _ in 0..20 {
+        w.step();
+        let b = w.projectiles[p];
+        if b.vel.x <= Fx::ZERO {
+            return (b.vel.x, b.bounce);
+        }
+    }
+    panic!("the shot never reached the wall");
+}
+
+#[test]
+fn air_bounce_skips_off_a_wall_keeping_most_of_its_speed() {
+    // came in at 1/2 a tick: Bounce keeps 4/5 of it, about 2/5 back the
+    // other way; a plain hit keeps about 1/4 of it, 1/8 back
+    let (armed, _) = into_stone_wall(true);
+    let (plain, _) = into_stone_wall(false);
+    assert!(armed < -Fx::ratio(3, 10), "armed {armed:?}");
+    assert!(plain > -Fx::ratio(1, 5), "plain {plain:?}");
+}
+
+#[test]
+fn air_bounce_is_spent_after_one_contact() {
+    let (_, still_armed) = into_stone_wall(true);
+    assert!(!still_armed);
+    // the ground then takes it as a plain landing: speed lost, not kept
+    let mut w = flat_world();
+    let p = w.fire(
+        shot(Vec2::ints(5, 1), Vec2::new(Fx::ZERO, -Fx::HALF)),
+        Fx::ratio(1, 4),
+        Fx::ONE,
+    );
+    w.air_effect(p, AirEffect::Bounce);
+    // the upward speed at the start of each rebound off the ground
+    let mut rebounds = Vec::new();
+    let mut rising = false;
+    for _ in 0..400 {
+        w.step();
+        let vy = w.projectiles[p].vel.y;
+        if vy > Fx::ZERO && !rising {
+            rebounds.push(vy);
+        }
+        rising = vy > Fx::ZERO;
+    }
+    assert!(rebounds.len() >= 2, "{rebounds:?}");
+    // first off the ground: about 4/5 of 1/2; second: about 1/4 of that
+    assert!(rebounds[0] > Fx::ratio(3, 10), "{rebounds:?}");
+    assert!(rebounds[1] < Fx::ratio(3, 20), "{rebounds:?}");
 }
 
 #[test]
@@ -520,8 +570,8 @@ fn trebuchet_pose_holds_the_shot_until_release_then_the_arm_rocks_and_rests() {
 #[test]
 fn trebuchet_arm_turns_at_a_steady_speed_through_the_release_block() {
     // R1.1803, the person: "a consistentish speed of swinging around"; from
-    // tick 15 to the last forward-and-up release the fastest tick is under twice
-    // the slowest
+    // tick 30 (the speed-up's end; 15 before R1.3700 halved the arm speed) to
+    // the last forward-and-up release the fastest tick is under twice the slowest
     let base = Vec2::ints(0, 0);
     let last = (0..trebuchet::SWING_END)
         .filter(|&t| {
@@ -530,7 +580,7 @@ fn trebuchet_arm_turns_at_a_steady_speed_through_the_release_block() {
         })
         .max()
         .unwrap();
-    let speeds: Vec<i64> = (15..=last).map(|t| arm_at(t).1).collect();
+    let speeds: Vec<i64> = (30..=last).map(|t| arm_at(t).1).collect();
     let (lo, hi) = (*speeds.iter().min().unwrap(), *speeds.iter().max().unwrap());
     assert!(lo > 0 && hi < lo * 2, "speeds {lo} to {hi}");
 }
@@ -578,11 +628,12 @@ fn trebuchet_sixteenth_release_lands_between_whole_ticks() {
     // R1.2100: through the flat part of the forward window each sixteenth
     // of a tick moves the landing a little, the same way, and none jumps
     // more than a quarter of the whole tick's move
-    for t in [65u32, 70, 85] {
+    // the ticks doubled when R1.3700 halved the arm speed and moved off the top of the range (were 65, 70, 85)
+    for t in [105u32, 115, 125] {
         let a = sixteenth_landing(t * RELEASE_PARTS);
         let b = sixteenth_landing((t + 1) * RELEASE_PARTS);
         let whole = (b - a).abs();
-        assert!(whole > Fx::ONE.raw() * 2, "tick {t}: whole-tick move {whole}");
+        assert!(whole > Fx::ONE.raw(), "tick {t}: whole-tick move {whole}");
         let mut prev = a;
         for f in 1..=RELEASE_PARTS {
             let x = sixteenth_landing(t * RELEASE_PARTS + f);

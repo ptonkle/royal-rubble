@@ -7,6 +7,7 @@ pub mod arena;
 mod bot_names;
 pub mod demo;
 pub mod field;
+pub mod hud_icon;
 mod lobby_view;
 pub mod sandbox;
 
@@ -519,6 +520,8 @@ impl App {
 
     fn button(&self, id: &str, key: &str) -> Item {
         Item::Button {
+            tip: String::new(),
+            icon: String::new(),
             id: id.into(),
             text: self.strings.get(key),
             quiet: false,
@@ -528,6 +531,8 @@ impl App {
 
     fn quiet(&self, id: &str, key: &str) -> Item {
         Item::Button {
+            tip: String::new(),
+            icon: String::new(),
             id: id.into(),
             text: self.strings.get(key),
             quiet: true,
@@ -715,6 +720,7 @@ impl App {
             title: self.strings.get("title"),
             version: VERSION.into(),
             version_opens: !matches!(self.screen, Screen::Notes | Screen::Play | Screen::Sandbox),
+            version_shown: arena.is_none() && !matches!(self.screen, Screen::Play | Screen::Sandbox),
             panels,
             hints: self.hints.clone(),
             icon: icon::data_url(),

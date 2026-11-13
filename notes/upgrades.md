@@ -5,7 +5,7 @@
 | Category | Silver | Gold | Prismatic | Total |
 | --- | --- | --- | --- | --- |
 | Ammo | 4 | 3 | 2 | 9 |
-| Air effects | 4 | 3 | 1 | 8 |
+| Tricks | 4 | 3 | 1 | 8 |
 | Extra attacks | 4 | 3 | 2 | 9 |
 | Defense | 4 | 3 | 2 | 9 |
 | Economy | 4 | 3 | 2 | 9 |
@@ -18,7 +18,7 @@
 
 - **Tier value.** Silver is about one round's income (~5 gold) of value or one extra shot a round; gold about twice that or a new trick; prismatic changes how you play (every shot burns, +3 shots, +30% all materials).
 - **Deliberate tiered pairs** (same idea, bigger at a higher tier): Long Arm I / Long Arm II; Guild Charter I / Guild Charter II; Chainmail / Plate Armor; Decoy / Decoy Court; Firebrand / Greek Fire; Black Powder / Powder Keg; Spare Stones / Siege Train. Taking both stacks.
-- **Air effects** take Q, W, E, R in the order you take them. Four at most: once you own four, air-effect cards stop being offered (Wild Hunt still is). One air effect per shot, as the brief says.
+- **Tricks** take Q, W, E, R in the order you take them. Four at most: once you own four, air-effect cards stop being offered (Wild Hunt still is). One trick per shot, as the brief says.
 - **Special ammo** arrives every round and is lost if unused, like all ammo. Repeats of the same card stack.
 - **Buildings** granted by a card are placed like producers and pay only if they survive the siege.
 - **Health** is still lost only from royal deaths; Chapel and Royal Pardon soften it, nothing else touches health.
@@ -39,18 +39,18 @@
 | Dragon's Breath | prismatic | All your shots set wood on fire | yes |
 | Meteor | prismatic | Meteor shots: +1 per round (huge, heavy, burning) | no |
 
-## Air effects
+## Tricks
 
 | Name | Tier | Effect | First playable |
 | --- | --- | --- | --- |
-| Plummet | silver | Air effect: drop straight down. 2 uses per round | yes |
-| Turnabout | silver | Air effect: reverse direction. 2 uses per round | yes |
-| Spur | silver | Air effect: +50% speed. 2 uses per round | no |
-| Kestrel | silver | Air effect: hang still for 1 second. 2 uses per round | no |
-| Ghost Stone | gold | Air effect: pass through the next 2 segments. 2 uses per round | yes |
-| Hawk Dive | gold | Air effect: dive at double speed. 2 uses per round | no |
-| Splinter | gold | Air effect: split into 3. 2 uses per round | yes |
-| Wild Hunt | prismatic | Air effects: +2 uses each per round | yes |
+| Plummet | silver | Trick: drop straight down. 2 uses per round | yes |
+| Turnabout | silver | Trick: reverse direction. 2 uses per round | yes |
+| Spur | silver | Trick: +50% speed. 2 uses per round | no |
+| Skipping Stone | silver | Trick: the next hit bounces off. 2 uses per round | no |
+| Ghost Stone | gold | Trick: pass through the next 2 segments. 2 uses per round | yes |
+| Hawk Dive | gold | Trick: dive at double speed. 2 uses per round | no |
+| Splinter | gold | Trick: split into 3. 2 uses per round | yes |
+| Wild Hunt | prismatic | Tricks: +2 uses each per round | yes |
 
 ## Extra attacks
 

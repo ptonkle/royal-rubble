@@ -40,7 +40,7 @@ pub enum AirKind {
     Split,
     Dive,
     Boost,
-    Hover,
+    Bounce,
 }
 
 /// Buildings a card gives for free (none is dealt yet).
@@ -224,9 +224,9 @@ pub const UPGRADES: &[UpgradeRow] = &[
         dealable: false,
     },
     UpgradeRow {
-        key: "kestrel",
+        key: "skipping_stone",
         tier: Tier::Silver,
-        effects: &[Effect::Air(AirKind::Hover, 2)],
+        effects: &[Effect::Air(AirKind::Bounce, 2)],
         dealable: true,
     },
     UpgradeRow {
@@ -1080,7 +1080,6 @@ mod tests {
                 })
                 .unwrap()],
             // Not built yet (never dealt): their numbers have no table to check.
-            "kestrel" => vec![(TUNE.hover_ticks / crate::physics::tune::TICKS_PER_SECOND).to_string()],
             "spur" => vec!["50".into()],
             "splinter" => {
                 let ball =

@@ -83,6 +83,13 @@ pub const ROYAL_SPACING_SEGMENTS: i32 = 4;
 // ---- Economy --------------------------------------------------------------
 
 pub const START_GOLD: u32 = 0;
+/// The stockpile every player starts with, about a small keep's worth, so
+/// building pays from round 1 (R1.3701: "start with a set amount of stone
+/// and wood and zero gold to encourage early castle building").
+pub const START_WOOD: u32 = 12;
+pub const START_STONE: u32 = 6;
+/// The first round with base income; round 1 builds from the stockpile.
+pub const FIRST_INCOME_ROUND: u32 = 2;
 pub const BASE_INCOME: u32 = 5;
 pub const INTEREST_STEP: u32 = 10;
 pub const INTEREST_CAP: u32 = 5;
@@ -119,37 +126,37 @@ pub const LEVELS: [LevelRow; 9] = [
     LevelRow {
         level: 3,
         normal_shots: 4,
-        shot_power_pct: 102,
+        shot_power_pct: 103,
     },
     LevelRow {
         level: 4,
         normal_shots: 4,
-        shot_power_pct: 104,
+        shot_power_pct: 106,
     },
     LevelRow {
         level: 5,
         normal_shots: 4,
-        shot_power_pct: 106,
+        shot_power_pct: 109,
     },
     LevelRow {
         level: 6,
         normal_shots: 5,
-        shot_power_pct: 108,
+        shot_power_pct: 112,
     },
     LevelRow {
         level: 7,
         normal_shots: 5,
-        shot_power_pct: 110,
+        shot_power_pct: 115,
     },
     LevelRow {
         level: 8,
         normal_shots: 5,
-        shot_power_pct: 112,
+        shot_power_pct: 118,
     },
     LevelRow {
         level: 9,
         normal_shots: 6,
-        shot_power_pct: 115,
+        shot_power_pct: 122,
     },
 ];
 

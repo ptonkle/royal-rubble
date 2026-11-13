@@ -737,7 +737,7 @@ impl Sandbox {
         let k = AIR
             .iter()
             .position(|a| a.1 == value)
-            .ok_or_else(|| format!("\"{value}\" is not an air effect."))?;
+            .ok_or_else(|| format!("\"{value}\" is not a trick."))?;
         self.air(k);
         Ok(())
     }
@@ -1127,6 +1127,8 @@ impl Sandbox {
     /// The panels over the field: the top row and the bottom bar.
     pub fn panels(&self, s: &Strings) -> Vec<Panel> {
         let button = |id: &str, key: &str| Item::Button {
+            tip: String::new(),
+            icon: String::new(),
             id: id.into(),
             text: s.get(key),
             quiet: false,
@@ -1140,6 +1142,8 @@ impl Sandbox {
             top.push(button("sandbox.test", "sandbox.test"));
         }
         top.push(Item::Button {
+            tip: String::new(),
+            icon: String::new(),
             id: "sandbox.leave".into(),
             text: s.get("play.leave"),
             quiet: true,
@@ -1156,6 +1160,12 @@ impl Sandbox {
                         .iter()
                         .enumerate()
                         .map(|(k, n)| BarOption {
+                            tip: String::new(),
+                            icon: String::new(),
+                            icon_name: String::new(),
+                            count: String::new(),
+                            cost: String::new(),
+                            group: String::new(),
                             value: n.to_string(),
                             text: s.get(&format!("tool.{n}")),
                             key: key(k),
@@ -1173,6 +1183,12 @@ impl Sandbox {
                         .iter()
                         .enumerate()
                         .map(|(k, a)| BarOption {
+                            tip: String::new(),
+                            icon: String::new(),
+                            icon_name: String::new(),
+                            count: String::new(),
+                            cost: String::new(),
+                            group: String::new(),
                             value: a.name.to_string(),
                             text: s.get(&format!("ammo.{}", a.name)),
                             key: key(k),
@@ -1188,6 +1204,12 @@ impl Sandbox {
                         .iter()
                         .zip(KEY_AIR.iter())
                         .map(|((_, n, _), (code, _))| BarOption {
+                            tip: String::new(),
+                            icon: String::new(),
+                            icon_name: String::new(),
+                            count: String::new(),
+                            cost: String::new(),
+                            group: String::new(),
                             value: n.to_string(),
                             text: s.get(&format!("air.{n}")),
                             key: code.trim_start_matches("Key").to_string(),

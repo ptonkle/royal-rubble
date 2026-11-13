@@ -14,9 +14,11 @@ Where slush comes out. Each line has up to {line.spouts} spouts.
 Not: tap, dispenser, nozzle
 -->
 
-### Air effect
+### Trick
 
-A trick you trigger on a shot in flight, such as dropping it straight down. One per shot.
+A move you trigger on a shot in flight with Q, W, E or R, such as dropping it straight down. One per shot.
+
+Not: air effect
 
 ### Ammo
 
@@ -173,7 +175,7 @@ The phase where you place segments and royals. Press Test to see the strain befo
 
 ### Drop
 
-An air effect: the shot stops moving sideways and falls straight down.
+A trick: the shot stops moving sideways and falls straight down.
 
 ### Fire
 
@@ -193,11 +195,11 @@ The plain shot every player starts with.
 
 ### Phase
 
-An air effect: the shot passes through walls for a moment.
+A trick: the shot passes through walls for a moment.
 
 ### Reverse
 
-An air effect: the shot turns back the way it came.
+A trick: the shot turns back the way it came.
 
 ### Rope
 
@@ -213,7 +215,7 @@ The phase where everyone throws shots at the castle they are assigned.
 
 ### Split
 
-An air effect: the shot breaks into three that fan out.
+A trick: the shot breaks into three that fan out.
 
 ### Spread
 
@@ -237,7 +239,11 @@ A building that gives you an extra shot next round if it survives the siege.
 
 ### Boost
 
-An air effect: the shot speeds up along its path.
+A trick: the shot speeds up along its path.
+
+### Bounce
+
+A trick: the shot's next hit bounces it off hard instead of stopping it. One hit, then it flies as normal.
 
 ### Carpenter
 
@@ -249,7 +255,7 @@ A chain shot, on the ammo bar.
 
 ### Dive
 
-An air effect: the shot turns straight down and speeds up.
+A trick: the shot turns straight down and speeds up.
 
 ### Exploding
 
@@ -258,10 +264,6 @@ An exploding shot, on the ammo bar.
 ### Gold
 
 What you spend on segments, buildings, XP and shots. Also the middle tier of upgrade cards.
-
-### Hover
-
-An air effect: the shot hangs still for a moment.
 
 ### Level
 
@@ -285,7 +287,7 @@ A building that gives you stone each round it survives.
 
 ### Ready
 
-Says you are done with this phase. The timer ends early once everyone is ready.
+Done with this phase. It ends early once everyone is ready.
 
 ### Reroll
 
