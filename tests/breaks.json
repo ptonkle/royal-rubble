@@ -61,5 +61,89 @@
     "find": "let bottom = lowest - depth * CELL;",
     "replace": "let bottom = lowest - CELL;",
     "test": "terrain_hundred_seeds_all_playable"
+  },
+  {
+    "name": "game: interest stops at the cap",
+    "file": "crates/core/src/game/economy.rs",
+    "find": "(banked / tune::INTEREST_STEP).min(cap)",
+    "replace": "(banked / tune::INTEREST_STEP)",
+    "test": "interest_is_one_per_ten_and_stops_at_five"
+  },
+  {
+    "name": "game: the king pays three kill gold",
+    "file": "crates/core/src/game/economy.rs",
+    "find": "tune::KING_KILL_GOLD",
+    "replace": "tune::KILL_GOLD",
+    "test": "kill_gold_is_one_per_royal_and_three_for_the_king"
+  },
+  {
+    "name": "game: a same-phase sale refunds in full",
+    "file": "crates/core/src/game/ledger.rs",
+    "find": "if e.round == round {",
+    "replace": "if false {",
+    "test": "selling_in_the_same_phase_refunds_in_full"
+  },
+  {
+    "name": "game: a later sale refunds half",
+    "file": "crates/core/src/game/ledger.rs",
+    "find": "let back = e.value * tune::SELL_LATER_NUM / tune::SELL_LATER_DEN;",
+    "replace": "let back = e.value;",
+    "test": "selling_a_later_phase_refunds_half_rounded_down"
+  },
+  {
+    "name": "game: no consecutive rematch",
+    "file": "crates/core/src/game/pairing.rs",
+    "find": "if history.met_lately(first, b, k) {",
+    "replace": "if false {",
+    "test": "no_one_meets_the_same_opponent_two_rounds_running"
+  },
+  {
+    "name": "game: an odd count gets a ghost",
+    "file": "crates/core/src/game/pairing.rs",
+    "find": "Some(t) => Some(Pairing::Ghost {",
+    "replace": "Some(t) if false => Some(Pairing::Ghost {",
+    "test": "an_odd_count_sends_one_player_against_a_ghost"
+  },
+  {
+    "name": "game: knocked-out players leave the pairings",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "self.players.iter().filter(|p| p.alive()).map(|p| p.id).collect()",
+    "replace": "self.players.iter().map(|p| p.id).collect()",
+    "test": "a_knocked_out_player_leaves_the_pairings_and_the_last_one_wins"
+  },
+  {
+    "name": "game: unplaced royals are auto-placed validly",
+    "file": "crates/core/src/game/royals.rs",
+    "find": "royals[i].spot = Some(pick);",
+    "replace": "royals[i].spot = Some(Spot { x: 0, y: 0 });",
+    "test": "unplaced_royals_are_auto_placed_at_valid_spots"
+  },
+  {
+    "name": "game: level unlocks materials and buildings",
+    "file": "crates/core/src/game/ledger.rs",
+    "find": "if level < unlock_level(piece) {",
+    "replace": "if false {",
+    "test": "locked_materials_and_buildings_are_refused"
+  },
+  {
+    "name": "game: the first reroll is free",
+    "file": "crates/core/src/game/upgrades.rs",
+    "find": "if used < tune::FREE_REROLLS {",
+    "replace": "if true {",
+    "test": "the_first_reroll_is_free_then_each_costs_two"
+  },
+  {
+    "name": "game: ghost kills spare the owner",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "if c.ghost {",
+    "replace": "if false {",
+    "test": "ghost_kills_pay_the_attacker_but_spare_the_owner"
+  },
+  {
+    "name": "game: a phase ends early when everyone is ready",
+    "file": "crates/core/src/game/flow.rs",
+    "find": "if self.ticks_left == 0 || self.all_ready() {",
+    "replace": "if self.ticks_left == 0 {",
+    "test": "a_phase_ends_early_once_everyone_is_ready"
   }
 ]
