@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.2.11",
+    "date": "2026-11-13",
+    "notes": [
+      "Bots build one big keep with a room for each royal."
+    ]
+  },
+  {
     "version": "0.2.10",
     "date": "2026-11-13",
     "notes": [

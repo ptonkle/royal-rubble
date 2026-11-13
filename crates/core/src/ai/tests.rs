@@ -699,3 +699,4 @@ fn ai_bot_royal_figures_fit_under_their_cover() {
         assert!(checked >= 4, "seed {seed}: {checked} royals checked");
     }
 }
+
