@@ -109,6 +109,8 @@
   "hud.scout": "Scout",
   "hud.scouting": "Scouting: {name}",
   "hud.ready": "Ready",
+  "hud.undo": "Undo",
+  "hud.place_royals": "Place royals",
   "hud.waiting": "Waiting",
   "hud.replay": "Your castle",
   "hud.skip": "Skip",

@@ -25,6 +25,10 @@ pub const FIGURE_WIDE: Fx = Fx::ratio(3, 4);
 /// (the corner inset); never more than the head room at that zoom.
 pub const FIGURE_MIN_PX: i32 = 12;
 
+/// A beam may come this close inside a royal's body without counting as
+/// through it, so a floor at its feet or a slope beside it is allowed.
+pub const BODY_SLACK: Fx = Fx::ratio(1, 32);
+
 /// A point stands on a floor when it is within this of the floor's top,
 /// and on the ground within this of the ground (half a grid step).
 pub const STAND_TOLERANCE: Fx = Fx::ratio(1, 8);

@@ -64,6 +64,12 @@ One beam of a castle between two points on the build grid: wood, stone, metal or
 
 Not: piece, block
 
+### Undo
+
+Takes back the last thing you placed this build, for all it cost. Key: Z.
+
+Not: revert, rollback
+
 ### Spot
 
 A place on the map worth defending, such as a deposit, forest or holy well. A building counts as on it when it stands inside both the spot and your plot.

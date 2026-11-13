@@ -1216,5 +1216,61 @@
     "find": "p.attacker == attacker && p.key == key)",
     "replace": "p.attacker == attacker)",
     "test": "botplan_build_planning_starts_again_when_the_castle_changed"
+  },
+  {
+    "name": "buildtools reach past the circle aims along the cursor",
+    "file": "crates/core/src/app/sandbox.rs",
+    "find": "    let aim = if off.len() > max {\n        a + off.normalized() * max\n    } else {\n        to\n    };",
+    "replace": "    let aim = to;",
+    "test": "reach_past_the_circle_gives_the_full_length_the_cursor_points"
+  },
+  {
+    "name": "buildtools a segment through a royal is refused",
+    "file": "crates/core/src/play/mod.rs",
+    "find": "        if through {",
+    "replace": "        if false {",
+    "test": "build_segment_through_a_royal_is_refused_and_one_touching_it_is_not"
+  },
+  {
+    "name": "buildtools royal spacing between feet",
+    "file": "crates/core/src/play/mod.rs",
+    "find": "        if !self.royal_spaced(p, index, at) {",
+    "replace": "        if false {",
+    "test": "royal_spacing_is_measured_between_feet_as_drawn"
+  },
+  {
+    "name": "buildtools undo takes the newest piece",
+    "file": "crates/core/src/play/mod.rs",
+    "find": "            .map(|e| e.id)\n            .max()\n    }",
+    "replace": "            .map(|e| e.id)\n            .min()\n    }",
+    "test": "undo_takes_back_the_newest_piece_of_this_build"
+  },
+  {
+    "name": "buildtools two presses place a segment and chain",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                        self.drag = Some(b);",
+    "replace": "                        self.drag = None;",
+    "test": "arena_a_press_and_release_in_build_places_a_wood_segment_through_play"
+  },
+  {
+    "name": "buildtools z undoes",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "        if pressed & KEY_UNDO != 0 {",
+    "replace": "        if false {",
+    "test": "arena_undo_sells_the_last_piece_back_for_all_it_cost"
+  },
+  {
+    "name": "buildtools ready waits for royals",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                if !(self.phase() == Phase::Build && self.unplaced_royal().is_some()) {",
+    "replace": "                if true {",
+    "test": "arena_ready_waits_for_every_royal_then_the_royal_tool_is_put_away"
+  },
+  {
+    "name": "buildtools royal tool put away after the last royal",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                    if self.tool == Tool::Royal && self.unplaced_royal().is_none() {",
+    "replace": "                    if false {",
+    "test": "arena_ready_waits_for_every_royal_then_the_royal_tool_is_put_away"
   }
 ]
