@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.2.4",
+    "date": "2026-11-13",
+    "notes": [
+      "Bots shelter their royals on hilly ground.",
+      "Royals are drawn to the same scale as castles."
+    ]
+  },
+  {
     "version": "0.2.3",
     "date": "2026-11-13",
     "notes": [
