@@ -926,3 +926,63 @@ fn arena_test_runs_your_castle_live_then_drops_the_copy() {
     assert!(a.trial.is_none());
     assert!(a.testing);
 }
+
+/// Whether two world points are within a few raw fixed-point units.
+fn close(a: Vec2, b: Vec2) -> bool {
+    let tol = Fx(64);
+    (a.x - b.x).abs() <= tol && (a.y - b.y).abs() <= tol
+}
+
+#[test]
+fn arena_view_wheel_zooms_in_at_the_cursor() {
+    // R1.4800: one notch in is 9/8 the pixels a unit, and the world point
+    // under the cursor stays under it
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    let before = a.camera();
+    let under = before.world(700, 500);
+    a.wheel("700,500,-1").unwrap();
+    let after = a.camera();
+    assert_eq!(after.ppu, before.ppu * 9 / 8);
+    assert!(
+        close(after.world(700, 500), under),
+        "{under:?} moved to {:?}",
+        after.world(700, 500)
+    );
+    // a notch out goes back to the auto view's zoom
+    a.wheel("700,500,1").unwrap();
+    assert!((a.camera().ppu - before.ppu).abs() <= Fx(2), "{:?}", a.camera());
+}
+
+#[test]
+fn arena_view_zoom_stops_at_twelve_units_wide() {
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    for _ in 0..60 {
+        a.wheel("960,540,-1").unwrap();
+    }
+    // 1920 pixels over 12 units
+    assert_eq!(a.camera().ppu, Fx::from_int(160));
+}
+
+#[test]
+fn arena_view_arrow_keys_pan_and_wasd_pans_in_the_build_view() {
+    // R1.4800: 1200 pixels a second, so 100 ms held moves 120 pixels
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    a.pump(0, 0, None, None);
+    let c0 = a.camera();
+    a.pump(100, 1 << 13, None, None); // ArrowRight
+    let c1 = a.camera();
+    assert_eq!(c1.left, c0.left + Fx::from_int(120) / c0.ppu);
+    assert_eq!(c1.bottom, c0.bottom);
+    a.pump(200, 1 << 7, None, None); // W
+    let c2 = a.camera();
+    assert_eq!(c2.bottom, c1.bottom + Fx::from_int(120) / c0.ppu);
+    a.pump(300, 1 << 16, None, None); // A
+    assert_eq!(a.camera().left, c0.left);
+    // the view goes no lower than the auto view's bottom
+    a.pump(400, 1 << 15, None, None); // ArrowDown
+    a.pump(500, 1 << 15, None, None);
+    assert_eq!(a.camera().bottom, c0.bottom);
+}

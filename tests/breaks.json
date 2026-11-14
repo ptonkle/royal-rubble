@@ -1720,5 +1720,33 @@
     "find": "            for _ in 0..n {\n                cw.world.step();\n            }",
     "replace": "            for _ in 0..n {}",
     "test": "arena_test_runs_your_castle_live_then_drops_the_copy"
+  },
+  {
+    "name": "r4800 view zooms at the cursor",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                left: p.x - Fx::from_int(x as i64) / ppu,",
+    "replace": "                left: c.left,",
+    "test": "arena_view_wheel_zooms_in_at_the_cursor"
+  },
+  {
+    "name": "r4800 view zoom limit",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "let ppu = ppu.min(wide / Fx::from_int(VIEW_MIN_W))",
+    "replace": "let ppu = ppu",
+    "test": "arena_view_zoom_stops_at_twelve_units_wide"
+  },
+  {
+    "name": "r4800 view pan keys",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "        let step = VIEW_PAN_PX_PER_S * ms / 1000;",
+    "replace": "        let step = VIEW_PAN_PX_PER_S * ms / 2000;",
+    "test": "arena_view_arrow_keys_pan_and_wasd_pans_in_the_build_view"
+  },
+  {
+    "name": "r4800 view floor",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "v.bottom = v.bottom.max(floor).min(",
+    "replace": "v.bottom = v.bottom.min(",
+    "test": "arena_view_arrow_keys_pan_and_wasd_pans_in_the_build_view"
   }
 ]

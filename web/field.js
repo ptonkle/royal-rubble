@@ -35,6 +35,13 @@ export async function initField(theSend) {
   canvas.addEventListener("pointermove", (e) => send("field.move", at(e)));
   canvas.addEventListener("pointerup", (e) => send("field.up", at(e)));
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  // the wheel's direction only: the core zooms by its own step
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    send("field.wheel", `${at(e)},${Math.sign(e.deltaY)}`);
+  }, { passive: false });
+  // a middle press pans (the core decides); stop the browser's autoscroll
+  canvas.addEventListener("mousedown", (e) => e.button === 1 && e.preventDefault());
 }
 
 function fit() {

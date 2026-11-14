@@ -313,8 +313,8 @@ impl App {
                 self.sandbox = None;
                 self.screen = Screen::Title;
             }
-            "field.size" | "field.down" | "field.move" | "field.up" | "sandbox.tool" | "sandbox.ammo"
-            | "sandbox.air" | "sandbox.test" | "sandbox.mode"
+            "field.size" | "field.down" | "field.move" | "field.up" | "field.wheel" | "sandbox.tool"
+            | "sandbox.ammo" | "sandbox.air" | "sandbox.test" | "sandbox.mode"
                 if self.arena.is_none() || name.starts_with("sandbox.") =>
             {
                 let Some(s) = &mut self.sandbox else {
@@ -325,6 +325,8 @@ impl App {
                     "field.down" => s.down(value)?,
                     "field.move" => s.moved(value)?,
                     "field.up" => s.up(value)?,
+                    // the sandbox keeps its fixed view
+                    "field.wheel" => {}
                     "sandbox.tool" => s.set_tool(value)?,
                     "sandbox.ammo" => s.set_ammo(value)?,
                     "sandbox.air" => s.set_air(value)?,
@@ -354,6 +356,7 @@ impl App {
                     "field.down" => a.down(value)?,
                     "field.move" => a.moved(value)?,
                     "field.up" => a.up(value)?,
+                    "field.wheel" => a.wheel(value)?,
                     _ => a.act(n, value)?,
                 }
             }

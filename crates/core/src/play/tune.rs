@@ -75,3 +75,18 @@ pub const NODE_NEAR: Fx = Fx::from_int(3);
 /// The Test button runs your castle's physics live for this many ticks
 /// (3 seconds) so you see what sags or falls, then drops the copy (R1.4303).
 pub const TEST_RUN_TICKS: u32 = 180;
+
+/// The player's own view in build and siege (R1.4800): each wheel notch
+/// zooms by this ratio (num, den) at the cursor, the view is never narrower
+/// or wider than these (world units), held keys pan it this many screen
+/// pixels a second (at most this many milliseconds of a slow frame count),
+/// and its bottom rises at most this far above the auto view's.
+pub const VIEW_ZOOM_STEP: (i64, i64) = (9, 8);
+pub const VIEW_MIN_W: i64 = 12;
+pub const VIEW_MAX_W: i64 = 240;
+pub const VIEW_PAN_PX_PER_S: i64 = 1200;
+pub const VIEW_PAN_MAX_MS: i64 = 100;
+pub const VIEW_ROOF: i64 = 60;
+/// A right press pans once it has moved this many pixels; short of that
+/// its release lets go of a segment's start or sells (R1.4801).
+pub const VIEW_DRAG_PX: i32 = 6;

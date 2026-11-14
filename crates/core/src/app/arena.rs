@@ -55,6 +55,17 @@ const KEY_AIR: [(&str, u32); 4] = [
 /// Esc lets go of a segment's start; Z takes back the last piece placed.
 const KEY_CANCEL: u32 = 1 << 10;
 const KEY_UNDO: u32 = 1 << 11;
+/// Arrow keys pan the view (R1.4800): left, right, up, down. WASD pans too,
+/// in the build view only, since W drops air in a siege.
+const KEY_PAN: [(&str, u32); 4] = [
+    ("ArrowLeft", 1 << 12),
+    ("ArrowRight", 1 << 13),
+    ("ArrowUp", 1 << 14),
+    ("ArrowDown", 1 << 15),
+];
+const KEY_WASD: [(&str, u32); 3] = [("KeyA", 1 << 16), ("KeyD", 1 << 17), ("KeyS", 1 << 18)];
+/// C puts the auto view back (R1.4802).
+const KEY_RESET: u32 = 1 << 19;
 
 /// The keys the match listens to.
 pub fn keys() -> BTreeMap<String, u32> {
@@ -62,7 +73,13 @@ pub fn keys() -> BTreeMap<String, u32> {
     k.insert("Space".to_string(), KEY_SPACE);
     k.insert("Escape".to_string(), KEY_CANCEL);
     k.insert("KeyZ".to_string(), KEY_UNDO);
-    for (code, bit) in KEY_DIGITS.iter().chain(KEY_AIR.iter()) {
+    k.insert("KeyC".to_string(), KEY_RESET);
+    for (code, bit) in KEY_DIGITS
+        .iter()
+        .chain(KEY_AIR.iter())
+        .chain(KEY_PAN.iter())
+        .chain(KEY_WASD.iter())
+    {
         k.insert(code.to_string(), *bit);
     }
     k
@@ -429,6 +446,15 @@ pub struct Arena {
     /// "Need {n} gold", filled by the cursor when a segment costs more
     /// than you have (R1.4301)
     need_text: String,
+    /// The player's own view (R1.4800): set by a wheel, a drag or the pan
+    /// keys, it is shown instead of the auto view until the next shot, the
+    /// reset key or a new phase. The siege's eased eye keeps moving under it.
+    own: Option<Camera>,
+    /// The last frame's time, for panning by held keys.
+    pan_ms: Option<i64>,
+    /// A middle or right press still held: its button, the last pixel it
+    /// panned from, and whether it has moved far enough to pan (R1.4801).
+    grab: Option<(i32, (i32, i32), bool)>,
 }
 
 /// Your shot in the air: its ball, the view's width for the flight,
@@ -508,6 +534,9 @@ impl Arena {
             own_counts: (0, 0),
             own_hit_at: None,
             need_text: s.get("build.need"),
+            own: None,
+            pan_ms: None,
+            grab: None,
         };
         a.rebuild();
         Ok(a)
@@ -844,12 +873,126 @@ impl Arena {
         }
     }
 
-    /// The view shown: eased during a siege, exact otherwise.
+    /// The view shown: the player's own while they hold one, else eased
+    /// during a siege and exact otherwise.
     fn camera(&self) -> Camera {
+        if let Some(v) = self.own_view() {
+            return v;
+        }
         match (self.phase(), self.my_field(), self.eye) {
             (Phase::Siege | Phase::SiegeOver, Some(_), Some(eye)) if self.replay.is_none() => eye,
             _ => self.camera_target(),
         }
+    }
+
+    // ---- the player's own view (R1.4800) ----
+
+    /// Whether the player may move the view now: the build view, or a
+    /// siege you shoot in, and never in the replay.
+    fn can_look(&self) -> bool {
+        self.replay.is_none()
+            && match self.view_phase() {
+                Phase::Build => true,
+                Phase::Siege | Phase::SiegeOver => self.my_field().is_some(),
+                _ => false,
+            }
+    }
+
+    /// The player's own view, while it holds and fits the screen.
+    fn own_view(&self) -> Option<Camera> {
+        self.own.filter(|v| (v.w, v.h) == self.size && self.can_look())
+    }
+
+    /// Changes the shown view, which becomes the player's own: kept inside
+    /// the world, its bottom no lower than the auto view's and at most
+    /// `VIEW_ROOF` above it.
+    fn look(&mut self, change: impl FnOnce(Camera) -> Camera) {
+        if !self.can_look() {
+            return;
+        }
+        let floor = self.camera_target().bottom;
+        let mut v = change(self.camera());
+        v.bottom = v
+            .bottom
+            .max(floor)
+            .min(floor + Fx::from_int(crate::play::tune::VIEW_ROOF));
+        self.own = Some(v.kept_in(self.view_right()));
+    }
+
+    /// One wheel notch at pixel `x, y`: in when `dir` is below zero, out
+    /// when above, the world point under the cursor staying put.
+    fn zoom_at(&mut self, x: i32, y: i32, dir: i32) {
+        use crate::play::tune::{VIEW_MAX_W, VIEW_MIN_W, VIEW_ZOOM_STEP};
+        if dir == 0 {
+            return;
+        }
+        self.look(|c| {
+            let p = c.world(x, y);
+            let (num, den) = VIEW_ZOOM_STEP;
+            let ppu = if dir < 0 {
+                c.ppu * num / den
+            } else {
+                c.ppu * den / num
+            };
+            let wide = Fx::from_int(c.w as i64);
+            let ppu = ppu
+                .min(wide / Fx::from_int(VIEW_MIN_W))
+                .max(wide / Fx::from_int(VIEW_MAX_W));
+            Camera {
+                left: p.x - Fx::from_int(x as i64) / ppu,
+                bottom: p.y - Fx::from_int((c.h - y) as i64) / ppu,
+                ppu,
+                ..c
+            }
+        });
+    }
+
+    /// Moves the view by `dx, dy` screen pixels: right and down are positive.
+    fn pan_px(&mut self, dx: i32, dy: i32) {
+        if dx == 0 && dy == 0 {
+            return;
+        }
+        self.look(|c| Camera {
+            left: c.left + Fx::from_int(dx as i64) / c.ppu,
+            bottom: c.bottom - Fx::from_int(dy as i64) / c.ppu,
+            ..c
+        });
+    }
+
+    /// Held pan keys move the view for the time since the last frame.
+    fn pan_keys(&mut self, now_ms: i64, keys: u32) {
+        use crate::play::tune::{VIEW_PAN_MAX_MS, VIEW_PAN_PX_PER_S};
+        let ms = self.pan_ms.map_or(0, |t| (now_ms - t).clamp(0, VIEW_PAN_MAX_MS));
+        self.pan_ms = Some(now_ms);
+        let build = self.view_phase() == Phase::Build;
+        let held = |k: usize| keys & KEY_PAN[k].1 != 0;
+        let wasd = |k: usize| build && keys & KEY_WASD[k].1 != 0;
+        let up = held(2) || (build && keys & KEY_AIR[1].1 != 0);
+        let dx = i64::from(held(1) || wasd(1)) - i64::from(held(0) || wasd(0));
+        let dy = i64::from(held(3) || wasd(2)) - i64::from(up);
+        let step = VIEW_PAN_PX_PER_S * ms / 1000;
+        self.pan_px((dx * step) as i32, (dy * step) as i32);
+    }
+
+    /// The auto view takes over again; in a siege it glides back from the
+    /// player's view (R1.4802).
+    fn resume_follow(&mut self) {
+        if let Some(v) = self.own.take() {
+            if self.eye.is_some() && matches!(self.phase(), Phase::Siege | Phase::SiegeOver) {
+                self.eye = Some(v);
+            }
+        }
+    }
+
+    /// A wheel notch on the field: `x,y,dir` in pixels, `dir` the sign of
+    /// the wheel's motion.
+    pub fn wheel(&mut self, value: &str) -> Result<(), String> {
+        let mut parts = value.split(',');
+        let x = num(parts.next())?;
+        let y = num(parts.next())?;
+        let dir = num(parts.next())?;
+        self.zoom_at(x, y, dir);
+        Ok(())
     }
 
     // ---- input ----
@@ -891,6 +1034,10 @@ impl Arena {
         if pressed & KEY_UNDO != 0 {
             self.undo();
         }
+        if pressed & KEY_RESET != 0 {
+            self.resume_follow();
+        }
+        self.pan_keys(now_ms, keys);
         if self.driven.is_some() {
             return;
         }
@@ -946,6 +1093,8 @@ impl Arena {
             self.queue(Input::Swing);
         } else {
             self.queue(Input::Release(part));
+            // the shot thrown brings the auto view back (R1.4802)
+            self.resume_follow();
         }
     }
 
@@ -1034,6 +1183,7 @@ impl Arena {
             if self.driven.is_some() {
                 self.auto_released = Some(from);
             }
+            self.resume_follow();
         }
     }
 
@@ -1275,6 +1425,8 @@ impl Arena {
         self.seen_phase = phase;
         self.seen_round = self.play.rules.round;
         self.drag = None;
+        self.own = None;
+        self.grab = None;
         match phase {
             Phase::Siege => {
                 // a replay still running from the last siege would hold the
@@ -1665,6 +1817,7 @@ impl Arena {
                 .and_then(|i| others.get(i + 1).copied()),
         };
         self.drag = None;
+        self.own = None;
     }
 
     // ---- what the page draws ----
