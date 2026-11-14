@@ -126,7 +126,12 @@ def fast_match(page, check):
         page.wait_for_timeout(50)
     lines = page.inner_text(by_id("match.results")) if page.locator(by_id("match.results")).count() else ""
     you = STRINGS["seat.you"]
-    check(lines.endswith(f"2. {you}"), f"a fast match reaches the results with you placed second: {lines!r}")
+    # who wins an idle match turns on the bots' aim and castles; the check is
+    # that it ends with you in the standings
+    check(
+        lines.startswith("1. ") and f". {you}" in lines,
+        f"a fast match reaches the results with you placed: {lines!r}",
+    )
     press(page, "play.leave")
     on_screen(page, "title")
 

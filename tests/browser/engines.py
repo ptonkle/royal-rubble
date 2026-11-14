@@ -55,8 +55,10 @@ def gpu_window():
 
 
 # No sound from a check: on WSL a headless browser still reaches the
-# person's speakers through WSLg's PulseAudio, so every browser gets a sound
-# server that does not exist (and Chromium is muted as well).
+# person's speakers through WSLg's PulseAudio. Chromium and WebKit get a
+# sound server that does not exist (Chromium is muted as well); Firefox is
+# muted by its volume pref instead, since without a server its audio calls
+# fail with "Navigated away from page" console errors.
 SILENT = {"PULSE_SERVER": "unix:/nonexistent-royal-rubble-check"}
 
 
@@ -69,7 +71,7 @@ def launch(p, engine, **options):
         env.update(DISPLAY=_xvfb(), GALLIUM_DRIVER="d3d12", **SILENT)
         args = GPU_ARGS + ["--mute-audio"] + options.pop("args", [])
         return p.chromium.launch(channel="chromium", headless=False, args=args, env=env, **options)
-    env = dict(os.environ, **SILENT)
+    env = dict(os.environ, **({} if engine == "firefox" else SILENT))
     env.update(options.pop("env", {}))
     if engine == "chromium":
         options["args"] = ["--mute-audio"] + options.pop("args", [])
