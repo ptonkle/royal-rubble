@@ -98,6 +98,7 @@ fn arena_a_press_and_release_in_build_places_a_wood_segment_through_play() {
     assert_eq!(a.drag, Some(Vec2::new(x, up)));
     // a right press lets go of the start and sells nothing
     a.down(&format!("{},{},2", p1[0], p1[1])).unwrap();
+    a.up(&format!("{},{}", p1[0], p1[1])).unwrap();
     a.tick();
     assert_eq!(a.drag, None);
     assert_eq!(a.play.castles[0].geo.len(), before + 1);
@@ -925,4 +926,133 @@ fn arena_test_runs_your_castle_live_then_drops_the_copy() {
     }
     assert!(a.trial.is_none());
     assert!(a.testing);
+}
+
+/// Whether two world points are within a few raw fixed-point units.
+fn close(a: Vec2, b: Vec2) -> bool {
+    let tol = Fx(64);
+    (a.x - b.x).abs() <= tol && (a.y - b.y).abs() <= tol
+}
+
+#[test]
+fn arena_view_wheel_zooms_in_at_the_cursor() {
+    // R1.4800: one notch in is 9/8 the pixels a unit, and the world point
+    // under the cursor stays under it
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    let before = a.camera();
+    let under = before.world(700, 500);
+    a.wheel("700,500,-1").unwrap();
+    let after = a.camera();
+    assert_eq!(after.ppu, before.ppu * 9 / 8);
+    assert!(
+        close(after.world(700, 500), under),
+        "{under:?} moved to {:?}",
+        after.world(700, 500)
+    );
+    // a notch out goes back to the auto view's zoom
+    a.wheel("700,500,1").unwrap();
+    assert!((a.camera().ppu - before.ppu).abs() <= Fx(2), "{:?}", a.camera());
+}
+
+#[test]
+fn arena_view_zoom_stops_at_twelve_units_wide() {
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    for _ in 0..60 {
+        a.wheel("960,540,-1").unwrap();
+    }
+    // 1920 pixels over 12 units
+    assert_eq!(a.camera().ppu, Fx::from_int(160));
+}
+
+#[test]
+fn arena_view_arrow_keys_pan_and_wasd_pans_in_the_build_view() {
+    // R1.4800: 1200 pixels a second, so 100 ms held moves 120 pixels
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    a.pump(0, 0, None, None);
+    let c0 = a.camera();
+    a.pump(100, 1 << 13, None, None); // ArrowRight
+    let c1 = a.camera();
+    assert_eq!(c1.left, c0.left + Fx::from_int(120) / c0.ppu);
+    assert_eq!(c1.bottom, c0.bottom);
+    a.pump(200, 1 << 7, None, None); // W
+    let c2 = a.camera();
+    assert_eq!(c2.bottom, c1.bottom + Fx::from_int(120) / c0.ppu);
+    a.pump(300, 1 << 16, None, None); // A
+    assert_eq!(a.camera().left, c0.left);
+    // the view goes no lower than the auto view's bottom
+    a.pump(400, 1 << 15, None, None); // ArrowDown
+    a.pump(500, 1 << 15, None, None);
+    assert_eq!(a.camera().bottom, c0.bottom);
+}
+
+#[test]
+fn arena_view_right_drag_pans_past_six_pixels_and_keeps_the_start() {
+    // R1.4801: a right press that moves pans; one that does not lets go
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    let start = Vec2::new(Fx::from_int(40), Fx::from_int(10));
+    a.drag = Some(start);
+    let c0 = a.camera();
+    a.down("900,500,2").unwrap();
+    a.moved("905,500").unwrap();
+    assert_eq!(a.camera(), c0);
+    a.moved("1000,500").unwrap();
+    // dragged 100 pixels right: the world moves right, the view left
+    assert_eq!(a.camera().left, c0.left - Fx::from_int(100) / c0.ppu);
+    a.up("1000,500").unwrap();
+    assert_eq!(a.drag, Some(start));
+}
+
+#[test]
+fn arena_view_middle_drag_pans_at_once() {
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    let c0 = a.camera();
+    a.down("900,500,1").unwrap();
+    // dragged down: the view rises (it never goes below the auto view)
+    a.moved("902,503").unwrap();
+    let c = a.camera();
+    assert_eq!(c.left, c0.left - Fx::from_int(2) / c0.ppu);
+    assert_eq!(c.bottom, c0.bottom + Fx::from_int(3) / c0.ppu);
+}
+
+#[test]
+fn arena_view_reset_key_brings_back_the_auto_view() {
+    // R1.4802: C (bit 19) drops the player's view
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    a.wheel("960,540,-1").unwrap();
+    assert_ne!(a.camera(), a.camera_target());
+    a.pump(0, 1 << 19, None, None);
+    assert_eq!(a.camera(), a.camera_target());
+}
+
+#[test]
+fn arena_view_siege_holds_your_view_until_the_shot_is_thrown() {
+    // R1.4802: the auto view stops following until the release, then
+    // glides back from where you looked
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    to_siege(&mut a);
+    for _ in 0..CAM_EASE * 8 {
+        a.tick();
+    }
+    a.wheel("960,540,-1").unwrap();
+    let own = a.camera();
+    for _ in 0..30 {
+        a.tick();
+    }
+    assert_eq!(a.camera(), own);
+    a.space(crate::play::ON_TICK);
+    for _ in 0..5 {
+        a.tick();
+    }
+    assert!(a.my_field().unwrap().shooter.swing_from.is_some());
+    assert_eq!(a.camera(), own);
+    a.space(crate::play::ON_TICK);
+    assert!(a.own.is_none());
+    assert_eq!(a.eye, Some(own));
 }
