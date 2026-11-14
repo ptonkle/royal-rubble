@@ -464,6 +464,10 @@ pub struct BuildMarks {
     /// have (R1.4301)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub need: Option<Label>,
+    /// by the cursor over a segment a press would upgrade: the gold it
+    /// costs (R1.4904)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub swap: Option<Label>,
 }
 
 /// A short word drawn on the field at a point, pixels.

@@ -76,6 +76,19 @@ pub struct Payout {
     pub sees_wind: bool,
 }
 
+/// What an upgrade in place costs (`Ledger::upgrade_quote`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct UpgradeQuote {
+    /// The new piece's gold value.
+    pub value: u32,
+    /// Gold charged for the new piece (0 when stock pays).
+    pub pay: u32,
+    /// Gold refunded for the old piece (0 when a stock unit went back).
+    pub back: u32,
+    /// A stock unit of the new material pays for it.
+    pub stock_used: bool,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Ledger {
     pub entries: Vec<Entry>,
@@ -162,6 +175,85 @@ impl Ledger {
             spot: None,
         });
         Ok(id)
+    }
+
+    /// What upgrading segment `id` to `to` would cost, without doing it:
+    /// the old piece is refunded in full (its stock unit back, else its gold
+    /// value), then the new one is bought as `place` would (stock first,
+    /// else gold), so the player pays the difference (R1.4900). Refused for
+    /// anything but a segment, the same or a cheaper material, a locked one,
+    /// or too little gold even after the refund.
+    pub fn upgrade_quote(
+        &self,
+        id: u32,
+        to: Material,
+        level: u8,
+        gold: u32,
+        mods: &Modifiers,
+    ) -> Result<UpgradeQuote, Refusal> {
+        let e = self.entries.iter().find(|e| e.id == id).ok_or(Refusal::Unknown)?;
+        let Piece::Segment(from) = e.piece else {
+            return Err(Refusal::BadSpot);
+        };
+        // only up: a downgrade would turn a later round's half sale into a full one
+        if to <= from {
+            return Err(Refusal::BadSpot);
+        }
+        let piece = Piece::Segment(to);
+        let mut stock = self.stock;
+        let back = match e.paid_stock {
+            Some(m) => {
+                *stock.get_mut(m) += 1;
+                0
+            }
+            None => e.value,
+        };
+        let stocked = *stock.get_mut(to) > 0;
+        if level < unlock_level(piece) && !stocked {
+            return Err(Refusal::Locked);
+        }
+        let value = price(piece, mods);
+        let pay = if stocked { 0 } else { value };
+        if gold + back < pay {
+            return Err(Refusal::NotEnoughGold);
+        }
+        Ok(UpgradeQuote {
+            value,
+            pay,
+            back,
+            stock_used: stocked,
+        })
+    }
+
+    /// Upgrade segment `id` to `to` in place, as quoted by `upgrade_quote`.
+    /// The entry keeps its id and round and takes the new piece, value and
+    /// payment, so a later sale follows the usual rule on the new piece.
+    pub fn upgrade(
+        &mut self,
+        id: u32,
+        to: Material,
+        level: u8,
+        gold: &mut u32,
+        mods: &Modifiers,
+    ) -> Result<UpgradeQuote, Refusal> {
+        let q = self.upgrade_quote(id, to, level, *gold, mods)?;
+        let e = self
+            .entries
+            .iter_mut()
+            .find(|e| e.id == id)
+            .expect("a quoted entry exists");
+        if let Some(m) = e.paid_stock {
+            *self.stock.get_mut(m) += 1;
+        }
+        if q.stock_used {
+            *self.stock.get_mut(to) -= 1;
+        }
+        *gold = *gold + q.back - q.pay;
+        e.piece = Piece::Segment(to);
+        e.value = q.value;
+        e.paid_gold = q.pay;
+        e.paid_stock = q.stock_used.then_some(to);
+        Ok(q)
     }
 
     /// Record where a placed building stands.
@@ -379,6 +471,80 @@ mod tests {
         let pay = l.collect_yields(&[c, a]);
         assert_eq!((l.stock.wood, l.stock.stone, pay.shots), (3, 0, 1));
         let _ = q;
+    }
+
+    #[test]
+    fn upgrading_a_segment_charges_the_gold_difference() {
+        // wood 1 gold, stone 3: a later-round upgrade still pays only 2
+        let mut l = Ledger::default();
+        let mut gold = 10;
+        let m = Modifiers::default();
+        let id = l
+            .place(Piece::Segment(Material::Wood), 1, 4, &mut gold, &m)
+            .unwrap();
+        assert_eq!(gold, 9);
+        l.upgrade(id, Material::Stone, 4, &mut gold, &m).unwrap();
+        assert_eq!(gold, 7);
+        let e = &l.entries[0];
+        assert_eq!(
+            (e.id, e.piece, e.value, e.paid_gold, e.round),
+            (id, Piece::Segment(Material::Stone), 3, 3, 1)
+        );
+        assert_eq!(l.entries.len(), 1);
+    }
+
+    #[test]
+    fn an_upgrade_returns_a_stock_unit_and_spends_stock_first() {
+        let mut l = Ledger::default();
+        l.stock.wood = 1;
+        l.stock.stone = 1;
+        let mut gold = 0;
+        let m = Modifiers::default();
+        let id = l
+            .place(Piece::Segment(Material::Wood), 1, 4, &mut gold, &m)
+            .unwrap();
+        assert_eq!(l.stock.wood, 0);
+        l.upgrade(id, Material::Stone, 4, &mut gold, &m).unwrap();
+        assert_eq!((gold, l.stock.wood, l.stock.stone), (0, 1, 0));
+        assert_eq!(l.entries[0].paid_stock, Some(Material::Stone));
+    }
+
+    #[test]
+    fn upgrades_to_the_same_cheaper_locked_or_unaffordable_material_are_refused() {
+        let mut l = Ledger::default();
+        let mut gold = 4;
+        let m = Modifiers::default();
+        let id = l
+            .place(Piece::Segment(Material::Stone), 1, 9, &mut gold, &m)
+            .unwrap();
+        assert_eq!(gold, 1);
+        assert_eq!(
+            l.upgrade(id, Material::Stone, 9, &mut gold, &m),
+            Err(Refusal::BadSpot)
+        );
+        assert_eq!(
+            l.upgrade(id, Material::Wood, 9, &mut gold, &m),
+            Err(Refusal::BadSpot)
+        );
+        assert_eq!(
+            l.upgrade(id, Material::Metal, 6, &mut gold, &m),
+            Err(Refusal::Locked)
+        );
+        // metal is 5 gold: 1 in hand plus 3 back is still short
+        assert_eq!(
+            l.upgrade(id, Material::Metal, 9, &mut gold, &m),
+            Err(Refusal::NotEnoughGold)
+        );
+        assert_eq!(gold, 1);
+        gold = 2;
+        assert!(l.upgrade(id, Material::Metal, 9, &mut gold, &m).is_ok());
+        assert_eq!(gold, 0);
+        gold = 1;
+        let rope = l.place(Piece::Rope, 1, 9, &mut gold, &m).unwrap();
+        assert_eq!(
+            l.upgrade(rope, Material::Metal, 9, &mut gold, &m),
+            Err(Refusal::BadSpot)
+        );
     }
 
     #[test]

@@ -902,6 +902,53 @@ fn arena_a_segment_you_cannot_afford_shows_the_gold_you_lack() {
 }
 
 #[test]
+fn arena_a_press_inside_a_segment_with_a_dearer_material_upgrades_it() {
+    // R1.4904: ring and price difference on hover, then the press upgrades
+    let mut a = arena(1);
+    a.set_size("1920,1080").unwrap();
+    a.swap_text = "{n} gold".into();
+    let (l, _, _) = a.zone(0);
+    let x = l + Fx::from_int(30);
+    let g = snap(a.ground(0, x));
+    let wood = Piece::Segment(ledger::Material::Wood);
+    let stone = Piece::Segment(ledger::Material::Stone);
+    // bought with gold, so the old price comes back as gold
+    a.play.rules.players[0].ledger.stock = Default::default();
+    a.play.rules.players[0].purse.gold = 1;
+    a.queue(Input::PlaceSegment {
+        piece: wood,
+        a: grid_of(Vec2::new(x, g)),
+        b: grid_of(Vec2::new(x, g + Fx::from_int(2))),
+    });
+    a.tick();
+    let id = *a.play.castles[0].geo.keys().next().unwrap();
+    let p = &mut a.play.rules.players[0];
+    p.ledger.stock = Default::default();
+    p.purse.level = 4;
+    p.purse.gold = 10;
+    let mid = Vec2::new(x, g + Fx::ONE);
+    a.cursor = Some(mid);
+    // the same material over it starts a segment as before: no price
+    let cam = a.camera();
+    assert_eq!(a.marks_over(&cam).swap, None);
+    a.tool = Tool::Beam(stone);
+    assert_eq!(a.marks_over(&cam).swap.map(|l| l.text), Some("2 gold".into()));
+    let ring = a.build_marks(&cam).1.expect("a ring round the segment");
+    assert_eq!((ring.x, ring.y, ring.ok), (cam.px(mid)[0], cam.px(mid)[1], true));
+    let px = cam.px(mid);
+    a.down(&format!("{},{},0", px[0], px[1])).unwrap();
+    a.tick();
+    let pl = &a.play.rules.players[0];
+    assert_eq!(
+        pl.ledger.entries.iter().find(|e| e.id == id).map(|e| e.piece),
+        Some(stone)
+    );
+    assert_eq!(pl.purse.gold, 8);
+    assert_eq!(a.drag, None);
+    assert_eq!(a.play.castles[0].geo.len(), 1);
+}
+
+#[test]
 fn arena_test_runs_your_castle_live_then_drops_the_copy() {
     let mut a = arena(1);
     a.set_size("1920,1080").unwrap();

@@ -151,6 +151,7 @@
   "hud.reroll_plain": "Reroll",
   "tool.priced": "{name} \u00b7 {n} gold",
   "build.need": "Need {n} gold",
+  "build.swap": "{n} gold",
   "tool.stocked": "{name} \u00b7 {n} in stock",
   "tool.royals": "Royals {n}",
   "tool.carpenter": "Carpenter",

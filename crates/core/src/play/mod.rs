@@ -54,6 +54,12 @@ pub enum Input {
     },
     /// Sell a ledger entry (a segment, rope, building or ruin).
     Sell(u32),
+    /// Swap placed segment `id` to a dearer material `piece`, ends kept,
+    /// paying the difference (R1.4900).
+    Upgrade {
+        id: u32,
+        piece: Piece,
+    },
     /// Royal `index` stands with its feet at `at`, on a floor or the ground.
     PlaceRoyal {
         index: u8,
@@ -220,6 +226,7 @@ impl Play {
                 Ok(())
             }
             Input::PlaceRoyal { index, at } => self.place_royal(p, index as usize, at),
+            Input::Upgrade { id, piece } => self.upgrade(p, id, piece),
             Input::SelectAmmo(slot) => self.field_of(p)?.select(slot),
             Input::Swing => {
                 self.need_live_siege()?;
@@ -284,6 +291,25 @@ impl Play {
         }
         let id = self.rules.place(p, piece)?;
         self.castles[p as usize].geo.insert(id, Geo::Beam { a, b });
+        self.refresh(p);
+        Ok(())
+    }
+
+    /// Upgrade a placed segment in place: its ends stay, its material
+    /// changes. The castle is rebuilt fresh each build, so it starts whole
+    /// as the new material (R1.4901).
+    fn upgrade(&mut self, p: PlayerId, id: u32, piece: Piece) -> Result<(), Refusal> {
+        let (Piece::Segment(to), Some(m)) = (piece, castle::physics_material(piece)) else {
+            return Err(Refusal::BadSpot);
+        };
+        let Some(Geo::Beam { a, b }) = self.castles[p as usize].geo.get(&id).copied() else {
+            return Err(Refusal::Unknown);
+        };
+        let pl = self.rules.player(p).ok_or(Refusal::Unknown)?;
+        if !castle::segment_fits(&pl.terrain, pl.purse.level, a, b, m) {
+            return Err(Refusal::BadSpot);
+        }
+        self.rules.upgrade(p, id, to)?;
         self.refresh(p);
         Ok(())
     }

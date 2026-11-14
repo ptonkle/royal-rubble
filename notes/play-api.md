@@ -27,7 +27,7 @@ State to draw: `play.rules` (the `game::Match`: phase, round, ticks_left, player
 | Phase | Input |
 | --- | --- |
 | Upgrade | `Pick(slot)`, `Reroll` |
-| Build | `PlaceSegment { piece, a, b }` (piece: `Piece::Segment(Material)` or `Piece::Rope`), `PlaceBuilding { kind, at }`, `Sell(ledger_id)`, `PlaceRoyal { index, at }`, `BuyXp`, `BuyShot` |
+| Build | `PlaceSegment { piece, a, b }` (piece: `Piece::Segment(Material)` or `Piece::Rope`), `PlaceBuilding { kind, at }`, `Sell(ledger_id)`, `Upgrade { id, piece }` (a placed segment to a dearer material, ends kept, the gold difference paid), `PlaceRoyal { index, at }`, `BuyXp`, `BuyShot` |
 | Siege | `SelectAmmo(slot)` (0 = normal), `Swing`, `Release`, `Air(slot)` (Q/W/E/R = slots 0..3 of the shooter's `air`) |
 | Any timed phase | `Ready` |
 
