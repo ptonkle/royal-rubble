@@ -691,13 +691,17 @@ impl Arena {
 
     /// The castle box of field `f`: left, right, ground and top, from its
     /// segments and royals (the build zone's front when nothing stands).
+    /// Nodes held only by ruin segments are left out (R1.5002).
     fn castle_box(&self, f: &Field) -> (Fx, Fx, Fx, Fx) {
         let (zl, _, _) = self.zone(f.owner);
         let w = &f.castle.world;
+        let built = Self::built_nodes(f, &self.play.rules.players[f.owner as usize].ruin_pieces);
         let xs = w
             .nodes
             .iter()
-            .map(|n| n.pos)
+            .zip(built)
+            .filter(|(_, keep)| *keep)
+            .map(|(n, _)| n.pos)
             .chain(w.bodies.iter().filter(|b| b.alive).map(|b| b.pos));
         let (mut l, mut r, mut top) = (None::<Fx>, None::<Fx>, None::<Fx>);
         for p in xs {
@@ -707,9 +711,31 @@ impl Arena {
         }
         let l = l.unwrap_or(zl);
         let r = r.unwrap_or(zl + Fx::from_int(CAM_EMPTY_W));
+        // a lone royal or a thin tower still gets a castle's width
+        let thin = (Fx::from_int(CAM_EMPTY_W) - (r - l)).max(Fx::ZERO);
+        let (l, r) = (l - thin / 2, r + thin / 2);
         let ground = self.ground(f.owner, (l + r) / 2);
         let top = top.unwrap_or(ground).max(ground + Fx::from_int(CAM_MIN_TALL));
         (l, r, ground, top)
+    }
+
+    /// Which nodes of field `f`'s castle world the cameras frame: every node
+    /// a built segment holds, and none held only by ruin segments.
+    fn built_nodes<T>(f: &Field, ruins: &[(u32, T)]) -> Vec<bool> {
+        let cw = &f.castle;
+        let is_ruin = |s: usize| {
+            cw.seg_ids
+                .get(s)
+                .is_some_and(|id| ruins.iter().any(|(r, _)| r == id))
+        };
+        let mut ruin_only = vec![false; cw.world.nodes.len()];
+        let mut built = vec![false; cw.world.nodes.len()];
+        for (i, s) in cw.world.segments.iter().enumerate() {
+            let mark = if is_ruin(i) { &mut ruin_only } else { &mut built };
+            mark[s.a] = true;
+            mark[s.b] = true;
+        }
+        built.iter().zip(&ruin_only).map(|(b, r)| *b || !*r).collect()
     }
 
     /// The corner window's view of your own field `f` (R1.3202): your
@@ -764,7 +790,11 @@ impl Arena {
             let tall = cam.height();
             // a shot thrown back past the trebuchet stays in view (R1.4200)
             let back = home.min(b.pos.x - m);
-            cam.left = (b.pos.x - width * 2 / 5).max(back).min(cr + m - width);
+            // and a shot past the castle's back stays in view too (R1.5002)
+            cam.left = (b.pos.x - width * 2 / 5)
+                .min(cr + m - width)
+                .max(b.pos.x + m - width)
+                .max(back);
             cam.bottom = (floor - tall / 6).max(b.pos.y - tall * 3 / 5);
             return cam.kept_in(edge);
         }
