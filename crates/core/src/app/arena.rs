@@ -1654,19 +1654,17 @@ impl Arena {
         let x = num(parts.next())?;
         let y = num(parts.next())?;
         let button = num(parts.next()).unwrap_or(0);
+        // a middle press pans at once; a right press once it moves, and
+        // short of that its release lets go or sells (R1.4801)
+        if button == 1 || button == 2 {
+            self.grab = Some((button, (x, y), button == 1));
+            return Ok(());
+        }
         if !self.building_now() {
             return Ok(());
         }
         let p = self.camera().world(x, y);
         self.cursor = Some(p);
-        if button == 2 {
-            if self.drag.take().is_none() {
-                if let Some(id) = self.piece_near(p) {
-                    self.queue(Input::Sell(id));
-                }
-            }
-            return Ok(());
-        }
         match self.tool {
             Tool::Beam(piece) => match self.drag {
                 None => {
@@ -1741,14 +1739,37 @@ impl Arena {
 
     pub fn moved(&mut self, value: &str) -> Result<(), String> {
         let (x, y) = pair(value)?;
+        if let Some((button, (gx, gy), panning)) = self.grab {
+            let far = (x - gx).abs().max((y - gy).abs()) >= crate::play::tune::VIEW_DRAG_PX;
+            if panning || far {
+                // the view follows the pointer: the world moves with it
+                self.pan_px(gx - x, gy - y);
+                self.grab = Some((button, (x, y), true));
+            }
+        }
         self.cursor = Some(self.camera().world(x, y));
         Ok(())
     }
 
     pub fn up(&mut self, value: &str) -> Result<(), String> {
         let (x, y) = pair(value)?;
-        self.cursor = Some(self.camera().world(x, y));
+        let p = self.camera().world(x, y);
+        self.cursor = Some(p);
+        if let Some((2, _, false)) = self.grab.take() {
+            self.right_click(p);
+        }
         Ok(())
+    }
+
+    /// A right click that did not pan: lets go of a segment's start, else
+    /// sells the piece under it.
+    fn right_click(&mut self, p: Vec2) {
+        if !self.building_now() || self.drag.take().is_some() {
+            return;
+        }
+        if let Some(id) = self.piece_near(p) {
+            self.queue(Input::Sell(id));
+        }
     }
 
     /// A button or bar press on the match screen.

@@ -35,6 +35,7 @@ Every `SECOND-ORDER.md` row with status *person*, by number, with what the perso
 - R1.1803: decided by the coordinator while you slept: the release is timed in sixteenths of a tick (R1.2100-R1.2102), so bots hit a lone royal again. Say if you would rather have had power steps or bots that accept near misses.
 - R1.3502: read the bots' names in `data/bot-names.json` and strike or add any.
 - R1.4404: read the How to Play lines (the `how.*` rows at the foot of SECOND-ORDER.md).
+- R1.4803: pan and zoom have no hint on screen and no How to Play line (wheel to zoom, arrows/WASD or a middle or right drag to pan, C to reset). Say if How to Play should list them, and whether C suits the reset key.
 - R1.3903: read the renamed card: "Skipping Stone", "Trick: the next hit bounces off. 2 uses per round" (was Kestrel, the Hover card).
 
 ## Mistakes so far

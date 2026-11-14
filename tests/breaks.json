@@ -1748,5 +1748,40 @@
     "find": "v.bottom = v.bottom.max(floor).min(",
     "replace": "v.bottom = v.bottom.min(",
     "test": "arena_view_arrow_keys_pan_and_wasd_pans_in_the_build_view"
+  },
+  {
+    "name": "r4801 right drag threshold",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "let far = (x - gx).abs().max((y - gy).abs()) >= crate::play::tune::VIEW_DRAG_PX;",
+    "replace": "let far = true;",
+    "test": "arena_view_right_drag_pans_past_six_pixels_and_keeps_the_start"
+  },
+  {
+    "name": "r4801 right drag keeps the start",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "if let Some((2, _, false)) = self.grab.take() {",
+    "replace": "if let Some((2, _, _)) = self.grab.take() {",
+    "test": "arena_view_right_drag_pans_past_six_pixels_and_keeps_the_start"
+  },
+  {
+    "name": "r4801 middle drag pans at once",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "self.grab = Some((button, (x, y), button == 1));",
+    "replace": "self.grab = Some((button, (x, y), false));",
+    "test": "arena_view_middle_drag_pans_at_once"
+  },
+  {
+    "name": "r4802 reset key",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "        if pressed & KEY_RESET != 0 {\n            self.resume_follow();\n        }\n",
+    "replace": "",
+    "test": "arena_view_reset_key_brings_back_the_auto_view"
+  },
+  {
+    "name": "r4802 shot thrown resumes following",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "            // the shot thrown brings the auto view back (R1.4802)\n            self.resume_follow();\n",
+    "replace": "",
+    "test": "arena_view_siege_holds_your_view_until_the_shot_is_thrown"
   }
 ]
