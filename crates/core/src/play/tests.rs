@@ -33,7 +33,15 @@ fn ground(plot: &Plot, col: usize) -> GridPt {
 /// A column `from` columns into the level-1 span. The ground is never quite
 /// flat; a grid point is within half a step of it, inside the tolerance.
 fn flat_col(plot: &Plot, from: usize) -> usize {
-    plot.buildable(1).start + from
+    // counted from behind the old ruins at the plot's front (R1.5000)
+    let behind = plot
+        .spots
+        .iter()
+        .filter(|s| !s.segments.is_empty())
+        .map(|s| s.cols.end)
+        .max()
+        .unwrap_or(0);
+    plot.buildable(1).start.max(behind) + from
 }
 
 fn up(p: GridPt, cells: i32) -> GridPt {

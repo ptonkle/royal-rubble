@@ -348,8 +348,8 @@ fn ai_planner_kills_a_royal_through_the_match() {
     let mut play = match_with(vec![Seat::Human, Seat::Bot(Difficulty::Hard)], 3);
     play.set_shot_planner(super::planner::plan_siege_job);
     let plot = play.rules.terrain.clone();
-    let col = plot.buildable(1).start + 3;
-    // the ground at the column's left edge, to the nearest grid step
+    let col = plot.buildable(1).start + crate::terrain::tune::RUIN_FRONT_W + 3; // behind the ruins (R1.5000)
+                                                                                // the ground at the column's left edge, to the nearest grid step
     let step = crate::terrain::CELL / 4;
     let at = crate::play::units::GridPt::new(col as i32 * 4, (plot.heights[col] + step / 2).div_euclid(step));
     play.apply(0, Input::PlaceRoyal { index: 0, at }).unwrap();

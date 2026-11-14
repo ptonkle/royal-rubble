@@ -337,7 +337,16 @@ fn column_material(level: u8) -> Material {
 /// the hall grows.
 fn keep_site(plot: &Plot, setback: usize) -> (usize, i64) {
     let span = plot.buildable(1);
-    let first = span.start + setback;
+    // behind the old ruins at the plot's front, so no plan lays a segment
+    // over one (R1.906, R1.5001)
+    let behind_ruins = plot
+        .spots
+        .iter()
+        .filter(|s| !s.segments.is_empty())
+        .map(|s| s.cols.end)
+        .max()
+        .unwrap_or(span.start);
+    let first = (span.start + setback).max(behind_ruins);
     let terrain = units::physics_terrain(plot);
     let widest = |c: usize| {
         (1..=tune::KEEP_MAX_BAYS)

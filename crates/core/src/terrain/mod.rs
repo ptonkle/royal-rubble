@@ -91,7 +91,7 @@ pub mod tune {
             (StoneDeposit, 1, 1, 5),
             (GoldVein, 1, 1, 4),
             (Forest, 1, 1, 8),
-            (Ruins, 1, 2, 6),
+            (Ruins, 1, 1, 6),
             (OreDeposit, 0, 1, 5),
             (HolyWell, 0, 1, 3),
             (ArmoryRuin, 0, 1, 5),
@@ -99,9 +99,10 @@ pub mod tune {
     };
     /// Old ruins stand only in this many columns at the plot's front edge
     /// (the side facing the attacker), so they make a free front wall to
-    /// build behind (R1.5000). Two six-column ruins fit with a free column
-    /// between.
-    pub const RUIN_FRONT_W: usize = 13;
+    /// build behind (R1.5000): one six-column ruin, with room to spare for
+    /// the ground's slope. Wider, and the bots' keep, which stands behind
+    /// the ruins, loses its flat ground on some seeds (R1.5001).
+    pub const RUIN_FRONT_W: usize = 8;
     /// An old ruin's ground may rise this much across its width: the front
     /// band is often a steady ramp up from the gap's bank (R1.5000).
     pub const RUIN_FLAT: i32 = 2 * CELL;
