@@ -226,6 +226,7 @@ pub fn pack(i: Input) -> Option<u64> {
         Input::Release(part) => (11, part.min(31) as u64),
         Input::Air(s) => (12, s as u64),
         Input::Ready => (13, 0),
+        Input::Upgrade { id, piece } => (14, piece_code(piece) | (id as u64) << 3),
     };
     Some(tag | body << 4)
 }
@@ -262,6 +263,13 @@ pub fn unpack(k: u64) -> Option<Input> {
         11 => Input::Release(byte.min(31)),
         12 => Input::Air(byte),
         13 => Input::Ready,
+        14 => Input::Upgrade {
+            id: u32::try_from(b >> 3).ok()?,
+            piece: match piece_of(b) {
+                p @ Piece::Segment(_) => p,
+                _ => return None,
+            },
+        },
         _ => return None,
     })
 }

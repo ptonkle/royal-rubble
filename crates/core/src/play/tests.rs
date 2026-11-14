@@ -128,6 +128,43 @@ fn build_too_long_or_out_of_span_is_refused_for_free() {
 }
 
 #[test]
+fn upgrade_keeps_a_segment_s_ends_and_swaps_its_material() {
+    // R1.4900: same id and ends, stone in the world, 2 gold (wood 1, stone 3)
+    let mut play = duel(3);
+    let plot = play.rules.terrain.clone();
+    let g = ground(&plot, flat_col(&plot, 2));
+    let pl = &mut play.rules.players[0];
+    pl.ledger.stock = Default::default();
+    pl.purse.gold = 10;
+    pl.purse.level = 4;
+    let (a, b) = (g, up(g, 2));
+    play.apply(0, Input::PlaceSegment { piece: WOOD, a, b }).unwrap();
+    let id = *play.castles[0].geo.keys().next().unwrap();
+    let stone = Piece::Segment(Material::Stone);
+    assert_eq!(
+        play.apply(0, Input::Upgrade { id, piece: WOOD }),
+        Err(Refusal::BadSpot)
+    );
+    assert_eq!(
+        play.apply(
+            0,
+            Input::Upgrade {
+                id: id + 9,
+                piece: stone
+            }
+        ),
+        Err(Refusal::Unknown)
+    );
+    assert_eq!(play.apply(0, Input::Upgrade { id, piece: stone }), Ok(()));
+    assert_eq!(play.rules.players[0].purse.gold, 7);
+    assert_eq!(play.castles[0].geo.len(), 1);
+    assert_eq!(play.castles[0].geo[&id], super::castle::Geo::Beam { a, b });
+    let cw = play.castles[0].world(&play.rules.players[0], false);
+    let s = cw.seg_ids.iter().position(|s| *s == id).unwrap();
+    assert_eq!(cw.world.segments[s].material, crate::physics::Material::Stone);
+}
+
+#[test]
 fn royal_must_stand_on_a_floor_or_the_ground() {
     let mut play = duel(3);
     let plot = play.rules.terrain.clone();

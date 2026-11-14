@@ -70,7 +70,7 @@ pub const APP_ID: &str = "royal-rubble-p2p";
 /// tab and a fresh one still meet, and the hello turns the stale one away
 /// with a reason. A room name holding the build hash would keep them apart,
 /// and both would wait for nobody.
-pub const PROTOCOL: u32 = 1;
+pub const PROTOCOL: u32 = 2;
 
 /// Ticks between a local input and the tick that uses it.
 pub const DELAY: u32 = 2;

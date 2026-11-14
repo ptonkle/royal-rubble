@@ -1720,5 +1720,33 @@
     "find": "            for _ in 0..n {\n                cw.world.step();\n            }",
     "replace": "            for _ in 0..n {}",
     "test": "arena_test_runs_your_castle_live_then_drops_the_copy"
+  },
+  {
+    "name": "segment upgrade refunds the old value",
+    "file": "crates/core/src/game/ledger.rs",
+    "find": "            None => e.value,",
+    "replace": "            None => 0,",
+    "test": "upgrading_a_segment_charges_the_gold_difference"
+  },
+  {
+    "name": "segment upgrade spends stock first",
+    "file": "crates/core/src/game/ledger.rs",
+    "find": "        let stocked = *stock.get_mut(to) > 0;",
+    "replace": "        let stocked = false;",
+    "test": "an_upgrade_returns_a_stock_unit_and_spends_stock_first"
+  },
+  {
+    "name": "segment upgrade refuses the same material",
+    "file": "crates/core/src/game/ledger.rs",
+    "find": "        if to <= from {",
+    "replace": "        if to < from {",
+    "test": "upgrades_to_the_same_cheaper_locked_or_unaffordable_material_are_refused"
+  },
+  {
+    "name": "segment upgrade swaps the material in the match",
+    "file": "crates/core/src/play/mod.rs",
+    "find": "            Input::Upgrade { id, piece } => self.upgrade(p, id, piece),",
+    "replace": "            Input::Upgrade { .. } => Ok(()),",
+    "test": "upgrade_keeps_a_segment_s_ends_and_swaps_its_material"
   }
 ]

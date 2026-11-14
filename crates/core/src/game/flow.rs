@@ -6,7 +6,7 @@
 use super::bots::{BotAction, BotPolicy, SimpleBot};
 use super::dice::Dice;
 use super::economy::{self, Purse};
-use super::ledger::{Ledger, Material, Piece};
+use super::ledger::{Ledger, Material, Piece, UpgradeQuote};
 use super::pairing::{self, History, Pairing};
 use super::royals::{self, Plot, Royal, RoyalKind, Spot};
 use super::tune;
@@ -567,6 +567,14 @@ impl Match {
             .place(piece, round, pl.purse.level, &mut pl.purse.gold, &pl.mods)?;
         pl.ledger.set_site(id, col, spot);
         Ok(id)
+    }
+
+    /// Upgrade placed segment `id` to material `to`, paying the difference.
+    pub fn upgrade(&mut self, p: PlayerId, id: u32, to: Material) -> Result<UpgradeQuote, Refusal> {
+        self.need_build(p)?;
+        let pl = self.player_mut(p)?;
+        pl.ledger
+            .upgrade(id, to, pl.purse.level, &mut pl.purse.gold, &pl.mods)
     }
 
     pub fn sell(&mut self, p: PlayerId, id: u32) -> Result<u32, Refusal> {
