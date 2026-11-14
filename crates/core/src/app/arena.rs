@@ -429,6 +429,18 @@ pub struct Arena {
     /// "Need {n} gold", filled by the cursor when a segment costs more
     /// than you have (R1.4301)
     need_text: String,
+    /// "{n} gold", by a segment a press would upgrade (R1.4904)
+    swap_text: String,
+}
+
+/// A placed segment a press would upgrade: its id, its ends, the gold it
+/// costs (the price difference) and the gold you lack for it.
+struct UpgradeTarget {
+    id: u32,
+    a: Vec2,
+    b: Vec2,
+    cost: u32,
+    short: u32,
 }
 
 /// Your shot in the air: its ball, the view's width for the flight,
@@ -508,6 +520,7 @@ impl Arena {
             own_counts: (0, 0),
             own_hit_at: None,
             need_text: s.get("build.need"),
+            swap_text: s.get("build.swap"),
         };
         a.rebuild();
         Ok(a)
@@ -1465,6 +1478,56 @@ impl Arena {
             && self.play.royal_spaced(self.me, index, at)
     }
 
+    /// The placed segment of yours a press at `p` would upgrade to the
+    /// selected material (R1.4904): no segment is being drawn, `p` is
+    /// within a grid step of the segment and off its nodes, and the
+    /// selected material is dearer and unlocked (or stocked).
+    fn upgrade_target(&self, p: Vec2) -> Option<UpgradeTarget> {
+        let Tool::Beam(Piece::Segment(to)) = self.tool else {
+            return None;
+        };
+        if self.drag.is_some() || !self.building_now() || self.node_near(p).is_some() {
+            return None;
+        }
+        let cw = self.built.as_ref()?;
+        let w = &cw.world;
+        let pl = self.play.rules.player(self.me)?;
+        let geo = &self.play.castles[self.me as usize].geo;
+        let mut best: Option<(Fx, UpgradeTarget)> = None;
+        for (i, s) in w.segments.iter().enumerate() {
+            let id = cw.seg_ids[i];
+            if !matches!(geo.get(&id), Some(castle::Geo::Beam { .. })) {
+                continue;
+            }
+            // quoted with ample gold, so only a gold shortfall is left to tell
+            let Ok(q) = pl
+                .ledger
+                .upgrade_quote(id, to, pl.purse.level, u32::MAX / 2, &pl.mods)
+            else {
+                continue;
+            };
+            let (a, b) = (w.nodes[s.a].pos, w.nodes[s.b].pos);
+            let d = b - a;
+            let l2 = d.len2();
+            if l2 == Fx::ZERO {
+                continue;
+            }
+            let u = ((p - a).dot(d) / l2).clamp_to(Fx::ZERO, Fx::ONE);
+            let dist = (p - (a + d * u)).len();
+            if dist <= TUNE.grid && best.as_ref().is_none_or(|(bd, _)| dist < *bd) {
+                let target = UpgradeTarget {
+                    id,
+                    a,
+                    b,
+                    cost: q.pay.saturating_sub(q.back),
+                    short: q.pay.saturating_sub(q.back.saturating_add(pl.purse.gold)),
+                };
+                best = Some((dist, target));
+            }
+        }
+        best.map(|(_, t)| t)
+    }
+
     /// The ledger id of the piece under `p`: a building, else the nearest
     /// segment within a grid step.
     fn piece_near(&self, p: Vec2) -> Option<u32> {
@@ -1517,6 +1580,11 @@ impl Arena {
         }
         match self.tool {
             Tool::Beam(piece) => match self.drag {
+                None if self.upgrade_target(p).is_some() => {
+                    if let Some(t) = self.upgrade_target(p).filter(|t| t.short == 0) {
+                        self.queue(Input::Upgrade { id: t.id, piece });
+                    }
+                }
                 None => {
                     let s = self.start_at(p);
                     if self.can_start(s) {
@@ -2001,8 +2069,17 @@ impl Arena {
             Some(a) => Some(self.end_at(a, c)).filter(|&b| b != a),
         };
         marks.hover = pick.filter(|&p| self.is_node(p)).map(|p| cam.px(p));
-        let short = self.gold_short();
-        if short > 0 {
+        let target = self.upgrade_target(c);
+        let short = target.as_ref().map_or_else(|| self.gold_short(), |t| t.short);
+        if let Some(t) = target.filter(|t| t.short == 0) {
+            // the price difference by the cursor (R1.4904)
+            let p = cam.px(c);
+            marks.swap = Some(Label {
+                x: p[0],
+                y: p[1] - cam.len(Fx::ONE, 24),
+                text: self.swap_text.replace("{n}", &t.cost.to_string()),
+            });
+        } else if short > 0 {
             let p = cam.px(c);
             marks.need = Some(Label {
                 x: p[0],
@@ -2076,6 +2153,20 @@ impl Arena {
             Tool::Beam(piece) => {
                 let m = castle::physics_material(piece).unwrap_or(Material::Wood);
                 let broke = self.gold_short() > 0;
+                if let Some(t) = self.upgrade_target(c) {
+                    // a ring round the segment a press would upgrade (R1.4904)
+                    let mid = cam.px(Vec2::new((t.a.x + t.b.x) / 2, (t.a.y + t.b.y) / 2));
+                    let half = (t.b - t.a).len() / 2 + crate::play::tune::SNAP_STEP / 2;
+                    return (
+                        None,
+                        Some(Ring {
+                            x: mid[0],
+                            y: mid[1],
+                            r: cam.len(half, 4),
+                            ok: t.short == 0,
+                        }),
+                    );
+                }
                 let Some(a) = self.drag else {
                     let s = self.start_at(c);
                     let p = cam.px(s);

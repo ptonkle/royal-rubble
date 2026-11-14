@@ -214,6 +214,27 @@ fn online_two_lagged_browsers_play_a_whole_match_and_agree_every_second() {
 }
 
 #[test]
+fn online_upgrade_input_packs_and_unpacks_for_every_segment_material() {
+    // R1.4903: tag 14, any id, segments only
+    for m in [Material::Wood, Material::Stone, Material::Metal] {
+        for id in [0, 7, u32::MAX] {
+            let i = Input::Upgrade {
+                id,
+                piece: Piece::Segment(m),
+            };
+            let k = pack(i).unwrap();
+            assert_ne!(k, NetMatch::NOBODY);
+            assert_eq!(unpack(k), Some(i));
+        }
+    }
+    let rope = pack(Input::Upgrade {
+        id: 3,
+        piece: Piece::Rope,
+    });
+    assert_eq!(rope.and_then(unpack), None);
+}
+
+#[test]
 fn online_inputs_pack_and_unpack_and_a_far_point_does_not_pack() {
     let all = [
         Input::Pick(2),

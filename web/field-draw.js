@@ -405,17 +405,21 @@ function nodeMarks(g, b) {
     g.lineWidth = G.node_hover_w;
     g.stroke();
   }
-  if (b.need) {
-    g.font = color("field-need-font");
-    g.textAlign = "center";
-    g.textBaseline = "bottom";
-    g.lineWidth = G.need_edge;
-    g.strokeStyle = color("field-sky");
-    g.strokeText(b.need.text, b.need.x, b.need.y);
-    g.fillStyle = color("field-bad");
-    g.fillText(b.need.text, b.need.x, b.need.y);
-  }
+  if (b.need) cursorLabel(g, b.need, color("field-bad"));
+  // the gold an upgrade in place costs, by the cursor (R1.4904)
+  if (b.swap) cursorLabel(g, b.swap, wool.navy.mid);
   g.restore();
+}
+
+function cursorLabel(g, l, fill) {
+  g.font = color("field-need-font");
+  g.textAlign = "center";
+  g.textBaseline = "bottom";
+  g.lineWidth = G.need_edge;
+  g.strokeStyle = color("field-sky");
+  g.strokeText(l.text, l.x, l.y);
+  g.fillStyle = fill;
+  g.fillText(l.text, l.x, l.y);
 }
 
 function marks(g, f) {

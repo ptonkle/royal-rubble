@@ -1748,5 +1748,26 @@
     "find": "            Input::Upgrade { id, piece } => self.upgrade(p, id, piece),",
     "replace": "            Input::Upgrade { .. } => Ok(()),",
     "test": "upgrade_keeps_a_segment_s_ends_and_swaps_its_material"
+  },
+  {
+    "name": "segment upgrade packs its id online",
+    "file": "crates/core/src/play/online.rs",
+    "find": "            id: u32::try_from(b >> 3).ok()?,",
+    "replace": "            id: u32::try_from(b >> 4).ok()?,",
+    "test": "online_upgrade_input_packs_and_unpacks_for_every_segment_material"
+  },
+  {
+    "name": "segment upgrade press in the arena",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                None if self.upgrade_target(p).is_some() => {",
+    "replace": "                None if false => {",
+    "test": "arena_a_press_inside_a_segment_with_a_dearer_material_upgrades_it"
+  },
+  {
+    "name": "segment upgrade price shown by the cursor",
+    "file": "crates/core/src/app/arena.rs",
+    "find": "                text: self.swap_text.replace(\"{n}\", &t.cost.to_string()),",
+    "replace": "                text: self.swap_text.replace(\"{n}\", &t.short.to_string()),",
+    "test": "arena_a_press_inside_a_segment_with_a_dearer_material_upgrades_it"
   }
 ]
