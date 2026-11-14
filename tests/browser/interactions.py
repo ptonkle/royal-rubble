@@ -10,6 +10,7 @@ never copied from the tool's own output. Wait on a selector or a data-*
 attribute the page sets, never on a fixed time. Ported from Fleeced's.
 """
 
+import time
 import json
 import pathlib
 
@@ -103,6 +104,9 @@ def solo_lobby(page, check):
     fast_match(page, check)
 
 
+MATCH_LIMIT_S = 600
+
+
 def press(page, name):
     """A click by event: the match's HUD redraws every frame, so it is never still."""
     loc = page.locator(by_id(name))
@@ -117,7 +121,10 @@ def fast_match(page, check):
     on_screen(page, "lobby")
     page.click(by_id("lobby.start"))
     on_screen(page, "match")
-    for _ in range(8000):
+    # a clock, not a count of tries: each try's locator calls take longer in
+    # a slow engine, so a count gave Firefox less time in a full run
+    start = time.monotonic()
+    while time.monotonic() - start < MATCH_LIMIT_S:
         if page.locator(by_id("match.results")).count():
             break
         press(page, "match.skip")
@@ -130,7 +137,7 @@ def fast_match(page, check):
     # that it ends with you in the standings
     check(
         lines.startswith("1. ") and f". {you}" in lines,
-        f"a fast match reaches the results with you placed: {lines!r}",
+        f"a fast match reaches the results with you placed: {lines!r} ({time.monotonic() - start:.0f} s)",
     )
     press(page, "play.leave")
     on_screen(page, "title")
