@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.2.16",
+    "date": "2026-11-13",
+    "notes": [
+      "Zoom with the mouse wheel; pan with the arrow keys or by dragging. C resets the view."
+    ]
+  },
+  {
     "version": "0.2.15",
     "date": "2026-11-13",
     "notes": [
