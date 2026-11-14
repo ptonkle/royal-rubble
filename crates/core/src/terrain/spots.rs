@@ -126,13 +126,18 @@ const RUINS: &[RuinShape] = &[
 /// True when `cols` is flat, dry, inside the plot and clear of other spots
 /// (with a free column between).
 pub(super) fn fits(plot: &Plot, cols: ColRange) -> bool {
+    fits_within(plot, cols, SPOT_FLAT)
+}
+
+/// [`fits`] with the ground allowed to rise `flat` across `cols`.
+fn fits_within(plot: &Plot, cols: ColRange, flat: i32) -> bool {
     if cols.start < plot.plot.start || cols.end > plot.plot.end || plot.water.cols.overlaps(&cols) {
         return false;
     }
     let h = &plot.heights[cols.start..cols.end];
     let (lo, hi) = (h.iter().min(), h.iter().max());
     if let (Some(lo), Some(hi)) = (lo, hi) {
-        if hi - lo > SPOT_FLAT {
+        if hi - lo > flat {
             return false;
         }
     }
@@ -168,7 +173,13 @@ fn ruin_segments(plot: &Plot, cols: ColRange, shape: usize) -> Vec<Segment> {
 
 fn push(plot: &mut Plot, rng: &mut Rng, kind: SpotKind, cols: ColRange) {
     let segments = if kind == SpotKind::Ruins {
-        let shape = rng.pick(RUINS.len());
+        let total: u64 = RUIN_SHAPE_WEIGHTS.iter().sum();
+        let mut roll = rng.next_u64() % total;
+        let mut shape = 0;
+        while roll >= RUIN_SHAPE_WEIGHTS[shape] {
+            roll -= RUIN_SHAPE_WEIGHTS[shape];
+            shape += 1;
+        }
         ruin_segments(plot, cols, shape)
     } else {
         Vec::new()
@@ -189,8 +200,24 @@ pub fn place(plot: &mut Plot, seed: u64) {
         Feature::Hill { peak, .. } => Some(*peak),
         _ => None,
     });
+    // the old ruins first, so they hold the plot's front band (R1.5000)
+    for &(kind, min, max, w) in SPOTS.iter().filter(|s| s.0 == SpotKind::Ruins) {
+        let count = rng.range(min as i32, max as i32) as usize;
+        let band = plot.plot.start..=(plot.plot.start + RUIN_FRONT_W).saturating_sub(w);
+        for _ in 0..count {
+            let starts: Vec<usize> = band
+                .clone()
+                .filter(|&s| fits_within(plot, ColRange { start: s, end: s + w }, RUIN_FLAT))
+                .collect();
+            if starts.is_empty() {
+                break;
+            }
+            let s = starts[rng.pick(starts.len())];
+            push(plot, &mut rng, kind, ColRange { start: s, end: s + w });
+        }
+    }
     let mut placed_free = 0usize;
-    for &(kind, min, max, w) in SPOTS {
+    for &(kind, min, max, w) in SPOTS.iter().filter(|s| s.0 != SpotKind::Ruins) {
         let count = rng.range(min as i32, max as i32) as usize;
         for _ in 0..count {
             if kind == SpotKind::Watchtower {

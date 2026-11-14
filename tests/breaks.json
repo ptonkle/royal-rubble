@@ -1720,5 +1720,12 @@
     "find": "            for _ in 0..n {\n                cw.world.step();\n            }",
     "replace": "            for _ in 0..n {}",
     "test": "arena_test_runs_your_castle_live_then_drops_the_copy"
+  },
+  {
+    "name": "r5000 ruins only in the front band",
+    "file": "crates/core/src/terrain/spots.rs",
+    "find": "let band = plot.plot.start..=(plot.plot.start + RUIN_FRONT_W).saturating_sub(w);",
+    "replace": "let band = plot.plot.start..=plot.plot.end.saturating_sub(w);",
+    "test": "terrain_ruins_stand_only_in_the_plot_front_band"
   }
 ]

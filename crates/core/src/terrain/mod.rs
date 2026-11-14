@@ -97,6 +97,17 @@ pub mod tune {
             (ArmoryRuin, 0, 1, 5),
         ]
     };
+    /// Old ruins stand only in this many columns at the plot's front edge
+    /// (the side facing the attacker), so they make a free front wall to
+    /// build behind (R1.5000). Two six-column ruins fit with a free column
+    /// between.
+    pub const RUIN_FRONT_W: usize = 13;
+    /// An old ruin's ground may rise this much across its width: the front
+    /// band is often a steady ramp up from the gap's bank (R1.5000).
+    pub const RUIN_FLAT: i32 = 2 * CELL;
+    /// Weights for picking a ruin shape (broken wall, arch, tower stub,
+    /// rubble): the wall-like ones come up most at the front (R1.5000).
+    pub const RUIN_SHAPE_WEIGHTS: [u64; 4] = [3, 1, 3, 1];
     /// The first this many spots placed after the watchtower go inside the level-1 plot.
     pub const SPOTS_AT_LEVEL_1: usize = 2;
     /// Scenery trees in the open country (drawing only): columns between

@@ -71,7 +71,12 @@ fn problems(p: &Plot) -> Vec<String> {
         let h = &p.heights[c.start..c.end];
         let lo = h.iter().min().copied().unwrap_or(0);
         let hi = h.iter().max().copied().unwrap_or(0);
-        if hi - lo > SPOT_FLAT || lo < p.water.level {
+        let flat = if sp.kind == SpotKind::Ruins {
+            RUIN_FLAT
+        } else {
+            SPOT_FLAT
+        };
+        if hi - lo > flat || lo < p.water.level {
             out.push(format!("seed {s}: {:?} not on flat dry ground", sp.kind));
         }
         for other in &p.spots[i + 1..] {
@@ -264,4 +269,28 @@ fn terrain_trees_stand_apart_in_open_country() {
         }
     }
     assert!(any > 59, "about one tree a plot at least, got {any}");
+}
+
+#[test]
+fn terrain_ruins_stand_only_in_the_plot_front_band() {
+    // R1.5000: every ruin node lies within RUIN_FRONT_W columns of the
+    // plot's front edge, and every seed has a ruin there
+    for seed in 0..200u64 {
+        let p = Plot::generate(seed);
+        let lo = p.plot.start as i32 * COL_W;
+        let hi = (p.plot.start + RUIN_FRONT_W) as i32 * COL_W;
+        let ruins: Vec<&Spot> = p.spots.iter().filter(|s| s.kind == SpotKind::Ruins).collect();
+        assert!(!ruins.is_empty(), "seed {seed}: no ruin");
+        for sp in ruins {
+            for seg in &sp.segments {
+                for n in [seg.a, seg.b] {
+                    assert!(
+                        n.x >= lo && n.x <= hi,
+                        "seed {seed}: ruin node at {} outside {lo}..{hi}",
+                        n.x
+                    );
+                }
+            }
+        }
+    }
 }
