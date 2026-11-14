@@ -1,0 +1,76 @@
+/* The look, and only the look: every color, font, size and edge the menus
+   use. style.css holds the structure and reads these names alone.
+
+   The menus share the match HUD's look (web/hud.css): dark slate panels with
+   light ink over the painted siege behind, slate slot buttons, the main
+   action gold-edged. Body text on the slate is 14:1; dim text 7:1. */
+
+:root {
+  --slate-bg: rgba(28, 33, 40, 0.9);
+  --slate-edge: #6b7686;
+  --slate-slot: rgba(255, 255, 255, 0.06);
+  --slate-slot-edge: #4d5662;
+  --slate-ink: #eef0f2;
+  --slate-dim: #a9b2bd;
+  --slate-gold: #f0c419;
+  --slate-green: #6fcf6a;
+
+  /* the page behind everything: the siege canvas paints over this */
+  --page-bg: #1c2128;
+  --page-ink: var(--slate-ink);
+  --page-ink-dim: var(--slate-dim);
+
+  /* a panel: dark slate with a thin light edge */
+  --panel-bg: var(--slate-bg);
+  --panel-edge: var(--slate-edge);
+  --panel-edge-width: 1px;
+  --panel-radius: 0.5rem;
+  --panel-pad: 2rem;
+  --panel-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.45);
+  --rule: var(--slate-slot-edge);
+
+  /* buttons: slate slots; a panel's main action is gold-edged with a warm
+     tint, a quiet one has a darker edge */
+  --button-bg: rgba(255, 255, 255, 0.1);
+  --button-ink: var(--slate-ink);
+  --button-edge: var(--slate-edge);
+  --button-main-bg: rgba(240, 196, 25, 0.16);
+  --button-main-edge: var(--slate-gold);
+  --button-edge-width: 2px;
+  --button-quiet-bg: var(--slate-slot);
+  --button-quiet-ink: var(--slate-ink);
+  --button-quiet-edge: var(--slate-slot-edge);
+  --button-radius: 0.4rem;
+  --button-weight: 600;
+  --button-size: 1.05rem;
+  --button-spacing: 0.02em;
+  --button-hover: brightness(1.2);
+
+  /* fields */
+  --field-bg: rgba(0, 0, 0, 0.3);
+  --field-ink: var(--slate-ink);
+  --field-edge: var(--slate-slot-edge);
+  --accent: var(--slate-gold);
+  --focus: var(--slate-gold);
+
+  /* lobby seats */
+  --seat-bg: var(--slate-slot);
+  --seat-me: rgba(240, 196, 25, 0.12);
+  --seat-edge: var(--slate-slot-edge);
+  --seat-ready: var(--slate-green);
+
+  /* type: a book serif; headings in spaced capitals */
+  --font-body: "Palatino Linotype", Palatino, "Book Antiqua", "URW Palladio L", Georgia, serif;
+  --font-title: "Palatino Linotype", Palatino, "Book Antiqua", "URW Palladio L", Georgia, serif;
+  --title-size: 3.2rem;
+  --title-weight: 400;
+  --title-spacing: 0.1em;
+  --title-ink: var(--slate-ink);
+  --heading-size: 1.3rem;
+  --heading-weight: 400;
+  --heading-spacing: 0.14em;
+  --heading-ink: var(--slate-ink);
+  --heading-case: uppercase;
+  --body-size: 1.05rem;
+  --gap: 1.5rem;
+}

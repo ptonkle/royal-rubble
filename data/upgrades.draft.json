@@ -1,0 +1,904 @@
+{
+  "version": 1,
+  "status": "draft",
+  "tiers": [
+    "silver",
+    "gold",
+    "prismatic"
+  ],
+  "categories": [
+    "Ammo",
+    "Tricks",
+    "Extra attacks",
+    "Defense",
+    "Economy",
+    "Buildings",
+    "Royals",
+    "Trebuchet"
+  ],
+  "upgrades": [
+    {
+      "id": "firebrand",
+      "name": "Firebrand",
+      "tier": "silver",
+      "category": "Ammo",
+      "text": "Fire shots: +1 per round",
+      "first_playable": true,
+      "effect": {
+        "kind": "ammo_per_round",
+        "ammo": "fire",
+        "count": 1
+      }
+    },
+    {
+      "id": "black_powder",
+      "name": "Black Powder",
+      "tier": "silver",
+      "category": "Ammo",
+      "text": "Exploding shots: +1 per round",
+      "first_playable": true,
+      "effect": {
+        "kind": "ammo_per_round",
+        "ammo": "exploding",
+        "count": 1
+      }
+    },
+    {
+      "id": "millstone",
+      "name": "Millstone",
+      "tier": "silver",
+      "category": "Ammo",
+      "text": "Heavy shots: +1 per round",
+      "first_playable": true,
+      "effect": {
+        "kind": "ammo_per_round",
+        "ammo": "heavy",
+        "count": 1
+      }
+    },
+    {
+      "id": "grapeshot",
+      "name": "Grapeshot",
+      "tier": "silver",
+      "category": "Ammo",
+      "text": "Spread shots: +1 per round (5 small stones)",
+      "first_playable": false,
+      "effect": {
+        "kind": "ammo_per_round",
+        "ammo": "spread",
+        "count": 1,
+        "pieces": 5
+      }
+    },
+    {
+      "id": "chain_shot",
+      "name": "Chain Shot",
+      "tier": "gold",
+      "category": "Ammo",
+      "text": "Chain shots: +2 per round (cut ropes and wood)",
+      "first_playable": false,
+      "effect": {
+        "kind": "ammo_per_round",
+        "ammo": "chain",
+        "count": 2
+      }
+    },
+    {
+      "id": "greek_fire",
+      "name": "Greek Fire",
+      "tier": "gold",
+      "category": "Ammo",
+      "text": "Fire shots: +2 per round. Fire spreads 50% faster",
+      "first_playable": false,
+      "effect": {
+        "kind": "ammo_per_round",
+        "ammo": "fire",
+        "count": 2,
+        "fire_spread_pct": 50
+      }
+    },
+    {
+      "id": "powder_keg",
+      "name": "Powder Keg",
+      "tier": "gold",
+      "category": "Ammo",
+      "text": "Exploding shots: +2 per round. +25% blast size",
+      "first_playable": false,
+      "effect": {
+        "kind": "ammo_per_round",
+        "ammo": "exploding",
+        "count": 2,
+        "blast_radius_pct": 25
+      }
+    },
+    {
+      "id": "dragons_breath",
+      "name": "Dragon's Breath",
+      "tier": "prismatic",
+      "category": "Ammo",
+      "text": "All your shots set wood on fire",
+      "first_playable": true,
+      "effect": {
+        "kind": "all_shots_ignite"
+      }
+    },
+    {
+      "id": "meteor",
+      "name": "Meteor",
+      "tier": "prismatic",
+      "category": "Ammo",
+      "text": "Meteor shots: +1 per round (huge, heavy, burning)",
+      "first_playable": false,
+      "effect": {
+        "kind": "ammo_per_round",
+        "ammo": "meteor",
+        "count": 1,
+        "size_pct": 200,
+        "weight_pct": 300,
+        "ignites": 1
+      }
+    },
+    {
+      "id": "plummet",
+      "name": "Plummet",
+      "tier": "silver",
+      "category": "Tricks",
+      "text": "Trick: drop straight down. 2 uses per round",
+      "first_playable": true,
+      "effect": {
+        "kind": "air_effect",
+        "effect": "drop",
+        "uses": 2
+      }
+    },
+    {
+      "id": "turnabout",
+      "name": "Turnabout",
+      "tier": "silver",
+      "category": "Tricks",
+      "text": "Trick: reverse direction. 2 uses per round",
+      "first_playable": true,
+      "effect": {
+        "kind": "air_effect",
+        "effect": "reverse",
+        "uses": 2
+      }
+    },
+    {
+      "id": "spur",
+      "name": "Spur",
+      "tier": "silver",
+      "category": "Tricks",
+      "text": "Trick: +50% speed. 2 uses per round",
+      "first_playable": false,
+      "effect": {
+        "kind": "air_effect",
+        "effect": "boost",
+        "uses": 2,
+        "speed_pct": 50
+      }
+    },
+    {
+      "id": "skipping_stone",
+      "name": "Skipping Stone",
+      "tier": "silver",
+      "category": "Tricks",
+      "text": "Trick: the next hit bounces off. 2 uses per round",
+      "first_playable": false,
+      "effect": {
+        "kind": "air_effect",
+        "effect": "bounce",
+        "uses": 2
+      }
+    },
+    {
+      "id": "ghost_stone",
+      "name": "Ghost Stone",
+      "tier": "gold",
+      "category": "Tricks",
+      "text": "Trick: pass through the next 2 segments. 2 uses per round",
+      "first_playable": true,
+      "effect": {
+        "kind": "air_effect",
+        "effect": "phase",
+        "uses": 2,
+        "segments": 2
+      }
+    },
+    {
+      "id": "hawk_dive",
+      "name": "Hawk Dive",
+      "tier": "gold",
+      "category": "Tricks",
+      "text": "Trick: dive at double speed. 2 uses per round",
+      "first_playable": false,
+      "effect": {
+        "kind": "air_effect",
+        "effect": "dive",
+        "uses": 2,
+        "speed_pct": 100,
+        "angle_deg": 45
+      }
+    },
+    {
+      "id": "splinter",
+      "name": "Splinter",
+      "tier": "gold",
+      "category": "Tricks",
+      "text": "Trick: split into 3. 2 uses per round",
+      "first_playable": true,
+      "effect": {
+        "kind": "air_effect",
+        "effect": "split",
+        "uses": 2,
+        "pieces": 3
+      }
+    },
+    {
+      "id": "wild_hunt",
+      "name": "Wild Hunt",
+      "tier": "prismatic",
+      "category": "Tricks",
+      "text": "Tricks: +2 uses each per round",
+      "first_playable": true,
+      "effect": {
+        "kind": "air_effect_uses",
+        "uses": 2
+      }
+    },
+    {
+      "id": "spare_stones",
+      "name": "Spare Stones",
+      "tier": "silver",
+      "category": "Extra attacks",
+      "text": "Normal shots: +1 per round",
+      "first_playable": true,
+      "effect": {
+        "kind": "normal_shots_per_round",
+        "count": 1
+      }
+    },
+    {
+      "id": "quartermaster",
+      "name": "Quartermaster",
+      "tier": "silver",
+      "category": "Extra attacks",
+      "text": "Bought shots cost 1 gold less",
+      "first_playable": false,
+      "effect": {
+        "kind": "shot_price",
+        "delta_gold": -1,
+        "min_gold": 1
+      }
+    },
+    {
+      "id": "lucky_stone",
+      "name": "Lucky Stone",
+      "tier": "silver",
+      "category": "Extra attacks",
+      "text": "25% chance each round: +2 normal shots",
+      "first_playable": false,
+      "effect": {
+        "kind": "chance_shots",
+        "chance_pct": 25,
+        "count": 2
+      }
+    },
+    {
+      "id": "scavenger",
+      "name": "Scavenger",
+      "tier": "silver",
+      "category": "Extra attacks",
+      "text": "+1 normal shot per royal you killed last round (max 3)",
+      "first_playable": false,
+      "effect": {
+        "kind": "shots_per_kill_last_round",
+        "count": 1,
+        "max": 3
+      }
+    },
+    {
+      "id": "second_volley",
+      "name": "Second Volley",
+      "tier": "gold",
+      "category": "Extra attacks",
+      "text": "Your first shot each round fires twice",
+      "first_playable": true,
+      "effect": {
+        "kind": "first_shot_twice",
+        "copies": 2
+      }
+    },
+    {
+      "id": "arrow_storm",
+      "name": "Arrow Storm",
+      "tier": "gold",
+      "category": "Extra attacks",
+      "text": "Once per round: 8 arrows at your aim point (royals only)",
+      "first_playable": false,
+      "effect": {
+        "kind": "arrow_volley",
+        "per_round": 1,
+        "arrows": 8,
+        "hits_blocks": 0
+      }
+    },
+    {
+      "id": "vengeance",
+      "name": "Vengeance",
+      "tier": "gold",
+      "category": "Extra attacks",
+      "text": "+1 normal shot per royal you lost last round (max 3)",
+      "first_playable": false,
+      "effect": {
+        "kind": "shots_per_loss_last_round",
+        "count": 1,
+        "max": 3
+      }
+    },
+    {
+      "id": "siege_train",
+      "name": "Siege Train",
+      "tier": "prismatic",
+      "category": "Extra attacks",
+      "text": "Normal shots: +3 per round",
+      "first_playable": false,
+      "effect": {
+        "kind": "normal_shots_per_round",
+        "count": 3
+      }
+    },
+    {
+      "id": "rain_of_ruin",
+      "name": "Rain of Ruin",
+      "tier": "prismatic",
+      "category": "Extra attacks",
+      "text": "Once per round: 3 boulders fall on your target's tallest tower",
+      "first_playable": false,
+      "effect": {
+        "kind": "boulder_drop",
+        "per_round": 1,
+        "boulders": 3,
+        "target": "tallest_point"
+      }
+    },
+    {
+      "id": "seasoned_oak",
+      "name": "Seasoned Oak",
+      "tier": "silver",
+      "category": "Defense",
+      "text": "+25% wood strength",
+      "first_playable": true,
+      "effect": {
+        "kind": "material_strength",
+        "material": "wood",
+        "pct": 25
+      }
+    },
+    {
+      "id": "dressed_stone",
+      "name": "Dressed Stone",
+      "tier": "silver",
+      "category": "Defense",
+      "text": "+20% stone strength",
+      "first_playable": false,
+      "effect": {
+        "kind": "material_strength",
+        "material": "stone",
+        "pct": 20
+      }
+    },
+    {
+      "id": "tempered_iron",
+      "name": "Tempered Iron",
+      "tier": "silver",
+      "category": "Defense",
+      "text": "+20% metal strength",
+      "first_playable": false,
+      "effect": {
+        "kind": "material_strength",
+        "material": "metal",
+        "pct": 20
+      }
+    },
+    {
+      "id": "damp_timber",
+      "name": "Damp Timber",
+      "tier": "silver",
+      "category": "Defense",
+      "text": "Your wood burns 50% slower",
+      "first_playable": false,
+      "effect": {
+        "kind": "burn_rate",
+        "pct": -50
+      }
+    },
+    {
+      "id": "mortar",
+      "name": "Mortar",
+      "tier": "gold",
+      "category": "Defense",
+      "text": "+30% joint strength",
+      "first_playable": true,
+      "effect": {
+        "kind": "joint_strength",
+        "pct": 30
+      }
+    },
+    {
+      "id": "deep_footings",
+      "name": "Deep Footings",
+      "tier": "gold",
+      "category": "Defense",
+      "text": "+50% strength for segments on the ground",
+      "first_playable": false,
+      "effect": {
+        "kind": "grounded_strength",
+        "pct": 50
+      }
+    },
+    {
+      "id": "bracing",
+      "name": "Bracing",
+      "tier": "gold",
+      "category": "Defense",
+      "text": "+100% rope strength. Ropes can't be cut",
+      "first_playable": false,
+      "effect": {
+        "kind": "rope_strength",
+        "pct": 100,
+        "uncuttable": 1
+      }
+    },
+    {
+      "id": "citadel",
+      "name": "Citadel",
+      "tier": "prismatic",
+      "category": "Defense",
+      "text": "+30% strength for all materials",
+      "first_playable": true,
+      "effect": {
+        "kind": "material_strength",
+        "material": "all",
+        "pct": 30
+      }
+    },
+    {
+      "id": "hallowed_walls",
+      "name": "Hallowed Walls",
+      "tier": "prismatic",
+      "category": "Defense",
+      "text": "The first 4 segments hit each round take no damage",
+      "first_playable": false,
+      "effect": {
+        "kind": "hit_immunity",
+        "segments": 4
+      }
+    },
+    {
+      "id": "purse",
+      "name": "Purse",
+      "tier": "silver",
+      "category": "Economy",
+      "text": "+8 gold now",
+      "first_playable": true,
+      "effect": {
+        "kind": "gold_now",
+        "gold": 8
+      }
+    },
+    {
+      "id": "tithe",
+      "name": "Tithe",
+      "tier": "silver",
+      "category": "Economy",
+      "text": "+1 gold per round",
+      "first_playable": true,
+      "effect": {
+        "kind": "gold_per_round",
+        "gold": 1
+      }
+    },
+    {
+      "id": "scholar",
+      "name": "Scholar",
+      "tier": "silver",
+      "category": "Economy",
+      "text": "+2 free XP per round",
+      "first_playable": false,
+      "effect": {
+        "kind": "xp_per_round",
+        "xp": 2
+      }
+    },
+    {
+      "id": "lumber_deal",
+      "name": "Lumber Deal",
+      "tier": "silver",
+      "category": "Economy",
+      "text": "+6 wood per round",
+      "first_playable": false,
+      "effect": {
+        "kind": "material_per_round",
+        "material": "wood",
+        "count": 6
+      }
+    },
+    {
+      "id": "strongbox",
+      "name": "Strongbox",
+      "tier": "gold",
+      "category": "Economy",
+      "text": "Interest cap: +3 (max +8)",
+      "first_playable": true,
+      "effect": {
+        "kind": "interest_cap",
+        "delta": 3
+      }
+    },
+    {
+      "id": "bounty",
+      "name": "Bounty",
+      "tier": "gold",
+      "category": "Economy",
+      "text": "Kill gold doubled",
+      "first_playable": false,
+      "effect": {
+        "kind": "kill_gold",
+        "pct": 100
+      }
+    },
+    {
+      "id": "masons_discount",
+      "name": "Mason's Discount",
+      "tier": "gold",
+      "category": "Economy",
+      "text": "Stone and metal cost 1 gold less",
+      "first_playable": false,
+      "effect": {
+        "kind": "material_price",
+        "materials": [
+          "stone",
+          "metal"
+        ],
+        "delta_gold": -1
+      }
+    },
+    {
+      "id": "royal_treasury",
+      "name": "Royal Treasury",
+      "tier": "prismatic",
+      "category": "Economy",
+      "text": "+35 gold now",
+      "first_playable": true,
+      "effect": {
+        "kind": "gold_now",
+        "gold": 35
+      }
+    },
+    {
+      "id": "usury",
+      "name": "Usury",
+      "tier": "prismatic",
+      "category": "Economy",
+      "text": "Interest: +1 per 5 gold banked (max +5)",
+      "first_playable": false,
+      "effect": {
+        "kind": "interest_step",
+        "per_gold": 5
+      }
+    },
+    {
+      "id": "counting_house",
+      "name": "Counting House",
+      "tier": "silver",
+      "category": "Buildings",
+      "text": "Gain a Counting House: 2 gold per surviving round",
+      "first_playable": false,
+      "effect": {
+        "kind": "gain_building",
+        "building": "counting_house",
+        "gold_per_round": 2
+      }
+    },
+    {
+      "id": "watchtower",
+      "name": "Watchtower",
+      "tier": "silver",
+      "category": "Buildings",
+      "text": "Gain a Watchtower: see next round's wind while it stands",
+      "first_playable": false,
+      "effect": {
+        "kind": "gain_building",
+        "building": "watchtower",
+        "reveals": "next_wind"
+      }
+    },
+    {
+      "id": "carpenters_gift",
+      "name": "Carpenter's Gift",
+      "tier": "silver",
+      "category": "Buildings",
+      "text": "Gain a free Carpenter",
+      "first_playable": false,
+      "effect": {
+        "kind": "gain_building",
+        "building": "carpenter"
+      }
+    },
+    {
+      "id": "guild_charter_1",
+      "name": "Guild Charter I",
+      "tier": "silver",
+      "category": "Buildings",
+      "text": "Producers: +1 output",
+      "first_playable": true,
+      "effect": {
+        "kind": "producer_output",
+        "delta": 1
+      }
+    },
+    {
+      "id": "guild_charter_2",
+      "name": "Guild Charter II",
+      "tier": "gold",
+      "category": "Buildings",
+      "text": "Producers: +2 output",
+      "first_playable": false,
+      "effect": {
+        "kind": "producer_output",
+        "delta": 2
+      }
+    },
+    {
+      "id": "arsenal",
+      "name": "Arsenal",
+      "tier": "gold",
+      "category": "Buildings",
+      "text": "Armories give +2 shots instead of +1",
+      "first_playable": true,
+      "effect": {
+        "kind": "armory_shots",
+        "shots": 2
+      }
+    },
+    {
+      "id": "chapel",
+      "name": "Chapel",
+      "tier": "gold",
+      "category": "Buildings",
+      "text": "Gain a Chapel: +1 health per surviving round",
+      "first_playable": false,
+      "effect": {
+        "kind": "gain_building",
+        "building": "chapel",
+        "heal_per_round": 1
+      }
+    },
+    {
+      "id": "royal_mint",
+      "name": "Royal Mint",
+      "tier": "prismatic",
+      "category": "Buildings",
+      "text": "Gain a Mint: 5 gold per surviving round",
+      "first_playable": false,
+      "effect": {
+        "kind": "gain_building",
+        "building": "mint",
+        "gold_per_round": 5
+      }
+    },
+    {
+      "id": "cathedral",
+      "name": "Cathedral",
+      "tier": "prismatic",
+      "category": "Buildings",
+      "text": "Gain a Cathedral: royals within 4 segments survive one hit per round",
+      "first_playable": false,
+      "effect": {
+        "kind": "gain_building",
+        "building": "cathedral",
+        "aura_segments": 4,
+        "saves_per_royal": 1
+      }
+    },
+    {
+      "id": "chainmail",
+      "name": "Chainmail",
+      "tier": "silver",
+      "category": "Royals",
+      "text": "Squires survive one hit per round",
+      "first_playable": true,
+      "effect": {
+        "kind": "royal_save",
+        "royals": [
+          "squire"
+        ],
+        "saves": 1
+      }
+    },
+    {
+      "id": "hardy_stock",
+      "name": "Hardy Stock",
+      "tier": "silver",
+      "category": "Royals",
+      "text": "Royals survive falls of up to 5 segment heights",
+      "first_playable": false,
+      "effect": {
+        "kind": "fall_limit",
+        "segments": 5
+      }
+    },
+    {
+      "id": "decoy",
+      "name": "Decoy",
+      "tier": "silver",
+      "category": "Royals",
+      "text": "Gain a Decoy royal (no damage when killed)",
+      "first_playable": false,
+      "effect": {
+        "kind": "gain_decoys",
+        "count": 1
+      }
+    },
+    {
+      "id": "close_quarters",
+      "name": "Close Quarters",
+      "tier": "silver",
+      "category": "Royals",
+      "text": "Royal spacing: 3 segments instead of 4",
+      "first_playable": false,
+      "effect": {
+        "kind": "royal_spacing",
+        "segments": 3
+      }
+    },
+    {
+      "id": "plate_armor",
+      "name": "Plate Armor",
+      "tier": "gold",
+      "category": "Royals",
+      "text": "All royals survive one hit per round",
+      "first_playable": false,
+      "effect": {
+        "kind": "royal_save",
+        "royals": [
+          "all"
+        ],
+        "saves": 1
+      }
+    },
+    {
+      "id": "secret_passage",
+      "name": "Secret Passage",
+      "tier": "gold",
+      "category": "Royals",
+      "text": "Once per round, your first royal killed survives",
+      "first_playable": false,
+      "effect": {
+        "kind": "first_death_cancelled",
+        "per_round": 1
+      }
+    },
+    {
+      "id": "decoy_court",
+      "name": "Decoy Court",
+      "tier": "gold",
+      "category": "Royals",
+      "text": "Gain 3 Decoy royals",
+      "first_playable": false,
+      "effect": {
+        "kind": "gain_decoys",
+        "count": 3
+      }
+    },
+    {
+      "id": "royal_pardon",
+      "name": "Royal Pardon",
+      "tier": "prismatic",
+      "category": "Royals",
+      "text": "Take 40% less damage from royal deaths",
+      "first_playable": false,
+      "effect": {
+        "kind": "royal_damage_taken",
+        "pct": -40
+      }
+    },
+    {
+      "id": "long_arm_1",
+      "name": "Long Arm I",
+      "tier": "silver",
+      "category": "Trebuchet",
+      "text": "+10% shot power",
+      "first_playable": false,
+      "effect": {
+        "kind": "shot_power",
+        "pct": 10
+      }
+    },
+    {
+      "id": "steady_hand",
+      "name": "Steady Hand",
+      "tier": "silver",
+      "category": "Trebuchet",
+      "text": "Shows the paths of your last 3 shots",
+      "first_playable": false,
+      "effect": {
+        "kind": "ghost_paths",
+        "count": 3
+      }
+    },
+    {
+      "id": "windward",
+      "name": "Windward",
+      "tier": "silver",
+      "category": "Trebuchet",
+      "text": "Wind moves your shots 50% less",
+      "first_playable": false,
+      "effect": {
+        "kind": "wind_effect",
+        "pct": -50
+      }
+    },
+    {
+      "id": "sighting_peg",
+      "name": "Sighting Peg",
+      "tier": "silver",
+      "category": "Trebuchet",
+      "text": "Shows the start of your arc while swinging",
+      "first_playable": false,
+      "effect": {
+        "kind": "aim_preview",
+        "preview_pct": 25
+      }
+    },
+    {
+      "id": "long_arm_2",
+      "name": "Long Arm II",
+      "tier": "gold",
+      "category": "Trebuchet",
+      "text": "+20% shot power",
+      "first_playable": false,
+      "effect": {
+        "kind": "shot_power",
+        "pct": 20
+      }
+    },
+    {
+      "id": "heavy_sling",
+      "name": "Heavy Sling",
+      "tier": "gold",
+      "category": "Trebuchet",
+      "text": "+25% weight for all your shots",
+      "first_playable": false,
+      "effect": {
+        "kind": "shot_weight",
+        "pct": 25
+      }
+    },
+    {
+      "id": "forward_camp",
+      "name": "Forward Camp",
+      "tier": "gold",
+      "category": "Trebuchet",
+      "text": "Your trebuchet stands 6 segments closer",
+      "first_playable": false,
+      "effect": {
+        "kind": "trebuchet_offset",
+        "segments": 6
+      }
+    },
+    {
+      "id": "siege_master",
+      "name": "Siege Master",
+      "tier": "prismatic",
+      "category": "Trebuchet",
+      "text": "+40% damage to all materials",
+      "first_playable": true,
+      "effect": {
+        "kind": "shot_damage",
+        "pct": 40
+      }
+    }
+  ]
+}

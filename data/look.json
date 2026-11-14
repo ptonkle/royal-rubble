@@ -1,0 +1,17 @@
+{
+  "_about": "The Bayeux tapestry palette for the menu chrome, sampled from photographs of the real tapestry (../ctc-journal/img/look/ref/ref01, ref05, ref07: 13-pixel box averages on linen, wool fills and outlines, lifted slightly where the photo is dim). tools/look/tapestry_svgs.mjs reads it to draw web/look/*.svg; web/theme.css repeats the same values as custom properties. When notes/look/stitch/ lands with its own sampled palette, align both here.",
+  "palette": {
+    "linen": "#ddd3c8",
+    "linen_light": "#e9e2d8",
+    "linen_shadow": "#c4b6a8",
+    "brick": "#8e4a3b",
+    "brick_dark": "#6e3a2e",
+    "tan": "#a88e6c",
+    "buff": "#cbb79f",
+    "olive": "#958556",
+    "sage": "#66705e",
+    "slate": "#4f6460",
+    "navy": "#2a3646",
+    "light_blue": "#8aa0ac"
+  }
+}

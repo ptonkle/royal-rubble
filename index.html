@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Reference default. connect-src 'self' keeps fetches on this origin,
+       and the relays are exactly those in web/net/config.js (kits/online;
+       online_fence.rs matches the two);
+       'wasm-unsafe-eval' lets the page compile its own WebAssembly module;
+       form-action 'none' blocks form posts. A meta policy cannot stop data
+       leaving by navigation, so the browser check still watches requests.
+       img-src data: lets the core's tab icon through. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' wss://nos.lol wss://relay.ditto.pub wss://purplerelay.com wss://nostr.data.haus wss://relay.primal.net; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Royal Rubble</title>
+  <!-- theme.css holds every color, font and size the look decides; the
+       chosen style replaces that one file (R1.402). -->
+  <link rel="stylesheet" href="theme.css?v=2f288b949a2a">
+  <link rel="stylesheet" href="style.css?v=2f288b949a2a">
+  <!-- the playfield's colors, read by name by field-draw.js -->
+  <link rel="stylesheet" href="field.css?v=2f288b949a2a">
+  <!-- hud.css: the match HUD (top bar, health column, bottom bar), last so it wins. -->
+  <link rel="stylesheet" href="hud.css?v=2f288b949a2a">
+  <!-- The core makes the tab icon; the empty data URL keeps the browser from
+       asking for a favicon file before the page sets it. -->
+  <link id="tab-icon" rel="icon" href="data:,">
+</head>
+<body data-ready="false">
+  <canvas id="field" hidden></canvas>
+  <main id="menus"></main>
+  <p id="message" role="status"></p>
+  <button id="version" type="button"></button>
+  <noscript><p>This page needs JavaScript and WebAssembly.</p></noscript>
+  <script type="module" src="app.js?v=2f288b949a2a"></script>
+</body>
+</html>

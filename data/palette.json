@@ -1,0 +1,83 @@
+{
+  "_about": "Wool and linen colors sampled from the Bayeux tapestry photos in ctc-journal/img/look/ref/ by sample.html (seeded k-means over all eight photos, then named patches). Each entry gives the photo and pixel it came from. 'kmeans' means a cluster center over all photos. ref01 is the evenly lit photo the linen comes from; ref02-06 are darker museum scans whose thread colors read correctly on that linen.",
+  "linen": {
+    "light": "#dfd4cc",
+    "mid": "#d3c8be",
+    "dark": "#c8bdb2",
+    "_src": "mid: kmeans cluster (sample ref01 922,278); light: kmeans cluster (ref01 1114,470); dark: ref01 760,800 20th percentile #cfc3b5 darkened toward the ref03 linen #b8aea4"
+  },
+  "crease": {
+    "shadow": "#b4aba1",
+    "deep": "#a39a90",
+    "light": "#ebe1d9",
+    "_src": "shadow: kmeans cluster dark quantile (ref02 1354,106); deep: ref06 linen 1300,420 dark #afa59b less 5%; light: kmeans cluster (ref08 758,173)"
+  },
+  "wool": {
+    "terracotta": {
+      "light": "#94695a",
+      "mid": "#85604e",
+      "dark": "#6c3d2d",
+      "_src": "light ref06 420,800 median; mid between ref04 1380,700 (#7e5746) and kmeans thread #876a56; dark ref03 300,1140 20th pct"
+    },
+    "rule": {
+      "light": "#8e5f4f",
+      "mid": "#7b4f3e",
+      "dark": "#5e3426",
+      "_src": "ref03 300,1140 (the red-brown border rule and column stripes); dark toward kmeans #582f1f"
+    },
+    "tan": {
+      "light": "#b09680",
+      "mid": "#a38a74",
+      "dark": "#8a705a",
+      "_src": "light ref02 1010,1000; mid ref03 1020,1020; dark ref03 1020,1020 20th pct #917a64 and ref06 700,700 #816651"
+    },
+    "buff": {
+      "light": "#d8c19d",
+      "mid": "#c7ad95",
+      "dark": "#a8917e",
+      "_src": "light ref01 520,650 80th pct; mid kmeans thread #c7ad95; dark kmeans thread #a8917e"
+    },
+    "ochre": {
+      "light": "#b59a74",
+      "mid": "#9a8052",
+      "dark": "#786244",
+      "_src": "mid ref08 750,800; light ref01 175,760 80th pct; dark ref01 520,650 20th pct; mid slightly desaturated"
+    },
+    "olive": {
+      "light": "#8c8170",
+      "mid": "#7a6c57",
+      "dark": "#5f5444",
+      "_src": "ref04 720,700 (the green altar cloth); dark toward ref01 1250,700 #594d37"
+    },
+    "sage": {
+      "light": "#9e9787",
+      "mid": "#82807b",
+      "dark": "#69625a",
+      "_src": "mid kmeans thread #82807b (ref06 1210,1238); dark kmeans thread #69625a; light kmeans #9e9083 cooled"
+    },
+    "slate": {
+      "light": "#6b6d62",
+      "mid": "#51524b",
+      "dark": "#40443c",
+      "_src": "ref06 330,590 (blue-green slate tunic); light ref06 80th pct #5d5f53 lifted"
+    },
+    "bluegreen": {
+      "light": "#5b7378",
+      "mid": "#41606a",
+      "dark": "#2c4650",
+      "_src": "ref08 230,700 (shield) 80th pct #335e70; the saturated photo, so mid is its light value; desaturated 35% toward slate #51524b (ref08 is an oversaturated photo)"
+    },
+    "navy": {
+      "light": "#434f58",
+      "mid": "#2e3740",
+      "dark": "#1f262e",
+      "_src": "ref06 100,880 (median #2b343d, light #434f58, dark #242b35); ref01 82,800 #1b3242"
+    },
+    "blue": {
+      "light": "#8494a8",
+      "mid": "#677c98",
+      "dark": "#4a5872",
+      "_src": "ref01 110,176 (tower cap) 80th pct #5c7daf; used sparingly, as on the tapestry; desaturated 40% (ref01 is an oversaturated photo)"
+    }
+  }
+}

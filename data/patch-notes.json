@@ -1,0 +1,162 @@
+[
+  {
+    "version": "0.2.17",
+    "date": "2026-11-13",
+    "notes": [
+      "Upgrade a placed segment to a stronger material by clicking it; you pay the difference."
+    ]
+  },
+  {
+    "version": "0.2.16",
+    "date": "2026-11-13",
+    "notes": [
+      "Zoom with the mouse wheel; pan with the arrow keys or by dragging. C resets the view."
+    ]
+  },
+  {
+    "version": "0.2.15",
+    "date": "2026-11-13",
+    "notes": [
+      "Old ruins now stand at the front of your plot."
+    ]
+  },
+  {
+    "version": "0.2.14",
+    "date": "2026-11-13",
+    "notes": [
+      "New menu look to match the game; the old borders are gone.",
+      "Smooth menu battle and smoother sieges.",
+      "Bots build producers again."
+    ]
+  },
+  {
+    "version": "0.2.13",
+    "date": "2026-11-13",
+    "notes": [
+      "Coarser grid: segments snap to half cells.",
+      "Nearby nodes are marked; a note shows when you need more gold.",
+      "Thicker wood and metal, and longer segments.",
+      "Test now runs your castle's physics for a few seconds.",
+      "Smoother siege view: no more texture sliding when it zooms."
+    ]
+  },
+  {
+    "version": "0.2.12",
+    "date": "2026-11-13",
+    "notes": [
+      "How to Play and an Upgrades list on the menu.",
+      "The siege view frames your trebuchet and the castle up close."
+    ]
+  },
+  {
+    "version": "0.2.11",
+    "date": "2026-11-13",
+    "notes": [
+      "Bots build one big keep with a room for each royal."
+    ]
+  },
+  {
+    "version": "0.2.10",
+    "date": "2026-11-13",
+    "notes": [
+      "New painted look: sky, green hills, gray stone, timber trebuchet.",
+      "Royals are painted, face the incoming shot and fall when killed.",
+      "Gold, ore and stone seams show in the ground.",
+      "Esc cancels a half-placed segment."
+    ]
+  },
+  {
+    "version": "0.2.9",
+    "date": "2026-11-13",
+    "notes": [
+      "New bottom bar with icons, prices and tips.",
+      "Pause menu with settings: press Esc.",
+      "The camera follows your shot smoothly and waits for it to land.",
+      "Castles are closer and easier to hit; shots are bigger.",
+      "New trick: Bounce.",
+      "Click twice to place a segment; Z to undo.",
+      "War drums near the end of each timer, new music, and royal death cries.",
+      "A live siege behind the menu, and bots with names."
+    ]
+  },
+  {
+    "version": "0.2.8",
+    "date": "2026-11-13",
+    "notes": [
+      "Smoother: no pause when a view first appears."
+    ]
+  },
+  {
+    "version": "0.2.7",
+    "date": "2026-11-13",
+    "notes": [
+      "Bots start shooting as soon as a siege begins."
+    ]
+  },
+  {
+    "version": "0.2.6",
+    "date": "2026-11-13",
+    "notes": [
+      "Castle beams show their wood, stone and metal at every zoom."
+    ]
+  },
+  {
+    "version": "0.2.5",
+    "date": "2026-11-13",
+    "notes": [
+      "Royals are bigger, about a room tall, so you can see who is who.",
+      "Bots build huts that fit their royals, even on slopes."
+    ]
+  },
+  {
+    "version": "0.2.4",
+    "date": "2026-11-13",
+    "notes": [
+      "Bots shelter their royals on hilly ground.",
+      "Royals are drawn to the same scale as castles."
+    ]
+  },
+  {
+    "version": "0.2.3",
+    "date": "2026-11-13",
+    "notes": [
+      "New look for the royals, with faces you can read.",
+      "A border of beasts and birds runs along the top.",
+      "Trees on the hills.",
+      "The siege view no longer shows past the edge of the world."
+    ]
+  },
+  {
+    "version": "0.2.2",
+    "date": "2026-11-13",
+    "notes": [
+      "Finer aim: a slightly later release throws slightly farther.",
+      "Bots no longer freeze the game at the start of a siege."
+    ]
+  },
+  {
+    "version": "0.2.1",
+    "date": "2026-11-13",
+    "notes": [
+      "The trebuchet now swings at a steady speed, with a real sling and counterweight.",
+      "Its longest throw is shorter.",
+      "The camera stays on the trebuchet for a moment after each throw."
+    ]
+  },
+  {
+    "version": "0.2.0",
+    "date": "2026-11-13",
+    "notes": [
+      "First playable version: build a castle, then besiege your rivals.",
+      "Play against bots, or with friends online.",
+      "Everything is stitched in wool on linen."
+    ]
+  },
+  {
+    "version": "0.1.0",
+    "date": "2026-11-12",
+    "notes": [
+      "Menus, settings and the online lobby."
+    ]
+  }
+]
