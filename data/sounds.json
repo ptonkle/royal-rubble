@@ -1,0 +1,6977 @@
+{
+ "_note": "Every sound in Royal Rubble. There are no audio files: tools/sound/compile.py compiles these recipes into data/sound-programs.json, which web/synth.js plays and tools/sound/render.py renders. Written by tools/sound/author.py; edit there. Frequencies in Hz, times in ms, gains 0 to 1.",
+ "silence": 0.001,
+ "noise": {
+  "samples": 44100,
+  "seed": 7,
+  "rate": 44100
+ },
+ "setup": {
+  "_about": "master_scale: a full slider plays 60% of the level the test page plays (the low-volume rule, after Fleeced's T23). music_gain sits the music well under the effects. Times in seconds except tick_ms.",
+  "master_scale": 0.6,
+  "sfx_gain": 1.0,
+  "music_gain": 0.32,
+  "urgent_gain": 0.8,
+  "smooth": 0.06,
+  "crossfade": 0.33,
+  "fade_out": 1.4,
+  "lookahead": 0.5,
+  "tick_ms": 120,
+  "repeat_gap": 0.04,
+  "urgent_track": "music_siege_urgent",
+  "limiter": {
+   "threshold": -6,
+   "knee": 6,
+   "ratio": 4,
+   "attack": 0.003,
+   "release": 0.25
+  }
+ },
+ "groups": {
+  "impact_wood": [
+   "impact_wood_1",
+   "impact_wood_2",
+   "impact_wood_3"
+  ],
+  "impact_stone": [
+   "impact_stone_1",
+   "impact_stone_2",
+   "impact_stone_3"
+  ],
+  "impact_metal": [
+   "impact_metal_1",
+   "impact_metal_2",
+   "impact_metal_3"
+  ],
+  "debris": [
+   "debris_1",
+   "debris_2"
+  ]
+ },
+ "tiers": {
+  "collapse": [
+   [
+    1,
+    "collapse_small"
+   ],
+   [
+    5,
+    "collapse_mid"
+   ],
+   [
+    12,
+    "collapse_big"
+   ]
+  ]
+ },
+ "sections": [
+  {
+   "label": "Trebuchet",
+   "ids": [
+    "trebuchet_creak",
+    "trebuchet_release",
+    "shot_whoosh"
+   ]
+  },
+  {
+   "label": "Impacts",
+   "ids": [
+    "impact_wood_1",
+    "impact_wood_2",
+    "impact_wood_3",
+    "impact_stone_1",
+    "impact_stone_2",
+    "impact_stone_3",
+    "impact_metal_1",
+    "impact_metal_2",
+    "impact_metal_3",
+    "segment_snap",
+    "collapse_small",
+    "collapse_mid",
+    "collapse_big",
+    "debris_1",
+    "debris_2"
+   ]
+  },
+  {
+   "label": "Shots and tricks",
+   "ids": [
+    "splash",
+    "explosion",
+    "fire_ignite",
+    "fire_crackle",
+    "phase_shimmer",
+    "split_pop",
+    "dive_whistle",
+    "air_drop",
+    "air_reverse"
+   ]
+  },
+  {
+   "label": "Royals",
+   "ids": [
+    "royal_squire",
+    "royal_knight",
+    "royal_princess",
+    "royal_prince",
+    "royal_queen",
+    "royal_king"
+   ]
+  },
+  {
+   "label": "Building and gold",
+   "ids": [
+    "place_segment",
+    "sell_segment",
+    "coin",
+    "buy_xp",
+    "level_up",
+    "cards_reveal",
+    "card_pick",
+    "reroll"
+   ]
+  },
+  {
+   "label": "Phases and menus",
+   "ids": [
+    "horn_build",
+    "horn_siege",
+    "drum_count",
+    "drum_close",
+    "elimination",
+    "victory",
+    "ui_click",
+    "ui_hover",
+    "sample"
+   ]
+  },
+  {
+   "label": "Music",
+   "ids": [
+    "music_menu",
+    "music_build",
+    "music_jig",
+    "music_pastoral",
+    "music_ballad",
+    "music_mandolins",
+    "music_siege",
+    "music_siege_urgent"
+   ]
+  }
+ ],
+ "cues": [
+  {
+   "id": "trebuchet_creak",
+   "label": "Trebuchet wind-up",
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "freq": 82,
+     "gain": 0.22,
+     "at_ms": 0,
+     "attack_ms": 60,
+     "hold_ms": 700,
+     "release_ms": 220,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 650,
+       "q": 4
+      }
+     ],
+     "throb": [
+      {
+       "rate": 13,
+       "depth": 0.9
+      }
+     ],
+     "to_freq": 64
+    },
+    {
+     "wave": "noise",
+     "gain": 0.3,
+     "strikes": [
+      [
+       0,
+       1
+      ],
+      [
+       80,
+       0.6
+      ],
+      [
+       160,
+       1
+      ],
+      [
+       240,
+       0.6
+      ],
+      [
+       320,
+       1
+      ],
+      [
+       400,
+       0.6
+      ],
+      [
+       480,
+       1
+      ],
+      [
+       560,
+       0.6
+      ],
+      [
+       640,
+       1
+      ],
+      [
+       720,
+       0.6
+      ],
+      [
+       800,
+       1
+      ],
+      [
+       880,
+       0.6
+      ]
+     ],
+     "ring_ms": 10,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2400,
+       "q": 3
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "trebuchet_release",
+   "label": "Trebuchet release",
+   "layers": [
+    {
+     "wave": "sine",
+     "freq": 115,
+     "gain": 0.55,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 30,
+     "release_ms": 260,
+     "to_freq": 42
+    },
+    {
+     "wave": "noise",
+     "gain": 0.35,
+     "strikes": [
+      [
+       0,
+       1
+      ],
+      [
+       22,
+       0.4
+      ]
+     ],
+     "ring_ms": 45,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 700,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "triangle",
+     "freq": 330,
+     "gain": 0.22,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 120,
+     "to_freq": 190
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 176,
+     "gain": 0.07,
+     "at_ms": 10,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 420,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 900,
+       "q": 0.7071
+      }
+     ],
+     "to_freq": 171
+    }
+   ]
+  },
+  {
+   "id": "shot_whoosh",
+   "label": "Shot in flight",
+   "kind": "loop",
+   "length_ms": 2000,
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.07,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 520,
+       "q": 1.3
+      }
+     ],
+     "steady": true,
+     "throb": [
+      {
+       "rate": 2.6,
+       "depth": 0.5
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.025,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1500,
+       "q": 2
+      }
+     ],
+     "steady": true,
+     "throb": [
+      {
+       "rate": 4.1,
+       "depth": 0.6
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "impact_wood_1",
+   "label": "Wood hit 1",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.5,
+     "strikes": [
+      [
+       0,
+       1.0
+      ],
+      [
+       13,
+       0.468
+      ],
+      [
+       35,
+       0.578
+      ],
+      [
+       66,
+       0.246
+      ],
+      [
+       84,
+       0.365
+      ]
+     ],
+     "ring_ms": 24,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1800,
+       "q": 1.6
+      }
+     ]
+    },
+    {
+     "wave": "triangle",
+     "freq": 140,
+     "gain": 0.32,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 130,
+     "to_freq": 70
+    },
+    {
+     "wave": "square",
+     "freq": 900,
+     "gain": 0.045,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 35,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 3000,
+       "q": 0.7071
+      }
+     ],
+     "to_freq": 450
+    }
+   ]
+  },
+  {
+   "id": "impact_wood_2",
+   "label": "Wood hit 2",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.5,
+     "strikes": [
+      [
+       0,
+       1.0
+      ],
+      [
+       13,
+       0.468
+      ],
+      [
+       35,
+       0.578
+      ],
+      [
+       66,
+       0.246
+      ],
+      [
+       84,
+       0.365
+      ]
+     ],
+     "ring_ms": 24,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2300,
+       "q": 1.6
+      }
+     ]
+    },
+    {
+     "wave": "triangle",
+     "freq": 120,
+     "gain": 0.32,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 130,
+     "to_freq": 60
+    },
+    {
+     "wave": "square",
+     "freq": 1100,
+     "gain": 0.045,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 35,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 3000,
+       "q": 0.7071
+      }
+     ],
+     "to_freq": 550
+    }
+   ]
+  },
+  {
+   "id": "impact_wood_3",
+   "label": "Wood hit 3",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.5,
+     "strikes": [
+      [
+       0,
+       1.0
+      ],
+      [
+       13,
+       0.468
+      ],
+      [
+       35,
+       0.578
+      ],
+      [
+       66,
+       0.246
+      ],
+      [
+       84,
+       0.365
+      ]
+     ],
+     "ring_ms": 24,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1500,
+       "q": 1.6
+      }
+     ]
+    },
+    {
+     "wave": "triangle",
+     "freq": 160,
+     "gain": 0.32,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 130,
+     "to_freq": 80
+    },
+    {
+     "wave": "square",
+     "freq": 760,
+     "gain": 0.045,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 35,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 3000,
+       "q": 0.7071
+      }
+     ],
+     "to_freq": 380
+    }
+   ]
+  },
+  {
+   "id": "impact_stone_1",
+   "label": "Stone hit 1",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.55,
+     "strikes": [
+      [
+       0,
+       1.0
+      ],
+      [
+       12,
+       0.44
+      ],
+      [
+       32,
+       0.512
+      ],
+      [
+       60,
+       0.205
+      ],
+      [
+       76,
+       0.287
+      ],
+      [
+       100,
+       0.328
+      ],
+      [
+       112,
+       0.144
+      ],
+      [
+       132,
+       0.168
+      ]
+     ],
+     "ring_ms": 28,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1100,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.18,
+     "strikes": [
+      [
+       8,
+       1.0
+      ],
+      [
+       27,
+       0.468
+      ],
+      [
+       58,
+       0.578
+      ],
+      [
+       101,
+       0.246
+      ],
+      [
+       126,
+       0.365
+      ],
+      [
+       163,
+       0.444
+      ]
+     ],
+     "ring_ms": 9,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 3200,
+       "q": 1.5
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 80,
+     "gain": 0.5,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 230,
+     "to_freq": 40
+    }
+   ]
+  },
+  {
+   "id": "impact_stone_2",
+   "label": "Stone hit 2",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.55,
+     "strikes": [
+      [
+       0,
+       1.0
+      ],
+      [
+       12,
+       0.44
+      ],
+      [
+       32,
+       0.512
+      ],
+      [
+       60,
+       0.205
+      ],
+      [
+       76,
+       0.287
+      ],
+      [
+       100,
+       0.328
+      ],
+      [
+       112,
+       0.144
+      ],
+      [
+       132,
+       0.168
+      ]
+     ],
+     "ring_ms": 28,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 900,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.18,
+     "strikes": [
+      [
+       8,
+       1.0
+      ],
+      [
+       27,
+       0.468
+      ],
+      [
+       58,
+       0.578
+      ],
+      [
+       101,
+       0.246
+      ],
+      [
+       126,
+       0.365
+      ],
+      [
+       163,
+       0.444
+      ]
+     ],
+     "ring_ms": 9,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 3200,
+       "q": 1.5
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 70,
+     "gain": 0.5,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 230,
+     "to_freq": 35
+    }
+   ]
+  },
+  {
+   "id": "impact_stone_3",
+   "label": "Stone hit 3",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.55,
+     "strikes": [
+      [
+       0,
+       1.0
+      ],
+      [
+       12,
+       0.44
+      ],
+      [
+       32,
+       0.512
+      ],
+      [
+       60,
+       0.205
+      ],
+      [
+       76,
+       0.287
+      ],
+      [
+       100,
+       0.328
+      ],
+      [
+       112,
+       0.144
+      ],
+      [
+       132,
+       0.168
+      ]
+     ],
+     "ring_ms": 28,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1300,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.18,
+     "strikes": [
+      [
+       8,
+       1.0
+      ],
+      [
+       27,
+       0.468
+      ],
+      [
+       58,
+       0.578
+      ],
+      [
+       101,
+       0.246
+      ],
+      [
+       126,
+       0.365
+      ],
+      [
+       163,
+       0.444
+      ]
+     ],
+     "ring_ms": 9,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 3200,
+       "q": 1.5
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 92,
+     "gain": 0.5,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 230,
+     "to_freq": 46
+    }
+   ]
+  },
+  {
+   "id": "impact_metal_1",
+   "label": "Metal clang 1",
+   "layers": [
+    {
+     "wave": "sine",
+     "gain": 0.2,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 380.0,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 420.0
+    },
+    {
+     "wave": "sine",
+     "gain": 0.12,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 237.5,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 1159.2
+    },
+    {
+     "wave": "sine",
+     "gain": 0.08000000000000002,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 172.72727272727272,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 2268.0
+    },
+    {
+     "wave": "sine",
+     "gain": 0.044000000000000004,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 135.71428571428572,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 3750.6
+    },
+    {
+     "wave": "noise",
+     "gain": 0.2,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 10,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "highpass",
+       "freq": 3000,
+       "q": 0.7071
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "impact_metal_2",
+   "label": "Metal clang 2",
+   "layers": [
+    {
+     "wave": "sine",
+     "gain": 0.2,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 380.0,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 510.0
+    },
+    {
+     "wave": "sine",
+     "gain": 0.12,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 237.5,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 1407.6
+    },
+    {
+     "wave": "sine",
+     "gain": 0.08000000000000002,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 172.72727272727272,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 2754.0
+    },
+    {
+     "wave": "sine",
+     "gain": 0.044000000000000004,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 135.71428571428572,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 4554.3
+    },
+    {
+     "wave": "noise",
+     "gain": 0.2,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 10,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "highpass",
+       "freq": 3000,
+       "q": 0.7071
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "impact_metal_3",
+   "label": "Metal clang 3",
+   "layers": [
+    {
+     "wave": "sine",
+     "gain": 0.2,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 380.0,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 365.0
+    },
+    {
+     "wave": "sine",
+     "gain": 0.12,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 237.5,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 1007.4
+    },
+    {
+     "wave": "sine",
+     "gain": 0.08000000000000002,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 172.72727272727272,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 1971.0
+    },
+    {
+     "wave": "sine",
+     "gain": 0.044000000000000004,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 135.71428571428572,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 3259.4
+    },
+    {
+     "wave": "noise",
+     "gain": 0.2,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 10,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "highpass",
+       "freq": 3000,
+       "q": 0.7071
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "segment_snap",
+   "label": "Segment snaps",
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "freq": 140,
+     "gain": 0.05,
+     "at_ms": 0,
+     "attack_ms": 40,
+     "hold_ms": 60,
+     "release_ms": 60,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 800,
+       "q": 5
+      }
+     ],
+     "to_freq": 120
+    },
+    {
+     "wave": "noise",
+     "gain": 0.55,
+     "strikes": [
+      [
+       100,
+       1
+      ],
+      [
+       108,
+       0.5
+      ]
+     ],
+     "ring_ms": 8,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "highpass",
+       "freq": 2500,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "square",
+     "freq": 1400,
+     "gain": 0.06,
+     "at_ms": 100,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 45,
+     "to_freq": 300
+    }
+   ]
+  },
+  {
+   "id": "collapse_small",
+   "label": "Collapse (small)",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.3,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 260,
+       "q": 0.7071,
+       "sweep_ms": 850,
+       "to_freq": 110
+      }
+     ],
+     "attack_ms": 25,
+     "hold_ms": 250,
+     "release_ms": 600,
+     "throb": [
+      {
+       "rate": 8.5,
+       "depth": 0.4
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 58,
+     "gain": 0.27,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 60,
+     "release_ms": 300,
+     "to_freq": 34
+    },
+    {
+     "wave": "noise",
+     "gain": 0.12,
+     "strikes": [
+      [
+       40,
+       1.0
+      ],
+      [
+       101,
+       0.506
+      ],
+      [
+       202,
+       0.677
+      ],
+      [
+       344,
+       0.311
+      ],
+      [
+       425,
+       0.501
+      ],
+      [
+       546,
+       0.659
+      ]
+     ],
+     "ring_ms": 18,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1500,
+       "q": 1.2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "collapse_mid",
+   "label": "Collapse (medium)",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.42,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 260,
+       "q": 0.7071,
+       "sweep_ms": 1650,
+       "to_freq": 110
+      }
+     ],
+     "attack_ms": 25,
+     "hold_ms": 650,
+     "release_ms": 1000,
+     "throb": [
+      {
+       "rate": 8.5,
+       "depth": 0.4
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 58,
+     "gain": 0.378,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 60,
+     "release_ms": 500,
+     "to_freq": 34
+    },
+    {
+     "wave": "noise",
+     "gain": 0.168,
+     "strikes": [
+      [
+       40,
+       1.0
+      ],
+      [
+       99,
+       0.506
+      ],
+      [
+       197,
+       0.677
+      ],
+      [
+       335,
+       0.311
+      ],
+      [
+       413,
+       0.501
+      ],
+      [
+       531,
+       0.659
+      ],
+      [
+       590,
+       0.333
+      ],
+      [
+       688,
+       0.446
+      ],
+      [
+       826,
+       0.205
+      ],
+      [
+       904,
+       0.331
+      ],
+      [
+       1022,
+       0.434
+      ],
+      [
+       1081,
+       0.22
+      ]
+     ],
+     "ring_ms": 18,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1500,
+       "q": 1.2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "collapse_big",
+   "label": "Collapse (big)",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.52,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 260,
+       "q": 0.7071,
+       "sweep_ms": 3100,
+       "to_freq": 110
+      }
+     ],
+     "attack_ms": 25,
+     "hold_ms": 1300,
+     "release_ms": 1800,
+     "throb": [
+      {
+       "rate": 8.5,
+       "depth": 0.4
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 58,
+     "gain": 0.468,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 60,
+     "release_ms": 900,
+     "to_freq": 34
+    },
+    {
+     "wave": "noise",
+     "gain": 0.20800000000000002,
+     "strikes": [
+      [
+       40,
+       1.0
+      ],
+      [
+       100,
+       0.506
+      ],
+      [
+       201,
+       0.677
+      ],
+      [
+       342,
+       0.311
+      ],
+      [
+       422,
+       0.501
+      ],
+      [
+       543,
+       0.659
+      ],
+      [
+       604,
+       0.333
+      ],
+      [
+       704,
+       0.446
+      ],
+      [
+       845,
+       0.205
+      ],
+      [
+       926,
+       0.331
+      ],
+      [
+       1046,
+       0.434
+      ],
+      [
+       1107,
+       0.22
+      ],
+      [
+       1208,
+       0.294
+      ],
+      [
+       1348,
+       0.135
+      ],
+      [
+       1429,
+       0.218
+      ],
+      [
+       1550,
+       0.286
+      ],
+      [
+       1610,
+       0.145
+      ],
+      [
+       1711,
+       0.194
+      ],
+      [
+       1852,
+       0.089
+      ],
+      [
+       1932,
+       0.144
+      ],
+      [
+       2053,
+       0.189
+      ],
+      [
+       2113,
+       0.095
+      ]
+     ],
+     "ring_ms": 18,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1500,
+       "q": 1.2
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 38,
+     "gain": 0.35,
+     "at_ms": 0,
+     "attack_ms": 80,
+     "hold_ms": 400,
+     "release_ms": 1500,
+     "to_freq": 30
+    }
+   ]
+  },
+  {
+   "id": "debris_1",
+   "label": "Debris clatter 1",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.6,
+     "strikes": [
+      [
+       0,
+       1.0
+      ],
+      [
+       17,
+       0.473
+      ],
+      [
+       45,
+       0.592
+      ],
+      [
+       84,
+       0.254
+      ],
+      [
+       106,
+       0.383
+      ],
+      [
+       140,
+       0.47
+      ],
+      [
+       157,
+       0.223
+      ],
+      [
+       185,
+       0.278
+      ],
+      [
+       224,
+       0.12
+      ]
+     ],
+     "ring_ms": 14,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2600,
+       "q": 2
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.35,
+     "strikes": [
+      [
+       15,
+       1.0
+      ],
+      [
+       44,
+       0.468
+      ],
+      [
+       91,
+       0.578
+      ],
+      [
+       158,
+       0.246
+      ],
+      [
+       196,
+       0.365
+      ]
+     ],
+     "ring_ms": 22,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "debris_2",
+   "label": "Debris clatter 2",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.6,
+     "strikes": [
+      [
+       0,
+       1.0
+      ],
+      [
+       22,
+       0.473
+      ],
+      [
+       58,
+       0.592
+      ],
+      [
+       108,
+       0.254
+      ],
+      [
+       137,
+       0.383
+      ],
+      [
+       180,
+       0.47
+      ],
+      [
+       202,
+       0.223
+      ],
+      [
+       238,
+       0.278
+      ],
+      [
+       288,
+       0.12
+      ]
+     ],
+     "ring_ms": 14,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 3000,
+       "q": 2
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.35,
+     "strikes": [
+      [
+       15,
+       1.0
+      ],
+      [
+       52,
+       0.468
+      ],
+      [
+       113,
+       0.578
+      ],
+      [
+       199,
+       0.246
+      ],
+      [
+       248,
+       0.365
+      ]
+     ],
+     "ring_ms": 22,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "splash",
+   "label": "Splash",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.42,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 3200,
+       "q": 0.7071,
+       "sweep_ms": 650,
+       "to_freq": 450
+      }
+     ],
+     "attack_ms": 6,
+     "hold_ms": 60,
+     "release_ms": 600
+    },
+    {
+     "wave": "sine",
+     "freq": 280,
+     "gain": 0.13,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 70,
+     "to_freq": 900,
+     "glide_ms": 80
+    },
+    {
+     "wave": "noise",
+     "gain": 0.12,
+     "strikes": [
+      [
+       160,
+       1.0
+      ],
+      [
+       193,
+       0.468
+      ],
+      [
+       248,
+       0.578
+      ],
+      [
+       325,
+       0.246
+      ],
+      [
+       369,
+       0.365
+      ],
+      [
+       435,
+       0.444
+      ],
+      [
+       468,
+       0.207
+      ]
+     ],
+     "ring_ms": 9,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 3600,
+       "q": 3
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 70,
+     "gain": 0.3,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 240,
+     "to_freq": 40
+    }
+   ]
+  },
+  {
+   "id": "explosion",
+   "label": "Explosion",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.48,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 0.7071,
+       "sweep_ms": 1400,
+       "to_freq": 140
+      }
+     ],
+     "attack_ms": 3,
+     "hold_ms": 80,
+     "release_ms": 1400
+    },
+    {
+     "wave": "sine",
+     "freq": 72,
+     "gain": 0.42,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 40,
+     "release_ms": 700,
+     "to_freq": 30
+    },
+    {
+     "wave": "noise",
+     "gain": 0.22,
+     "strikes": [
+      [
+       60,
+       1.0
+      ],
+      [
+       102,
+       0.462
+      ],
+      [
+       172,
+       0.564
+      ],
+      [
+       270,
+       0.237
+      ],
+      [
+       326,
+       0.349
+      ],
+      [
+       410,
+       0.418
+      ],
+      [
+       452,
+       0.193
+      ],
+      [
+       522,
+       0.236
+      ],
+      [
+       620,
+       0.099
+      ],
+      [
+       676,
+       0.146
+      ]
+     ],
+     "ring_ms": 12,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "highpass",
+       "freq": 2000,
+       "q": 0.7071
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "fire_ignite",
+   "label": "Fire catches",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.32,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 380,
+       "q": 1.2,
+       "to_freq": 1500,
+       "sweep_ms": 380
+      }
+     ],
+     "attack_ms": 90,
+     "hold_ms": 100,
+     "release_ms": 520
+    },
+    {
+     "wave": "sine",
+     "freq": 95,
+     "gain": 0.18,
+     "at_ms": 0,
+     "attack_ms": 60,
+     "hold_ms": 0,
+     "release_ms": 300,
+     "to_freq": 150
+    }
+   ]
+  },
+  {
+   "id": "fire_crackle",
+   "label": "Fire crackle (loop)",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.05,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 650,
+       "q": 0.7071
+      }
+     ],
+     "steady": true,
+     "throb": [
+      {
+       "rate": 1.3,
+       "depth": 0.6
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.3,
+     "strikes": [
+      [
+       40,
+       1
+      ],
+      [
+       260,
+       0.5
+      ],
+      [
+       330,
+       0.8
+      ],
+      [
+       910,
+       0.6
+      ],
+      [
+       1180,
+       1
+      ],
+      [
+       1240,
+       0.4
+      ],
+      [
+       1700,
+       0.7
+      ],
+      [
+       2150,
+       0.9
+      ],
+      [
+       2480,
+       0.5
+      ],
+      [
+       2810,
+       0.7
+      ]
+     ],
+     "ring_ms": 6,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2800,
+       "q": 1
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.12,
+     "strikes": [
+      [
+       150,
+       1
+      ],
+      [
+       700,
+       0.7
+      ],
+      [
+       1450,
+       0.9
+      ],
+      [
+       2000,
+       0.6
+      ],
+      [
+       2600,
+       0.8
+      ]
+     ],
+     "ring_ms": 14,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1200,
+       "q": 1.5
+      }
+     ]
+    }
+   ],
+   "kind": "loop",
+   "length_ms": 3000
+  },
+  {
+   "id": "phase_shimmer",
+   "label": "Phase",
+   "layers": [
+    {
+     "wave": "sine",
+     "freq": 880,
+     "gain": 0.055,
+     "at_ms": 0,
+     "attack_ms": 150,
+     "hold_ms": 150,
+     "release_ms": 520,
+     "to_freq": 1320.0,
+     "wobble": [
+      {
+       "rate": 7,
+       "cents": 30
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 1320,
+     "gain": 0.055,
+     "at_ms": 0,
+     "attack_ms": 150,
+     "hold_ms": 150,
+     "release_ms": 520,
+     "to_freq": 1980.0,
+     "wobble": [
+      {
+       "rate": 7,
+       "cents": 30
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 1760,
+     "gain": 0.055,
+     "at_ms": 0,
+     "attack_ms": 150,
+     "hold_ms": 150,
+     "release_ms": 520,
+     "to_freq": 2640.0,
+     "wobble": [
+      {
+       "rate": 7,
+       "cents": 30
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "split_pop",
+   "label": "Split",
+   "layers": [
+    {
+     "wave": "sine",
+     "freq": 600,
+     "gain": 0.25,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 90,
+     "to_freq": 1400,
+     "glide_ms": 40
+    },
+    {
+     "wave": "noise",
+     "gain": 0.2,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 18,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "highpass",
+       "freq": 1800,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 900,
+     "gain": 0.1,
+     "at_ms": 30,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 90,
+     "to_freq": 700
+    }
+   ]
+  },
+  {
+   "id": "dive_whistle",
+   "label": "Dive",
+   "layers": [
+    {
+     "wave": "sine",
+     "freq": 2300,
+     "gain": 0.11,
+     "at_ms": 0,
+     "attack_ms": 20,
+     "hold_ms": 650,
+     "release_ms": 80,
+     "to_freq": 520,
+     "glide_ms": 730,
+     "glide": "linear",
+     "wobble": [
+      {
+       "rate": 9,
+       "cents": 14
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.05,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1400,
+       "q": 2,
+       "to_freq": 500,
+       "sweep_ms": 750
+      }
+     ],
+     "attack_ms": 40,
+     "hold_ms": 600,
+     "release_ms": 120
+    }
+   ]
+  },
+  {
+   "id": "air_drop",
+   "label": "Drop",
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "freq": 420,
+     "gain": 0.08,
+     "at_ms": 0,
+     "attack_ms": 10,
+     "hold_ms": 320,
+     "release_ms": 120,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 900,
+       "q": 0.7071
+      }
+     ],
+     "to_freq": 70,
+     "glide_ms": 430
+    },
+    {
+     "wave": "noise",
+     "gain": 0.12,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 1.5,
+       "to_freq": 200,
+       "sweep_ms": 450
+      }
+     ],
+     "attack_ms": 10,
+     "hold_ms": 320,
+     "release_ms": 120
+    }
+   ]
+  },
+  {
+   "id": "air_reverse",
+   "label": "Reverse",
+   "layers": [
+    {
+     "wave": "sine",
+     "freq": 320,
+     "gain": 0.12,
+     "at_ms": 0,
+     "attack_ms": 15,
+     "hold_ms": 420,
+     "release_ms": 100,
+     "bends": [
+      [
+       220,
+       900
+      ],
+      [
+       440,
+       300
+      ]
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.1,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 600,
+       "q": 1.5,
+       "to_freq": 2000,
+       "sweep_ms": 220
+      }
+     ],
+     "attack_ms": 15,
+     "hold_ms": 420,
+     "release_ms": 100
+    }
+   ]
+  },
+  {
+   "id": "royal_squire",
+   "label": "Squire falls",
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "freq": 420,
+     "gain": 0.546,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 260,
+     "release_ms": 110,
+     "bends": [
+      [
+       46.8,
+       640
+      ],
+      [
+       130.0,
+       595
+      ],
+      [
+       260,
+       300
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 851,
+       "q": 5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 420,
+     "gain": 0.382,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 260,
+     "release_ms": 110,
+     "bends": [
+      [
+       46.8,
+       640
+      ],
+      [
+       130.0,
+       595
+      ],
+      [
+       260,
+       300
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1322,
+       "q": 7
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 420,
+     "gain": 0.191,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 260,
+     "release_ms": 110,
+     "bends": [
+      [
+       46.8,
+       640
+      ],
+      [
+       130.0,
+       595
+      ],
+      [
+       260,
+       300
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2856,
+       "q": 9
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.066,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1322,
+       "q": 2
+      }
+     ],
+     "at_ms": 0,
+     "attack_ms": 10,
+     "hold_ms": 156,
+     "release_ms": 130
+    },
+    {
+     "wave": "sine",
+     "freq": 95,
+     "gain": 0.22,
+     "at_ms": 280,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 140,
+     "to_freq": 50
+    },
+    {
+     "wave": "noise",
+     "gain": 0.132,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 30,
+     "at_ms": 280,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 500,
+       "q": 0.7071
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "royal_knight",
+   "label": "Knight falls",
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "freq": 170,
+     "gain": 0.672,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 330,
+     "release_ms": 110,
+     "bends": [
+      [
+       59.4,
+       250
+      ],
+      [
+       165.0,
+       232
+      ],
+      [
+       330,
+       110
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 560,
+       "q": 5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 170,
+     "gain": 0.47,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 330,
+     "release_ms": 110,
+     "bends": [
+      [
+       59.4,
+       250
+      ],
+      [
+       165.0,
+       232
+      ],
+      [
+       330,
+       110
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 7
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 170,
+     "gain": 0.235,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 330,
+     "release_ms": 110,
+     "bends": [
+      [
+       59.4,
+       250
+      ],
+      [
+       165.0,
+       232
+      ],
+      [
+       330,
+       110
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2400,
+       "q": 9
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.081,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 2
+      }
+     ],
+     "at_ms": 0,
+     "attack_ms": 10,
+     "hold_ms": 198,
+     "release_ms": 165
+    },
+    {
+     "wave": "sine",
+     "freq": 95,
+     "gain": 0.3,
+     "at_ms": 330,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 140,
+     "to_freq": 50
+    },
+    {
+     "wave": "noise",
+     "gain": 0.18,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 30,
+     "at_ms": 330,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 500,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "gain": 0.08,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 160.0,
+     "at_ms": 330,
+     "filters": [],
+     "freq": 620.0
+    },
+    {
+     "wave": "sine",
+     "gain": 0.048,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 100.0,
+     "at_ms": 330,
+     "filters": [],
+     "freq": 1711.2
+    },
+    {
+     "wave": "sine",
+     "gain": 0.032,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 72.72727272727272,
+     "at_ms": 330,
+     "filters": [],
+     "freq": 3348.0
+    },
+    {
+     "wave": "sine",
+     "gain": 0.0176,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 57.142857142857146,
+     "at_ms": 330,
+     "filters": [],
+     "freq": 5536.6
+    }
+   ]
+  },
+  {
+   "id": "royal_princess",
+   "label": "Princess falls",
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "freq": 560,
+     "gain": 0.504,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 380,
+     "release_ms": 110,
+     "bends": [
+      [
+       68.39999999999999,
+       900
+      ],
+      [
+       190.0,
+       837
+      ],
+      [
+       380,
+       420
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 912,
+       "q": 5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 560,
+     "gain": 0.353,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 380,
+     "release_ms": 110,
+     "bends": [
+      [
+       68.39999999999999,
+       900
+      ],
+      [
+       190.0,
+       837
+      ],
+      [
+       380,
+       420
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1416,
+       "q": 7
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 560,
+     "gain": 0.176,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 380,
+     "release_ms": 110,
+     "bends": [
+      [
+       68.39999999999999,
+       900
+      ],
+      [
+       190.0,
+       837
+      ],
+      [
+       380,
+       420
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 3060,
+       "q": 9
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.06,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1416,
+       "q": 2
+      }
+     ],
+     "at_ms": 0,
+     "attack_ms": 10,
+     "hold_ms": 228,
+     "release_ms": 190
+    },
+    {
+     "wave": "sine",
+     "freq": 95,
+     "gain": 0.22,
+     "at_ms": 400,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 140,
+     "to_freq": 50
+    },
+    {
+     "wave": "noise",
+     "gain": 0.132,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 30,
+     "at_ms": 400,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 500,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "gain": 0.05,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 300,
+     "at_ms": 420,
+     "filters": [],
+     "freq": 1568
+    },
+    {
+     "wave": "sine",
+     "gain": 0.05,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 300,
+     "at_ms": 490,
+     "filters": [],
+     "freq": 2093
+    }
+   ]
+  },
+  {
+   "id": "royal_prince",
+   "label": "Prince falls",
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "freq": 230,
+     "gain": 0.63,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 380,
+     "release_ms": 110,
+     "bends": [
+      [
+       68.39999999999999,
+       340
+      ],
+      [
+       190.0,
+       316
+      ],
+      [
+       380,
+       150
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 760,
+       "q": 5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 230,
+     "gain": 0.441,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 380,
+     "release_ms": 110,
+     "bends": [
+      [
+       68.39999999999999,
+       340
+      ],
+      [
+       190.0,
+       316
+      ],
+      [
+       380,
+       150
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1180,
+       "q": 7
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 230,
+     "gain": 0.22,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 380,
+     "release_ms": 110,
+     "bends": [
+      [
+       68.39999999999999,
+       340
+      ],
+      [
+       190.0,
+       316
+      ],
+      [
+       380,
+       150
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2550,
+       "q": 9
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.076,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1180,
+       "q": 2
+      }
+     ],
+     "at_ms": 0,
+     "attack_ms": 10,
+     "hold_ms": 228,
+     "release_ms": 190
+    },
+    {
+     "wave": "sine",
+     "freq": 95,
+     "gain": 0.3,
+     "at_ms": 400,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 140,
+     "to_freq": 50
+    },
+    {
+     "wave": "noise",
+     "gain": 0.18,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 30,
+     "at_ms": 400,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 500,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "gain": 0.05,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 300,
+     "at_ms": 420,
+     "filters": [],
+     "freq": 1175
+    },
+    {
+     "wave": "sine",
+     "gain": 0.05,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 300,
+     "at_ms": 490,
+     "filters": [],
+     "freq": 1568
+    }
+   ]
+  },
+  {
+   "id": "royal_queen",
+   "label": "Queen falls",
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "freq": 400,
+     "gain": 0.546,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 520,
+     "release_ms": 110,
+     "bends": [
+      [
+       93.6,
+       680
+      ],
+      [
+       260.0,
+       632
+      ],
+      [
+       520,
+       280
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 874,
+       "q": 5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 400,
+     "gain": 0.382,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 520,
+     "release_ms": 110,
+     "bends": [
+      [
+       93.6,
+       680
+      ],
+      [
+       260.0,
+       632
+      ],
+      [
+       520,
+       280
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1357,
+       "q": 7
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 400,
+     "gain": 0.191,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 520,
+     "release_ms": 110,
+     "bends": [
+      [
+       93.6,
+       680
+      ],
+      [
+       260.0,
+       632
+      ],
+      [
+       520,
+       280
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2932,
+       "q": 9
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.066,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1357,
+       "q": 2
+      }
+     ],
+     "at_ms": 0,
+     "attack_ms": 10,
+     "hold_ms": 312,
+     "release_ms": 260
+    },
+    {
+     "wave": "sine",
+     "freq": 95,
+     "gain": 0.3,
+     "at_ms": 540,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 140,
+     "to_freq": 50
+    },
+    {
+     "wave": "noise",
+     "gain": 0.18,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 30,
+     "at_ms": 540,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 500,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "gain": 0.06,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 500,
+     "at_ms": 560,
+     "filters": [],
+     "freq": 1047
+    },
+    {
+     "wave": "sine",
+     "gain": 0.06,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 500,
+     "at_ms": 650,
+     "filters": [],
+     "freq": 1319
+    },
+    {
+     "wave": "sine",
+     "gain": 0.06,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 500,
+     "at_ms": 740,
+     "filters": [],
+     "freq": 1568
+    }
+   ]
+  },
+  {
+   "id": "royal_king",
+   "label": "King falls",
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "freq": 140,
+     "gain": 0.756,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 560,
+     "release_ms": 110,
+     "bends": [
+      [
+       100.8,
+       210
+      ],
+      [
+       280.0,
+       195
+      ],
+      [
+       560,
+       80
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 560,
+       "q": 5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 140,
+     "gain": 0.529,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 560,
+     "release_ms": 110,
+     "bends": [
+      [
+       100.8,
+       210
+      ],
+      [
+       280.0,
+       195
+      ],
+      [
+       560,
+       80
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 7
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 140,
+     "gain": 0.265,
+     "at_ms": 0,
+     "attack_ms": 14,
+     "hold_ms": 560,
+     "release_ms": 110,
+     "bends": [
+      [
+       100.8,
+       210
+      ],
+      [
+       280.0,
+       195
+      ],
+      [
+       560,
+       80
+      ]
+     ],
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2400,
+       "q": 9
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 7.5,
+       "cents": 35
+      },
+      {
+       "rate": 23,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.091,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 2
+      }
+     ],
+     "at_ms": 0,
+     "attack_ms": 10,
+     "hold_ms": 336,
+     "release_ms": 280
+    },
+    {
+     "wave": "sine",
+     "freq": 95,
+     "gain": 0.35,
+     "at_ms": 580,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 140,
+     "to_freq": 50
+    },
+    {
+     "wave": "noise",
+     "gain": 0.21,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 30,
+     "at_ms": 580,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 500,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 523,
+     "gain": 0.09,
+     "at_ms": 650,
+     "attack_ms": 22,
+     "hold_ms": 70,
+     "release_ms": 140,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 523,
+     "gain": 0.09,
+     "at_ms": 770,
+     "attack_ms": 22,
+     "hold_ms": 70,
+     "release_ms": 140,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 392,
+     "gain": 0.09,
+     "at_ms": 890,
+     "attack_ms": 22,
+     "hold_ms": 420,
+     "release_ms": 380,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 659,
+     "gain": 0.05,
+     "at_ms": 650,
+     "attack_ms": 22,
+     "hold_ms": 70,
+     "release_ms": 140,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 659,
+     "gain": 0.05,
+     "at_ms": 770,
+     "attack_ms": 22,
+     "hold_ms": 70,
+     "release_ms": 140,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 494,
+     "gain": 0.05,
+     "at_ms": 890,
+     "attack_ms": 22,
+     "hold_ms": 420,
+     "release_ms": 380,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "place_segment",
+   "label": "Place segment",
+   "layers": [
+    {
+     "wave": "triangle",
+     "freq": 620,
+     "gain": 0.2,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 70,
+     "to_freq": 430
+    },
+    {
+     "wave": "noise",
+     "gain": 0.14,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 8,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2100,
+       "q": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sell_segment",
+   "label": "Sell segment",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.06,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1800,
+       "q": 1.5,
+       "to_freq": 600,
+       "sweep_ms": 140
+      }
+     ],
+     "attack_ms": 80,
+     "release_ms": 60
+    },
+    {
+     "wave": "sine",
+     "gain": 0.07,
+     "strikes": [
+      [
+       150,
+       1
+      ]
+     ],
+     "ring_ms": 110,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 1976
+    },
+    {
+     "wave": "sine",
+     "gain": 0.06,
+     "strikes": [
+      [
+       210,
+       1
+      ]
+     ],
+     "ring_ms": 160,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 2637
+    }
+   ]
+  },
+  {
+   "id": "coin",
+   "label": "Gold",
+   "layers": [
+    {
+     "wave": "square",
+     "freq": 988,
+     "gain": 0.05,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 60,
+     "release_ms": 30,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 4500,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "square",
+     "freq": 1319,
+     "gain": 0.05,
+     "at_ms": 75,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 320,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 4500,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "gain": 0.04,
+     "strikes": [
+      [
+       75,
+       1
+      ]
+     ],
+     "ring_ms": 220,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 2637
+    }
+   ]
+  },
+  {
+   "id": "buy_xp",
+   "label": "Buy XP",
+   "layers": [
+    {
+     "wave": "sine",
+     "freq": 660,
+     "gain": 0.08,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 220
+    },
+    {
+     "wave": "sine",
+     "freq": 880,
+     "gain": 0.08,
+     "at_ms": 55,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 220
+    },
+    {
+     "wave": "sine",
+     "freq": 1100,
+     "gain": 0.08,
+     "at_ms": 110,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 220
+    },
+    {
+     "wave": "sine",
+     "freq": 1320,
+     "gain": 0.08,
+     "at_ms": 165,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 220
+    },
+    {
+     "wave": "noise",
+     "gain": 0.03,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 4000,
+       "q": 2
+      }
+     ],
+     "attack_ms": 100,
+     "release_ms": 200
+    }
+   ]
+  },
+  {
+   "id": "level_up",
+   "label": "Level up",
+   "layers": [
+    {
+     "wave": "triangle",
+     "freq": 523,
+     "gain": 0.13,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 60,
+     "release_ms": 160
+    },
+    {
+     "wave": "triangle",
+     "freq": 659,
+     "gain": 0.13,
+     "at_ms": 95,
+     "attack_ms": 2,
+     "hold_ms": 60,
+     "release_ms": 160
+    },
+    {
+     "wave": "triangle",
+     "freq": 784,
+     "gain": 0.13,
+     "at_ms": 190,
+     "attack_ms": 2,
+     "hold_ms": 60,
+     "release_ms": 160
+    },
+    {
+     "wave": "triangle",
+     "freq": 1047,
+     "gain": 0.13,
+     "at_ms": 285,
+     "attack_ms": 2,
+     "hold_ms": 300,
+     "release_ms": 650
+    },
+    {
+     "wave": "sine",
+     "gain": 0.035,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 260,
+     "at_ms": 300,
+     "filters": [],
+     "freq": 2093
+    },
+    {
+     "wave": "sine",
+     "gain": 0.035,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 260,
+     "at_ms": 360,
+     "filters": [],
+     "freq": 2637
+    },
+    {
+     "wave": "sine",
+     "gain": 0.035,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 260,
+     "at_ms": 420,
+     "filters": [],
+     "freq": 3136
+    }
+   ]
+  },
+  {
+   "id": "cards_reveal",
+   "label": "Upgrade cards appear",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.1,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1200,
+       "q": 1.5,
+       "to_freq": 3200,
+       "sweep_ms": 140
+      }
+     ],
+     "at_ms": 0,
+     "attack_ms": 40,
+     "release_ms": 110
+    },
+    {
+     "wave": "noise",
+     "gain": 0.1,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1200,
+       "q": 1.5,
+       "to_freq": 3200,
+       "sweep_ms": 140
+      }
+     ],
+     "at_ms": 130,
+     "attack_ms": 40,
+     "release_ms": 110
+    },
+    {
+     "wave": "noise",
+     "gain": 0.1,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1200,
+       "q": 1.5,
+       "to_freq": 3200,
+       "sweep_ms": 140
+      }
+     ],
+     "at_ms": 260,
+     "attack_ms": 40,
+     "release_ms": 110
+    },
+    {
+     "wave": "sine",
+     "gain": 0.05,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 260,
+     "at_ms": 60,
+     "filters": [],
+     "freq": 1568
+    },
+    {
+     "wave": "sine",
+     "gain": 0.05,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 260,
+     "at_ms": 190,
+     "filters": [],
+     "freq": 1760
+    },
+    {
+     "wave": "sine",
+     "gain": 0.05,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 260,
+     "at_ms": 320,
+     "filters": [],
+     "freq": 2093
+    }
+   ]
+  },
+  {
+   "id": "card_pick",
+   "label": "Upgrade picked",
+   "layers": [
+    {
+     "wave": "sine",
+     "freq": 140,
+     "gain": 0.25,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 120,
+     "to_freq": 80
+    },
+    {
+     "wave": "triangle",
+     "freq": 523,
+     "gain": 0.07,
+     "at_ms": 20,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 600
+    },
+    {
+     "wave": "triangle",
+     "freq": 659,
+     "gain": 0.07,
+     "at_ms": 20,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 600
+    },
+    {
+     "wave": "triangle",
+     "freq": 784,
+     "gain": 0.07,
+     "at_ms": 20,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 600
+    }
+   ]
+  },
+  {
+   "id": "reroll",
+   "label": "Reroll",
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.14,
+     "strikes": [
+      [
+       0,
+       1
+      ],
+      [
+       32,
+       1
+      ],
+      [
+       64,
+       1
+      ],
+      [
+       96,
+       1
+      ],
+      [
+       128,
+       1
+      ],
+      [
+       160,
+       1
+      ],
+      [
+       192,
+       1
+      ],
+      [
+       224,
+       1
+      ],
+      [
+       256,
+       1
+      ],
+      [
+       288,
+       1
+      ]
+     ],
+     "ring_ms": 10,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2500,
+       "q": 1.5
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 400,
+     "gain": 0.06,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 280,
+     "release_ms": 80,
+     "to_freq": 820,
+     "glide_ms": 320,
+     "glide": "linear"
+    }
+   ]
+  },
+  {
+   "id": "horn_build",
+   "label": "Build begins",
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "freq": 293.7,
+     "gain": 0.11,
+     "at_ms": 0,
+     "attack_ms": 70,
+     "hold_ms": 230,
+     "release_ms": 380,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1100,
+       "q": 1.5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 4.8,
+       "cents": 9
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 440,
+     "gain": 0.11,
+     "at_ms": 330,
+     "attack_ms": 70,
+     "hold_ms": 230,
+     "release_ms": 380,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1100,
+       "q": 1.5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 4.8,
+       "cents": 9
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 587.3,
+     "gain": 0.11,
+     "at_ms": 660,
+     "attack_ms": 70,
+     "hold_ms": 650,
+     "release_ms": 500,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1100,
+       "q": 1.5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 4.8,
+       "cents": 9
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 146.8,
+     "gain": 0.05,
+     "at_ms": 0,
+     "attack_ms": 70,
+     "hold_ms": 1300,
+     "release_ms": 500,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1100,
+       "q": 1.5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 4.8,
+       "cents": 9
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "horn_siege",
+   "label": "Siege begins",
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "freq": 220,
+     "gain": 0.13,
+     "at_ms": 0,
+     "attack_ms": 70,
+     "hold_ms": 130,
+     "release_ms": 380,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1100,
+       "q": 1.5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 4.8,
+       "cents": 9
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 220,
+     "gain": 0.13,
+     "at_ms": 230,
+     "attack_ms": 70,
+     "hold_ms": 130,
+     "release_ms": 380,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1100,
+       "q": 1.5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 4.8,
+       "cents": 9
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 329.6,
+     "gain": 0.13,
+     "at_ms": 460,
+     "attack_ms": 70,
+     "hold_ms": 900,
+     "release_ms": 450,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1100,
+       "q": 1.5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 4.8,
+       "cents": 9
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 110,
+     "gain": 0.07,
+     "at_ms": 0,
+     "attack_ms": 70,
+     "hold_ms": 1500,
+     "release_ms": 450,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1100,
+       "q": 1.5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 4.8,
+       "cents": 9
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 70,
+     "gain": 0.4,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 500,
+     "to_freq": 40
+    },
+    {
+     "wave": "noise",
+     "gain": 0.25,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 60,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 300,
+       "q": 0.7071
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "drum_count",
+   "label": "Countdown drum",
+   "layers": [
+    {
+     "wave": "sine",
+     "freq": 72,
+     "gain": 0.42,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 420,
+     "to_freq": 42,
+     "glide_ms": 260
+    },
+    {
+     "wave": "sine",
+     "freq": 118,
+     "gain": 0.147,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 160,
+     "to_freq": 80
+    },
+    {
+     "wave": "noise",
+     "gain": 0.294,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 70,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 220,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.105,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 14,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 1.4
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "drum_close",
+   "label": "Countdown drum (last seconds)",
+   "layers": [
+    {
+     "wave": "sine",
+     "freq": 72,
+     "gain": 0.6,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 420,
+     "to_freq": 42,
+     "glide_ms": 260
+    },
+    {
+     "wave": "sine",
+     "freq": 118,
+     "gain": 0.21,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 160,
+     "to_freq": 80
+    },
+    {
+     "wave": "noise",
+     "gain": 0.42,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 70,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 220,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.15,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 14,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 1.4
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 72,
+     "gain": 0.42,
+     "at_ms": 240,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 420,
+     "to_freq": 42,
+     "glide_ms": 260
+    },
+    {
+     "wave": "sine",
+     "freq": 118,
+     "gain": 0.147,
+     "at_ms": 240,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 160,
+     "to_freq": 80
+    },
+    {
+     "wave": "noise",
+     "gain": 0.294,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 70,
+     "at_ms": 240,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 220,
+       "q": 0.7071
+      }
+     ]
+    },
+    {
+     "wave": "noise",
+     "gain": 0.105,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 14,
+     "at_ms": 240,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 900,
+       "q": 1.4
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "elimination",
+   "label": "Player out",
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "freq": 392,
+     "gain": 0.1,
+     "at_ms": 0,
+     "attack_ms": 70,
+     "hold_ms": 250,
+     "release_ms": 380,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1100,
+       "q": 1.5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 4.8,
+       "cents": 9
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 370,
+     "gain": 0.1,
+     "at_ms": 330,
+     "attack_ms": 70,
+     "hold_ms": 250,
+     "release_ms": 380,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1100,
+       "q": 1.5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 4.8,
+       "cents": 9
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 330,
+     "gain": 0.1,
+     "at_ms": 660,
+     "attack_ms": 70,
+     "hold_ms": 250,
+     "release_ms": 380,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1100,
+       "q": 1.5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 4.8,
+       "cents": 9
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 262,
+     "gain": 0.1,
+     "at_ms": 990,
+     "attack_ms": 70,
+     "hold_ms": 700,
+     "release_ms": 700,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1100,
+       "q": 1.5
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5,
+       "cents": 25
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "gain": 0.18,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 1600.0,
+     "at_ms": 990,
+     "filters": [],
+     "freq": 110.0
+    },
+    {
+     "wave": "sine",
+     "gain": 0.108,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 1000.0,
+     "at_ms": 990,
+     "filters": [],
+     "freq": 303.6
+    },
+    {
+     "wave": "sine",
+     "gain": 0.072,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 727.2727272727273,
+     "at_ms": 990,
+     "filters": [],
+     "freq": 594.0
+    },
+    {
+     "wave": "sine",
+     "gain": 0.039599999999999996,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 571.4285714285714,
+     "at_ms": 990,
+     "filters": [],
+     "freq": 982.3
+    }
+   ]
+  },
+  {
+   "id": "victory",
+   "label": "Victory",
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "freq": 523.3,
+     "gain": 0.09,
+     "at_ms": 0,
+     "attack_ms": 22,
+     "hold_ms": 90,
+     "release_ms": 140,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 523.3,
+     "gain": 0.09,
+     "at_ms": 150,
+     "attack_ms": 22,
+     "hold_ms": 90,
+     "release_ms": 140,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 523.3,
+     "gain": 0.09,
+     "at_ms": 300,
+     "attack_ms": 22,
+     "hold_ms": 90,
+     "release_ms": 140,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 784,
+     "gain": 0.09,
+     "at_ms": 450,
+     "attack_ms": 22,
+     "hold_ms": 330,
+     "release_ms": 140,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 659.3,
+     "gain": 0.09,
+     "at_ms": 900,
+     "attack_ms": 22,
+     "hold_ms": 110,
+     "release_ms": 140,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 784,
+     "gain": 0.09,
+     "at_ms": 1080,
+     "attack_ms": 22,
+     "hold_ms": 110,
+     "release_ms": 140,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 1046.5,
+     "gain": 0.09,
+     "at_ms": 1260,
+     "attack_ms": 22,
+     "hold_ms": 1000,
+     "release_ms": 650,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 659.3,
+     "gain": 0.06,
+     "at_ms": 1260,
+     "attack_ms": 22,
+     "hold_ms": 1000,
+     "release_ms": 650,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 784,
+     "gain": 0.06,
+     "at_ms": 1260,
+     "attack_ms": 22,
+     "hold_ms": 1000,
+     "release_ms": 650,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "freq": 261.6,
+     "gain": 0.06,
+     "at_ms": 1260,
+     "attack_ms": 22,
+     "hold_ms": 1000,
+     "release_ms": 650,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2600,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 7
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "gain": 0.25,
+     "strikes": [
+      [
+       900,
+       0.6
+      ],
+      [
+       930,
+       0.8
+      ],
+      [
+       980,
+       0.7
+      ],
+      [
+       1050,
+       0.9
+      ],
+      [
+       1090,
+       0.6
+      ],
+      [
+       1150,
+       0.8
+      ],
+      [
+       1180,
+       0.7
+      ],
+      [
+       1230,
+       0.9
+      ],
+      [
+       1300,
+       0.6
+      ],
+      [
+       1340,
+       0.8
+      ],
+      [
+       1400,
+       0.7
+      ],
+      [
+       1430,
+       0.9
+      ]
+     ],
+     "ring_ms": 60,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 98
+    },
+    {
+     "wave": "sine",
+     "gain": 0.45,
+     "strikes": [
+      [
+       1260,
+       1
+      ]
+     ],
+     "ring_ms": 450,
+     "at_ms": 0,
+     "filters": [],
+     "freq": 82
+    },
+    {
+     "wave": "noise",
+     "gain": 0.2,
+     "strikes": [
+      [
+       1260,
+       1
+      ]
+     ],
+     "ring_ms": 120,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 400,
+       "q": 0.7071
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ui_click",
+   "label": "Click",
+   "layers": [
+    {
+     "wave": "sine",
+     "freq": 1000,
+     "gain": 0.08,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 35,
+     "to_freq": 700
+    },
+    {
+     "wave": "noise",
+     "gain": 0.03,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 4,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 3000,
+       "q": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ui_hover",
+   "label": "Hover",
+   "layers": [
+    {
+     "wave": "sine",
+     "freq": 1800,
+     "gain": 0.025,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 28
+    }
+   ]
+  },
+  {
+   "id": "sample",
+   "label": "Volume sample",
+   "layers": [
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.62,
+      0.46,
+      0.32,
+      0.22,
+      0.16,
+      0.1,
+      0.07
+     ],
+     "freq": 146.83,
+     "gain": 0.09,
+     "at_ms": 0,
+     "attack_ms": 3,
+     "release_ms": 650,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1174.64,
+       "q": 0.7071,
+       "sweep_ms": 260,
+       "to_freq": 323.02600000000007
+      }
+     ]
+    },
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.62,
+      0.46,
+      0.32,
+      0.22,
+      0.16,
+      0.1,
+      0.07
+     ],
+     "freq": 220,
+     "gain": 0.09,
+     "at_ms": 28,
+     "attack_ms": 3,
+     "release_ms": 650,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 1760,
+       "q": 0.7071,
+       "sweep_ms": 260,
+       "to_freq": 484.00000000000006
+      }
+     ]
+    },
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.62,
+      0.46,
+      0.32,
+      0.22,
+      0.16,
+      0.1,
+      0.07
+     ],
+     "freq": 293.66,
+     "gain": 0.09,
+     "at_ms": 56,
+     "attack_ms": 3,
+     "release_ms": 650,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2349.28,
+       "q": 0.7071,
+       "sweep_ms": 260,
+       "to_freq": 646.0520000000001
+      }
+     ]
+    },
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.62,
+      0.46,
+      0.32,
+      0.22,
+      0.16,
+      0.1,
+      0.07
+     ],
+     "freq": 369.99,
+     "gain": 0.09,
+     "at_ms": 84,
+     "attack_ms": 3,
+     "release_ms": 650,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 2959.92,
+       "q": 0.7071,
+       "sweep_ms": 260,
+       "to_freq": 813.9780000000001
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "instruments": {
+  "lute": {
+   "layers": [
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.62,
+      0.46,
+      0.32,
+      0.22,
+      0.16,
+      0.1,
+      0.07,
+      0.05,
+      0.03
+     ],
+     "ratio": 1,
+     "gain": 0.075,
+     "attack_ms": 3,
+     "release_ms": 950,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 9,
+       "to_ratio": 2.2,
+       "sweep_ms": 260,
+       "q": 1
+      }
+     ]
+    },
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.5,
+      0.3,
+      0.2,
+      0.12,
+      0.08
+     ],
+     "ratio": 1.0035,
+     "gain": 0.03,
+     "attack_ms": 4,
+     "release_ms": 800,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 6,
+       "to_ratio": 2,
+       "sweep_ms": 220,
+       "q": 1
+      }
+     ]
+    }
+   ]
+  },
+  "recorder": {
+   "layers": [
+    {
+     "wave": "sine",
+     "ratio": 1,
+     "gain": 0.06,
+     "attack_ms": 45,
+     "hold_ms": "note",
+     "gap_ms": 70,
+     "release_ms": 90,
+     "wobble": [
+      {
+       "rate": 5.2,
+       "cents": 9
+      }
+     ]
+    },
+    {
+     "wave": "triangle",
+     "ratio": 2,
+     "gain": 0.008,
+     "attack_ms": 60,
+     "hold_ms": "note",
+     "gap_ms": 70,
+     "release_ms": 80
+    },
+    {
+     "wave": "noise",
+     "gain": 0.006,
+     "attack_ms": 30,
+     "hold_ms": "note",
+     "gap_ms": 90,
+     "release_ms": 60,
+     "filters": [
+      {
+       "type": "bandpass",
+       "ratio": 2,
+       "q": 5
+      }
+     ]
+    }
+   ]
+  },
+  "drone": {
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "ratio": 1,
+     "gain": 0.016,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 420,
+       "q": 0.7071
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 0.23,
+       "cents": 4
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "ratio": 2,
+     "gain": 0.008,
+     "wobble": [
+      {
+       "rate": 0.31,
+       "cents": 5
+      }
+     ]
+    }
+   ]
+  },
+  "tabor": {
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.11,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 60,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 190,
+       "q": 1.5
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 125,
+     "gain": 0.09,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 120,
+     "to_freq": 72,
+     "glide_ms": 90
+    },
+    {
+     "wave": "noise",
+     "gain": 0.03,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 28,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1900,
+       "q": 1
+      }
+     ]
+    }
+   ]
+  },
+  "timpani": {
+   "layers": [
+    {
+     "wave": "sine",
+     "freq": 84,
+     "gain": 0.2,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 650,
+     "to_freq": 72,
+     "glide_ms": 300
+    },
+    {
+     "wave": "sine",
+     "freq": 136,
+     "gain": 0.04,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 260
+    },
+    {
+     "wave": "noise",
+     "gain": 0.09,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 40,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 320,
+       "q": 0.7071
+      }
+     ]
+    }
+   ]
+  },
+  "war_drum": {
+   "layers": [
+    {
+     "wave": "sine",
+     "freq": 62,
+     "gain": 0.17,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 280,
+     "to_freq": 40
+    },
+    {
+     "wave": "noise",
+     "gain": 0.08,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 55,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 160,
+       "q": 0.7071
+      }
+     ]
+    }
+   ]
+  },
+  "snare": {
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.06,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 34,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2100,
+       "q": 0.8
+      }
+     ]
+    },
+    {
+     "wave": "triangle",
+     "freq": 200,
+     "gain": 0.03,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 60,
+     "to_freq": 170
+    }
+   ]
+  },
+  "woodblock": {
+   "layers": [
+    {
+     "wave": "sine",
+     "freq": 1400,
+     "gain": 0.1,
+     "at_ms": 0,
+     "attack_ms": 2,
+     "hold_ms": 0,
+     "release_ms": 40,
+     "to_freq": 1150
+    },
+    {
+     "wave": "noise",
+     "gain": 0.025,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 5,
+     "at_ms": 0,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 2800,
+       "q": 3
+      }
+     ]
+    }
+   ]
+  },
+  "strings": {
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "ratio": 1,
+     "gain": 0.04,
+     "attack_ms": 8,
+     "release_ms": 200,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 4,
+       "q": 2
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "ratio": 0.5,
+     "gain": 0.025,
+     "attack_ms": 8,
+     "release_ms": 200,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 3,
+       "q": 1
+      }
+     ]
+    }
+   ]
+  },
+  "shawm": {
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "ratio": 1,
+     "gain": 0.035,
+     "attack_ms": 40,
+     "hold_ms": "note",
+     "gap_ms": 50,
+     "release_ms": 110,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 5,
+       "q": 3
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 5.5,
+       "cents": 12
+      }
+     ]
+    },
+    {
+     "wave": "square",
+     "ratio": 1,
+     "gain": 0.01,
+     "attack_ms": 40,
+     "hold_ms": "note",
+     "gap_ms": 50,
+     "release_ms": 110,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 3,
+       "q": 1
+      }
+     ]
+    }
+   ]
+  },
+  "low_drone": {
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "ratio": 1,
+     "gain": 0.022,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 300,
+       "q": 0.7071
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 0.19,
+       "cents": 5
+      }
+     ]
+    },
+    {
+     "wave": "square",
+     "ratio": 0.5,
+     "gain": 0.012,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 200,
+       "q": 0.7071
+      }
+     ]
+    }
+   ]
+  },
+  "mandolin": {
+   "layers": [
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.72,
+      0.56,
+      0.46,
+      0.36,
+      0.28,
+      0.21,
+      0.15,
+      0.1,
+      0.07,
+      0.05
+     ],
+     "ratio": 1,
+     "gain": 0.042,
+     "attack_ms": 2,
+     "release_ms": 420,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 12,
+       "to_ratio": 3,
+       "sweep_ms": 170,
+       "q": 1.4
+      }
+     ]
+    },
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.6,
+      0.45,
+      0.33,
+      0.24,
+      0.16,
+      0.1,
+      0.06
+     ],
+     "ratio": 1.0045,
+     "at_ms": 7,
+     "gain": 0.03,
+     "attack_ms": 2,
+     "release_ms": 360,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 9,
+       "to_ratio": 2.6,
+       "sweep_ms": 150,
+       "q": 1.2
+      }
+     ]
+    }
+   ]
+  },
+  "mandolin_trem": {
+   "layers": [
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.62,
+      0.46,
+      0.32,
+      0.22,
+      0.14,
+      0.08
+     ],
+     "ratio": 1,
+     "gain": 0.03,
+     "attack_ms": 12,
+     "hold_ms": "note",
+     "gap_ms": 50,
+     "release_ms": 140,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 6,
+       "q": 1
+      }
+     ],
+     "throb": [
+      {
+       "rate": 12.5,
+       "depth": 0.8
+      }
+     ]
+    },
+    {
+     "wave": "periodic",
+     "harmonics": [
+      1,
+      0.5,
+      0.3,
+      0.2,
+      0.1
+     ],
+     "ratio": 1.004,
+     "gain": 0.018,
+     "attack_ms": 14,
+     "hold_ms": "note",
+     "gap_ms": 50,
+     "release_ms": 140,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 5,
+       "q": 1
+      }
+     ],
+     "throb": [
+      {
+       "rate": 13.1,
+       "depth": 0.75
+      }
+     ]
+    }
+   ]
+  },
+  "bodhran": {
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.1,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 70,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 140,
+       "q": 1.2
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "freq": 108,
+     "to_freq": 64,
+     "glide_ms": 120,
+     "gain": 0.08,
+     "attack_ms": 2,
+     "release_ms": 150
+    },
+    {
+     "wave": "noise",
+     "gain": 0.02,
+     "strikes": [
+      [
+       0,
+       1
+      ]
+     ],
+     "ring_ms": 20,
+     "filters": [
+      {
+       "type": "bandpass",
+       "freq": 1300,
+       "q": 1
+      }
+     ]
+    }
+   ]
+  },
+  "tambourine": {
+   "layers": [
+    {
+     "wave": "noise",
+     "gain": 0.03,
+     "strikes": [
+      [
+       0,
+       1
+      ],
+      [
+       22,
+       0.5
+      ]
+     ],
+     "ring_ms": 45,
+     "filters": [
+      {
+       "type": "highpass",
+       "freq": 5500,
+       "q": 0.8
+      }
+     ]
+    }
+   ]
+  },
+  "horn_note": {
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "ratio": 1,
+     "gain": 0.04,
+     "attack_ms": 55,
+     "hold_ms": "note",
+     "gap_ms": 45,
+     "release_ms": 170,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 4,
+       "q": 1.2
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 4.8,
+       "cents": 8
+      }
+     ]
+    },
+    {
+     "wave": "sawtooth",
+     "ratio": 0.5,
+     "gain": 0.016,
+     "attack_ms": 70,
+     "hold_ms": "note",
+     "gap_ms": 45,
+     "release_ms": 170,
+     "filters": [
+      {
+       "type": "lowpass",
+       "ratio": 3,
+       "q": 1
+      }
+     ]
+    }
+   ]
+  },
+  "soft_drone": {
+   "layers": [
+    {
+     "wave": "sawtooth",
+     "ratio": 1,
+     "gain": 0.009,
+     "filters": [
+      {
+       "type": "lowpass",
+       "freq": 360,
+       "q": 0.7071
+      }
+     ],
+     "wobble": [
+      {
+       "rate": 0.21,
+       "cents": 4
+      }
+     ]
+    },
+    {
+     "wave": "sine",
+     "ratio": 2,
+     "gain": 0.006,
+     "wobble": [
+      {
+       "rate": 0.29,
+       "cents": 5
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "music": [
+  {
+   "id": "music_menu",
+   "label": "Menu theme",
+   "bpm": 92,
+   "beats_per_bar": 3,
+   "section_bars": 8,
+   "root_hz": 146.83,
+   "mode": [
+    0,
+    2,
+    4,
+    5,
+    7,
+    9,
+    11
+   ],
+   "seed": 47,
+   "humanize_ms": 10,
+   "form": [
+    "A",
+    "B",
+    "B2"
+   ],
+   "drones": [
+    {
+     "instrument": "soft_drone",
+     "degree": -7
+    }
+   ],
+   "parts": [
+    {
+     "type": "notes",
+     "instrument": "horn_note",
+     "octave": 1,
+     "sections": {
+      "A": {
+       "notes": "0:1 0:.5 0:.5 4:1 4:2 2:1 3:1 4:1 5:1 4:3 0:1 0:.5 0:.5 4:1 7:2 6:1 5:1 4:1 1:1 0:3"
+      }
+     }
+    },
+    {
+     "type": "notes",
+     "instrument": "recorder",
+     "octave": 1,
+     "sections": {
+      "B": {
+       "notes": "4:2 5:1 6:1.5 5:.5 4:1 3:2 2:1 1:3 2:2 3:1 4:1.5 5:.5 6:1 7:2 6:1 7:3"
+      },
+      "B2": {
+       "notes": "7:2 8:1 9:1.5 8:.5 7:1 6:2 5:1 4:3 5:1 4:1 3:1 2:1 3:1 1:1 2:1.5 1:.5 0:1 0:3"
+      }
+     }
+    },
+    {
+     "type": "notes",
+     "instrument": "mandolin_trem",
+     "octave": 0,
+     "gain": 0.55,
+     "sections": {
+      "B2": {
+       "notes": "4:3 4:3 2:3 1:3 0:3 -1:3 1:3 0:3"
+      }
+     }
+    },
+    {
+     "type": "arp",
+     "instrument": "lute",
+     "step_beats": 0.5,
+     "pattern": [
+      -7,
+      0,
+      4,
+      7,
+      4,
+      2
+     ],
+     "soft": 0.6,
+     "ring": 2,
+     "sections": {
+      "A": {
+       "chords": [
+        0,
+        0,
+        3,
+        4,
+        0,
+        0,
+        1,
+        0
+       ]
+      },
+      "B": {
+       "chords": [
+        0,
+        4,
+        3,
+        4,
+        0,
+        4,
+        0,
+        0
+       ]
+      },
+      "B2": {
+       "chords": [
+        0,
+        0,
+        4,
+        4,
+        3,
+        1,
+        4,
+        0
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "tabor",
+     "step_beats": 0.5,
+     "soft": 0.5,
+     "gain": 0.8,
+     "sections": {
+      "A": {
+       "bars": [
+        "X.x.x.",
+        "X.xxx."
+       ]
+      },
+      "B2": {
+       "bars": [
+        "X...x.",
+        "X.x.x."
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "music_build",
+   "label": "Build and upgrade music",
+   "bpm": 96,
+   "beats_per_bar": 4,
+   "section_bars": 8,
+   "root_hz": 146.83,
+   "mode": [
+    0,
+    2,
+    3,
+    5,
+    7,
+    9,
+    10
+   ],
+   "seed": 11,
+   "humanize_ms": 12,
+   "form": [
+    "A",
+    "B",
+    "C",
+    "A2"
+   ],
+   "drones": [
+    {
+     "instrument": "drone",
+     "degree": -7
+    },
+    {
+     "instrument": "drone",
+     "degree": -3,
+     "gain": 0.7
+    }
+   ],
+   "parts": [
+    {
+     "type": "notes",
+     "instrument": "recorder",
+     "octave": 1,
+     "sections": {
+      "A": {
+       "notes": "4:1 3:.5 2:.5 1:1 0:1  2:1.5 3:.5 4:2  5:1 4:.5 3:.5 4:1 7:1  6:1 5:1 4:2 4:1 3:.5 2:.5 1:1 0:.5 1:.5  2:1 4:1 3:1 2:1  1:1 2:.5 1:.5 -1:1 1:1  0:3 r:1"
+      },
+      "B": {
+       "notes": "7:1.5 8:.5 9:1 7:1  6:1 5:1 4:2  5:1 6:1 7:1 5:1  4:3 r:1 7:1.5 8:.5 9:1 10:1  9:.5 8:.5 7:1 6:2  5:1 4:.5 3:.5 2:1 1:1  0:2 4:1 r:1"
+      },
+      "C": {
+       "notes": "r:8 4:4 3:2 2:2 1:4 0:4 r:8",
+       "gain": 0.8
+      },
+      "A2": {
+       "notes": "4:1 3:.5 2:.5 1:1 0:1  2:1.5 3:.5 4:2  5:1 4:.5 3:.5 4:1 7:1  6:1 5:.5 6:.5 4:2 4:1 3:.5 2:.5 1:1 0:.5 1:.5  2:1 4:1 3:1 2:1  1:1 2:.5 1:.5 -1:1 1:1  0:3 r:1"
+      }
+     }
+    },
+    {
+     "type": "arp",
+     "instrument": "lute",
+     "step_beats": 0.5,
+     "pattern": [
+      -7,
+      0,
+      2,
+      4,
+      7,
+      4,
+      2,
+      0
+     ],
+     "soft": 0.65,
+     "ring": 2,
+     "sections": {
+      "A": {
+       "chords": [
+        0,
+        2,
+        3,
+        4,
+        0,
+        2,
+        6,
+        0
+       ]
+      },
+      "B": {
+       "chords": [
+        0,
+        6,
+        3,
+        4,
+        0,
+        2,
+        3,
+        0
+       ]
+      },
+      "C": {
+       "chords": [
+        0,
+        0,
+        6,
+        6,
+        3,
+        3,
+        4,
+        4
+       ],
+       "pattern": [
+        -7,
+        null,
+        4,
+        2,
+        7,
+        null,
+        4,
+        2
+       ]
+      },
+      "A2": {
+       "chords": [
+        0,
+        2,
+        3,
+        4,
+        0,
+        2,
+        6,
+        0
+       ],
+       "pattern": [
+        -7,
+        4,
+        2,
+        4,
+        7,
+        4,
+        9,
+        4
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "tabor",
+     "step_beats": 0.5,
+     "soft": 0.5,
+     "sections": {
+      "A": {
+       "bars": [
+        "X..x..x.",
+        "X..x.xx."
+       ]
+      },
+      "B": {
+       "bars": [
+        "X..x..x.",
+        "X.xx..x."
+       ]
+      },
+      "C": {
+       "bars": [
+        "X.......",
+        "X...x..."
+       ],
+       "gain": 0.7
+      },
+      "A2": {
+       "bars": [
+        "X..x..x.",
+        "X..x.xxx"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "music_jig",
+   "label": "Village jig",
+   "bpm": 318,
+   "beats_per_bar": 6,
+   "section_bars": 8,
+   "root_hz": 196.0,
+   "mode": [
+    0,
+    2,
+    4,
+    5,
+    7,
+    9,
+    11
+   ],
+   "seed": 31,
+   "humanize_ms": 9,
+   "form": [
+    "A",
+    "A2",
+    "B",
+    "B2"
+   ],
+   "drones": [],
+   "parts": [
+    {
+     "type": "notes",
+     "instrument": "mandolin",
+     "octave": 1,
+     "sections": {
+      "A": {
+       "notes": "4:1 2:1 4:1 7:2 4:1  5:1 4:1 5:1 6:1 5:1 4:1  4:1 2:1 4:1 7:2 9:1  8:1 7:1 6:1 5:3 4:1 2:1 4:1 7:2 4:1  5:1 6:1 7:1 8:2 7:1  6:1 4:1 6:1 5:1 3:1 1:1  2:1 1:1 -1:1 0:3"
+      },
+      "A2": {
+       "notes": "4:1 2:1 4:1 7:2 4:1  5:1 4:1 5:1 6:1 5:1 4:1  4:1 2:1 4:1 7:2 9:1  8:1 7:1 6:1 5:3 4:1 2:1 4:1 7:2 4:1  5:1 6:1 7:1 8:2 7:1  6:1 8:1 6:1 4:1 5:1 6:1  7:3 r:3"
+      },
+      "B": {
+       "notes": "9:2 8:1 9:2 7:1  8:1 7:1 8:1 6:2 4:1  9:2 8:1 9:1 10:1 11:1  11:3 9:3 12:1 11:1 10:1 9:1 8:1 7:1  8:1 9:1 8:1 6:2 4:1  5:1 7:1 6:1 5:1 4:1 2:1  1:3 4:3"
+      },
+      "B2": {
+       "notes": "9:2 8:1 9:2 7:1  8:1 7:1 8:1 6:2 4:1  9:2 8:1 9:1 10:1 11:1  11:3 9:3 12:1 11:1 10:1 9:1 8:1 7:1  8:1 9:1 8:1 6:2 4:1  5:1 7:1 6:1 8:1 6:1 4:1  7:3 r:3"
+      }
+     }
+    },
+    {
+     "type": "notes",
+     "instrument": "recorder",
+     "octave": 1,
+     "gain": 0.7,
+     "sections": {
+      "B": {
+       "notes": "9:2 8:1 9:2 7:1  8:1 7:1 8:1 6:2 4:1  9:2 8:1 9:1 10:1 11:1  11:3 9:3 12:1 11:1 10:1 9:1 8:1 7:1  8:1 9:1 8:1 6:2 4:1  5:1 7:1 6:1 5:1 4:1 2:1  1:3 4:3"
+      },
+      "B2": {
+       "notes": "9:2 8:1 9:2 7:1  8:1 7:1 8:1 6:2 4:1  9:2 8:1 9:1 10:1 11:1  11:3 9:3 12:1 11:1 10:1 9:1 8:1 7:1  8:1 9:1 8:1 6:2 4:1  5:1 7:1 6:1 8:1 6:1 4:1  7:3 r:3"
+      }
+     }
+    },
+    {
+     "type": "arp",
+     "instrument": "lute",
+     "step_beats": 1,
+     "pattern": [
+      -7,
+      2,
+      4,
+      -3,
+      2,
+      4
+     ],
+     "soft": 0.55,
+     "ring": 2,
+     "sections": {
+      "A": {
+       "chords": [
+        0,
+        5,
+        0,
+        4,
+        0,
+        3,
+        4,
+        0
+       ]
+      },
+      "A2": {
+       "chords": [
+        0,
+        5,
+        0,
+        4,
+        0,
+        3,
+        4,
+        0
+       ]
+      },
+      "B": {
+       "chords": [
+        5,
+        4,
+        0,
+        0,
+        3,
+        4,
+        0,
+        4
+       ]
+      },
+      "B2": {
+       "chords": [
+        5,
+        4,
+        0,
+        0,
+        3,
+        4,
+        4,
+        0
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "bodhran",
+     "step_beats": 1,
+     "soft": 0.5,
+     "sections": {
+      "A": {
+       "bars": [
+        "X.xX.x",
+        "X.xX.x",
+        "X.xX.x",
+        "X.xXxx"
+       ]
+      },
+      "A2": {
+       "bars": [
+        "X.xX.x",
+        "X.xX.x",
+        "X.xX.x",
+        "X.xX.."
+       ]
+      },
+      "B": {
+       "bars": [
+        "X.xX.x",
+        "XxxX.x"
+       ]
+      },
+      "B2": {
+       "bars": [
+        "X.xX.x",
+        "XxxX.x",
+        "X.xX.x",
+        "X.xX.."
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "tambourine",
+     "step_beats": 1,
+     "soft": 0.6,
+     "sections": {
+      "B": {
+       "bars": [
+        "..x..x"
+       ]
+      },
+      "B2": {
+       "bars": [
+        "..x..x"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "music_pastoral",
+   "label": "Under the hill",
+   "bpm": 84,
+   "beats_per_bar": 3,
+   "section_bars": 8,
+   "root_hz": 174.61,
+   "mode": [
+    0,
+    2,
+    4,
+    5,
+    7,
+    9,
+    11
+   ],
+   "seed": 37,
+   "humanize_ms": 14,
+   "form": [
+    "A",
+    "B",
+    "A2",
+    "C"
+   ],
+   "drones": [
+    {
+     "instrument": "soft_drone",
+     "degree": -7
+    },
+    {
+     "instrument": "soft_drone",
+     "degree": -3,
+     "gain": 0.6
+    }
+   ],
+   "parts": [
+    {
+     "type": "notes",
+     "instrument": "recorder",
+     "octave": 1,
+     "sections": {
+      "A": {
+       "notes": "4:2 5:1 4:2 2:1 3:1.5 2:.5 1:1 2:3 4:2 5:1 7:2 6:1 5:1 4:1 3:1 4:3"
+      },
+      "B": {
+       "notes": "7:2 8:1 9:2 7:1 8:1 7:1 6:1 5:3 6:2 5:1 4:2 2:1 3:1 2:1 1:1 0:3"
+      },
+      "A2": {
+       "notes": "4:2 5:1 4:2 2:1 3:1.5 2:.5 1:1 2:2 4:1 7:2 6:.5 5:.5 4:2 2:1 1:1.5 2:.5 1:1 0:3"
+      },
+      "C": {
+       "notes": "r:6 7:3 6:3 5:3 4:3 r:6",
+       "gain": 0.75
+      }
+     }
+    },
+    {
+     "type": "arp",
+     "instrument": "lute",
+     "step_beats": 0.5,
+     "pattern": [
+      -7,
+      0,
+      2,
+      4,
+      2,
+      0
+     ],
+     "soft": 0.6,
+     "ring": 2.5,
+     "sections": {
+      "A": {
+       "chords": [
+        0,
+        0,
+        3,
+        0,
+        0,
+        3,
+        4,
+        0
+       ]
+      },
+      "B": {
+       "chords": [
+        0,
+        0,
+        4,
+        5,
+        4,
+        0,
+        4,
+        0
+       ]
+      },
+      "A2": {
+       "chords": [
+        0,
+        0,
+        3,
+        0,
+        3,
+        0,
+        4,
+        0
+       ]
+      },
+      "C": {
+       "chords": [
+        0,
+        5,
+        3,
+        4,
+        0,
+        5,
+        3,
+        4
+       ],
+       "pattern": [
+        -7,
+        null,
+        4,
+        2,
+        7,
+        2
+       ]
+      }
+     }
+    },
+    {
+     "type": "notes",
+     "instrument": "mandolin_trem",
+     "octave": 0,
+     "gain": 0.6,
+     "sections": {
+      "C": {
+       "notes": "4:3 2:3 3:3 1:3 4:3 2:3 3:3 4:3"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "music_ballad",
+   "label": "Wistful ballad",
+   "bpm": 70,
+   "beats_per_bar": 4,
+   "section_bars": 8,
+   "root_hz": 220.0,
+   "mode": [
+    0,
+    2,
+    3,
+    5,
+    7,
+    8,
+    10
+   ],
+   "seed": 41,
+   "humanize_ms": 16,
+   "form": [
+    "A",
+    "B",
+    "A2"
+   ],
+   "drones": [
+    {
+     "instrument": "soft_drone",
+     "degree": -7
+    }
+   ],
+   "parts": [
+    {
+     "type": "notes",
+     "instrument": "recorder",
+     "octave": 1,
+     "sections": {
+      "A": {
+       "notes": "4:1.5 3:.5 2:1 1:1  0:2 2:1 4:1  5:1.5 4:.5 3:1 2:1  1:3 r:1 2:1.5 3:.5 4:1 5:1  4:2 7:1 6:1  5:1 4:1 3:1 1:1  0:3 r:1"
+      },
+      "B": {
+       "notes": "7:2 6:1 5:1  4:2 2:2  5:2 4:1 3:1  4:4 7:1.5 8:.5 9:1 7:1  6:2 4:2  5:1 3:1 1:1 -1:1  0:4"
+      },
+      "A2": {
+       "notes": "4:1.5 3:.5 2:1 1:1  0:2 2:1 4:1  5:1.5 4:.5 3:1 2:1  1:3 r:1 2:1.5 3:.5 4:1 5:1  4:2 7:1 6:1  5:1 4:1 3:1 1:1  0:4"
+      }
+     }
+    },
+    {
+     "type": "notes",
+     "instrument": "mandolin_trem",
+     "octave": 0,
+     "gain": 0.7,
+     "sections": {
+      "B": {
+       "notes": "2:4 0:4 1:4 -1:4 2:4 0:4 -1:4 -3:4"
+      }
+     }
+    },
+    {
+     "type": "arp",
+     "instrument": "lute",
+     "step_beats": 0.5,
+     "pattern": [
+      -7,
+      0,
+      4,
+      2,
+      7,
+      2,
+      4,
+      0
+     ],
+     "soft": 0.6,
+     "ring": 2.5,
+     "sections": {
+      "A": {
+       "chords": [
+        0,
+        0,
+        3,
+        4,
+        2,
+        0,
+        3,
+        0
+       ]
+      },
+      "B": {
+       "chords": [
+        5,
+        0,
+        3,
+        4,
+        0,
+        2,
+        6,
+        0
+       ]
+      },
+      "A2": {
+       "chords": [
+        0,
+        0,
+        3,
+        4,
+        2,
+        0,
+        3,
+        0
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "tabor",
+     "step_beats": 1,
+     "soft": 0.5,
+     "gain": 0.6,
+     "sections": {
+      "B": {
+       "bars": [
+        "X...",
+        "X.x."
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "music_mandolins",
+   "label": "Two mandolins",
+   "bpm": 112,
+   "beats_per_bar": 4,
+   "section_bars": 8,
+   "root_hz": 146.83,
+   "mode": [
+    0,
+    2,
+    4,
+    5,
+    7,
+    9,
+    11
+   ],
+   "seed": 43,
+   "humanize_ms": 8,
+   "form": [
+    "A1",
+    "B",
+    "A",
+    "B2"
+   ],
+   "drones": [],
+   "parts": [
+    {
+     "type": "notes",
+     "instrument": "mandolin",
+     "octave": 1,
+     "sections": {
+      "A1": {
+       "notes": "4:.5 5:.5 4:.5 3:.5 2:1 4:1  3:.5 4:.5 3:.5 2:.5 1:1 3:1 2:.5 3:.5 4:.5 5:.5 6:.5 7:.5 6:.5 5:.5  4:2 2:1 r:1 4:.5 5:.5 4:.5 3:.5 2:1 4:1  7:.5 6:.5 5:.5 4:.5 3:1 5:1 4:.5 3:.5 2:.5 1:.5 3:1 1:1  0:3 r:1"
+      },
+      "B": {
+       "notes": "7:1 7:.5 8:.5 9:1 7:1  8:1 8:.5 9:.5 10:1 8:1  9:.5 8:.5 7:.5 6:.5 5:1 7:1  6:2 4:1 r:1 7:1 7:.5 8:.5 9:1 11:1  10:.5 9:.5 8:.5 7:.5 8:1 6:1  7:.5 6:.5 5:.5 4:.5 5:.5 6:.5 4:1  7:3 r:1"
+      },
+      "A": {
+       "notes": "4:.5 5:.5 4:.5 3:.5 2:1 4:1  3:.5 4:.5 3:.5 2:.5 1:1 3:1 2:.5 3:.5 4:.5 5:.5 6:.5 7:.5 6:.5 5:.5  4:2 2:1 r:1 4:.5 5:.5 4:.5 3:.5 2:1 4:1  7:.5 6:.5 5:.5 4:.5 3:1 5:1 4:.5 3:.5 2:.5 1:.5 3:1 1:1  0:3 r:1"
+      },
+      "B2": {
+       "notes": "7:1 7:.5 8:.5 9:1 7:1  8:1 8:.5 9:.5 10:1 8:1  9:.5 8:.5 7:.5 6:.5 5:1 7:1  6:2 4:1 r:1 7:1 7:.5 8:.5 9:1 11:1  10:.5 9:.5 8:.5 7:.5 8:1 6:1  7:.5 6:.5 5:.5 4:.5 5:.5 6:.5 4:1  7:3 r:1"
+      }
+     }
+    },
+    {
+     "type": "notes",
+     "instrument": "mandolin",
+     "octave": 1,
+     "gain": 0.75,
+     "sections": {
+      "B": {
+       "notes": "5:1 5:.5 6:.5 7:1 5:1 6:1 6:.5 7:.5 8:1 6:1 7:.5 6:.5 5:.5 4:.5 3:1 5:1 4:2 2:1 r:1 5:1 5:.5 6:.5 7:1 9:1 8:.5 7:.5 6:.5 5:.5 6:1 4:1 5:.5 4:.5 3:.5 2:.5 3:.5 4:.5 2:1 5:3 r:1"
+      },
+      "A": {
+       "notes": "2:.5 3:.5 2:.5 1:.5 0:1 2:1 1:.5 2:.5 1:.5 0:.5 -1:1 1:1 0:.5 1:.5 2:.5 3:.5 4:.5 5:.5 4:.5 3:.5 2:2 0:1 r:1 2:.5 3:.5 2:.5 1:.5 0:1 2:1 5:.5 4:.5 3:.5 2:.5 1:1 3:1 2:.5 1:.5 0:.5 -1:.5 1:1 -1:1 -2:3 r:1"
+      },
+      "B2": {
+       "notes": "5:1 5:.5 6:.5 7:1 5:1 6:1 6:.5 7:.5 8:1 6:1 7:.5 6:.5 5:.5 4:.5 3:1 5:1 4:2 2:1 r:1 5:1 5:.5 6:.5 7:1 9:1 8:.5 7:.5 6:.5 5:.5 6:1 4:1 5:.5 4:.5 3:.5 2:.5 3:.5 4:.5 2:1 5:3 r:1"
+      }
+     }
+    },
+    {
+     "type": "arp",
+     "instrument": "lute",
+     "step_beats": 0.5,
+     "pattern": [
+      -7,
+      4,
+      2,
+      4,
+      -3,
+      4,
+      2,
+      4
+     ],
+     "soft": 0.5,
+     "ring": 1.6,
+     "sections": {
+      "A1": {
+       "chords": [
+        0,
+        3,
+        4,
+        4,
+        0,
+        3,
+        4,
+        0
+       ]
+      },
+      "B": {
+       "chords": [
+        0,
+        4,
+        5,
+        4,
+        0,
+        3,
+        4,
+        0
+       ]
+      },
+      "A": {
+       "chords": [
+        0,
+        3,
+        4,
+        4,
+        0,
+        3,
+        4,
+        0
+       ]
+      },
+      "B2": {
+       "chords": [
+        0,
+        4,
+        5,
+        4,
+        0,
+        3,
+        4,
+        0
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "tabor",
+     "step_beats": 0.5,
+     "soft": 0.5,
+     "sections": {
+      "A1": {
+       "bars": [
+        "X...X...",
+        "X...X.x."
+       ]
+      },
+      "B": {
+       "bars": [
+        "X..xX.x.",
+        "X..xX.xx"
+       ]
+      },
+      "A": {
+       "bars": [
+        "X..xX.x.",
+        "X..xX.x."
+       ]
+      },
+      "B2": {
+       "bars": [
+        "X..xX.x.",
+        "X.xxX.xx"
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "tambourine",
+     "step_beats": 1,
+     "soft": 0.6,
+     "sections": {
+      "B": {
+       "bars": [
+        ".x.x"
+       ]
+      },
+      "B2": {
+       "bars": [
+        ".x.x"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "music_siege",
+   "label": "Siege music",
+   "bpm": 120,
+   "beats_per_bar": 4,
+   "section_bars": 8,
+   "root_hz": 110,
+   "mode": [
+    0,
+    2,
+    3,
+    5,
+    7,
+    8,
+    10
+   ],
+   "seed": 23,
+   "humanize_ms": 6,
+   "form": [
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S3",
+    "S4"
+   ],
+   "drones": [
+    {
+     "instrument": "low_drone",
+     "degree": -7
+    },
+    {
+     "instrument": "low_drone",
+     "degree": -3,
+     "gain": 0.6
+    }
+   ],
+   "parts": [
+    {
+     "type": "drum",
+     "instrument": "timpani",
+     "step_beats": 0.5,
+     "soft": 0.6,
+     "sections": {
+      "S1": {
+       "bars": [
+        "X...x...",
+        "X...x.x."
+       ]
+      },
+      "S2": {
+       "bars": [
+        "X...x...",
+        "X...x.x."
+       ]
+      },
+      "S3": {
+       "bars": [
+        "X.x.x...",
+        "X.x.x.xx"
+       ]
+      },
+      "S4": {
+       "bars": [
+        "X.xxX.x.",
+        "X.xxX.xx"
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "war_drum",
+     "step_beats": 0.25,
+     "soft": 0.6,
+     "sections": {
+      "S2": {
+       "bars": [
+        "X.......x......."
+       ]
+      },
+      "S3": {
+       "bars": [
+        "X...x...X...x..."
+       ]
+      },
+      "S4": {
+       "bars": [
+        "X..xX...X..xX.x."
+       ]
+      }
+     }
+    },
+    {
+     "type": "drum",
+     "instrument": "snare",
+     "step_beats": 0.25,
+     "soft": 0.5,
+     "sections": {
+      "S3": {
+       "bars": [
+        "....X.......X..."
+       ]
+      },
+      "S4": {
+       "bars": [
+        "....X.......X.xx",
+        "....X.......xxxx"
+       ]
+      }
+     }
+    },
+    {
+     "type": "arp",
+     "instrument": "strings",
+     "step_beats": 0.5,
+     "pattern": [
+      0,
+      0,
+      7,
+      0,
+      5,
+      0,
+      3,
+      4
+     ],
+     "soft": 0.75,
+     "ring": 1,
+     "sections": {
+      "S2": {
+       "chords": [
+        0,
+        0,
+        0,
+        0,
+        5,
+        5,
+        6,
+        4
+       ]
+      },
+      "S3": {
+       "chords": [
+        0,
+        0,
+        0,
+        0,
+        5,
+        5,
+        6,
+        4
+       ]
+      },
+      "S4": {
+       "chords": [
+        0,
+        0,
+        5,
+        5,
+        3,
+        3,
+        6,
+        4
+       ],
+       "pattern": [
+        0,
+        7,
+        0,
+        7,
+        5,
+        3,
+        4,
+        2
+       ]
+      }
+     }
+    },
+    {
+     "type": "notes",
+     "instrument": "shawm",
+     "octave": 1,
+     "sections": {
+      "S3": {
+       "notes": "7:2 6:1 4:1 5:3 4:1 3:2 2:1 1:1 0:4  4:2 5:1 6:1 7:3 8:1 7:2 6:1 5:1 4:4"
+      },
+      "S4": {
+       "notes": "9:2 8:1 7:1 8:3 7:1 6:2 5:1 6:1 4:4  7:1 7:1 8:1 9:1 10:3 9:1 8:1 7:1 6:1 5:1 4:4"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "music_siege_urgent",
+   "label": "Siege last seconds (layer)",
+   "bpm": 120,
+   "beats_per_bar": 4,
+   "section_bars": 2,
+   "root_hz": 220,
+   "mode": [
+    0,
+    2,
+    3,
+    5,
+    7,
+    8,
+    10
+   ],
+   "seed": 5,
+   "humanize_ms": 0,
+   "form": [
+    "U"
+   ],
+   "drones": [],
+   "parts": [
+    {
+     "type": "drum",
+     "instrument": "woodblock",
+     "step_beats": 0.25,
+     "soft": 0.5,
+     "sections": {
+      "U": {
+       "bars": [
+        "X.x.x.x.X.x.x.x."
+       ]
+      }
+     }
+    },
+    {
+     "type": "arp",
+     "instrument": "strings",
+     "step_beats": 0.25,
+     "pattern": [
+      7,
+      8,
+      7,
+      6
+     ],
+     "soft": 0.8,
+     "ring": 1,
+     "gain": 0.6,
+     "sections": {
+      "U": {
+       "chords": [
+        0,
+        4
+       ]
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

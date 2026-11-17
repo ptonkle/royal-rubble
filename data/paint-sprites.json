@@ -1,0 +1,402 @@
+{
+ "_about": "Written by tools/look/bake_stitch.py --paint: each baked texture's file, size in pixels, anchor (ax, ay) and the size it was baked at (tall or r), so web/field-draw.js can scale it to what the core gives.",
+ "sky": {
+  "file": "data/look/paint/sky.jpg",
+  "w": 1600,
+  "h": 900
+ },
+ "ground-grass": {
+  "file": "data/look/paint/ground-grass.png",
+  "w": 256,
+  "h": 256
+ },
+ "ground-dirt": {
+  "file": "data/look/paint/ground-dirt.png",
+  "w": 256,
+  "h": 256
+ },
+ "ground-rock": {
+  "file": "data/look/paint/ground-rock.png",
+  "w": 256,
+  "h": 256
+ },
+ "ground-deep": {
+  "file": "data/look/paint/ground-deep.png",
+  "w": 256,
+  "h": 256
+ },
+ "ground-water": {
+  "file": "data/look/paint/ground-water.png",
+  "w": 256,
+  "h": 256
+ },
+ "beam-wood": {
+  "file": "data/look/paint/beam-wood.png",
+  "w": 384,
+  "h": 48,
+  "line": "#3a2414"
+ },
+ "beam-frame": {
+  "file": "data/look/paint/beam-frame.png",
+  "w": 384,
+  "h": 48,
+  "line": "#2a180b"
+ },
+ "beam-base": {
+  "file": "data/look/paint/beam-base.png",
+  "w": 384,
+  "h": 48,
+  "line": "#2a180b"
+ },
+ "beam-arm": {
+  "file": "data/look/paint/beam-arm.png",
+  "w": 384,
+  "h": 48,
+  "line": "#2a180b"
+ },
+ "beam-stone": {
+  "file": "data/look/paint/beam-stone.png",
+  "w": 384,
+  "h": 48,
+  "line": "#3c3b38"
+ },
+ "beam-metal": {
+  "file": "data/look/paint/beam-metal.png",
+  "w": 384,
+  "h": 48,
+  "line": "#141516"
+ },
+ "beam-rope": {
+  "file": "data/look/paint/beam-rope.png",
+  "w": 384,
+  "h": 48,
+  "line": "rgba(0,0,0,0)"
+ },
+ "fig-squire": {
+  "file": "data/look/paint/fig-squire.png",
+  "w": 330,
+  "h": 450,
+  "ax": 165,
+  "ay": 360,
+  "tall": 300
+ },
+ "fig-squire-dead": {
+  "file": "data/look/paint/fig-squire-dead.png",
+  "w": 330,
+  "h": 450,
+  "ax": 165,
+  "ay": 360,
+  "tall": 300
+ },
+ "fig-knight": {
+  "file": "data/look/paint/fig-knight.png",
+  "w": 330,
+  "h": 450,
+  "ax": 165,
+  "ay": 360,
+  "tall": 300
+ },
+ "fig-knight-dead": {
+  "file": "data/look/paint/fig-knight-dead.png",
+  "w": 330,
+  "h": 450,
+  "ax": 165,
+  "ay": 360,
+  "tall": 300
+ },
+ "fig-princess": {
+  "file": "data/look/paint/fig-princess.png",
+  "w": 330,
+  "h": 450,
+  "ax": 165,
+  "ay": 360,
+  "tall": 300
+ },
+ "fig-princess-dead": {
+  "file": "data/look/paint/fig-princess-dead.png",
+  "w": 330,
+  "h": 450,
+  "ax": 165,
+  "ay": 360,
+  "tall": 300
+ },
+ "fig-prince": {
+  "file": "data/look/paint/fig-prince.png",
+  "w": 330,
+  "h": 450,
+  "ax": 165,
+  "ay": 360,
+  "tall": 300
+ },
+ "fig-prince-dead": {
+  "file": "data/look/paint/fig-prince-dead.png",
+  "w": 330,
+  "h": 450,
+  "ax": 165,
+  "ay": 360,
+  "tall": 300
+ },
+ "fig-queen": {
+  "file": "data/look/paint/fig-queen.png",
+  "w": 330,
+  "h": 450,
+  "ax": 165,
+  "ay": 360,
+  "tall": 300
+ },
+ "fig-queen-dead": {
+  "file": "data/look/paint/fig-queen-dead.png",
+  "w": 330,
+  "h": 450,
+  "ax": 165,
+  "ay": 360,
+  "tall": 300
+ },
+ "fig-king": {
+  "file": "data/look/paint/fig-king.png",
+  "w": 330,
+  "h": 450,
+  "ax": 165,
+  "ay": 360,
+  "tall": 300
+ },
+ "fig-king-dead": {
+  "file": "data/look/paint/fig-king-dead.png",
+  "w": 330,
+  "h": 450,
+  "ax": 165,
+  "ay": 360,
+  "tall": 300
+ },
+ "vein-gold_vein": {
+  "file": "data/look/paint/vein-gold_vein.png",
+  "w": 160,
+  "h": 160
+ },
+ "vein-ore_deposit": {
+  "file": "data/look/paint/vein-ore_deposit.png",
+  "w": 160,
+  "h": 160
+ },
+ "vein-stone_deposit": {
+  "file": "data/look/paint/vein-stone_deposit.png",
+  "w": 160,
+  "h": 160
+ },
+ "tree-0": {
+  "file": "data/look/paint/tree-0.png",
+  "w": 240,
+  "h": 260,
+  "ax": 120,
+  "ay": 230,
+  "tall": 200
+ },
+ "tree-1": {
+  "file": "data/look/paint/tree-1.png",
+  "w": 240,
+  "h": 260,
+  "ax": 120,
+  "ay": 230,
+  "tall": 200
+ },
+ "tree-2": {
+  "file": "data/look/paint/tree-2.png",
+  "w": 240,
+  "h": 260,
+  "ax": 120,
+  "ay": 230,
+  "tall": 200
+ },
+ "well": {
+  "file": "data/look/paint/well.png",
+  "w": 256,
+  "h": 224,
+  "ax": 128,
+  "ay": 204.8,
+  "tall": 160
+ },
+ "ruins": {
+  "file": "data/look/paint/ruins.png",
+  "w": 256,
+  "h": 224,
+  "ax": 128,
+  "ay": 204.8,
+  "tall": 160
+ },
+ "armory": {
+  "file": "data/look/paint/armory.png",
+  "w": 256,
+  "h": 224,
+  "ax": 128,
+  "ay": 204.8,
+  "tall": 160
+ },
+ "tower": {
+  "file": "data/look/paint/tower.png",
+  "w": 256,
+  "h": 224,
+  "ax": 128,
+  "ay": 204.8,
+  "tall": 160
+ },
+ "mark-gold_vein": {
+  "file": "data/look/paint/mark-gold_vein.png",
+  "w": 120,
+  "h": 120,
+  "ax": 60,
+  "ay": 60,
+  "r": 40
+ },
+ "mark-ore_deposit": {
+  "file": "data/look/paint/mark-ore_deposit.png",
+  "w": 120,
+  "h": 120,
+  "ax": 60,
+  "ay": 60,
+  "r": 40
+ },
+ "mark-stone_deposit": {
+  "file": "data/look/paint/mark-stone_deposit.png",
+  "w": 120,
+  "h": 120,
+  "ax": 60,
+  "ay": 60,
+  "r": 40
+ },
+ "mark-holy_well": {
+  "file": "data/look/paint/mark-holy_well.png",
+  "w": 120,
+  "h": 120,
+  "ax": 60,
+  "ay": 60,
+  "r": 40
+ },
+ "mark-forest": {
+  "file": "data/look/paint/mark-forest.png",
+  "w": 120,
+  "h": 120,
+  "ax": 60,
+  "ay": 60,
+  "r": 40
+ },
+ "mark-ruins": {
+  "file": "data/look/paint/mark-ruins.png",
+  "w": 120,
+  "h": 120,
+  "ax": 60,
+  "ay": 60,
+  "r": 40
+ },
+ "mark-watchtower": {
+  "file": "data/look/paint/mark-watchtower.png",
+  "w": 120,
+  "h": 120,
+  "ax": 60,
+  "ay": 60,
+  "r": 40
+ },
+ "mark-armory_ruin": {
+  "file": "data/look/paint/mark-armory_ruin.png",
+  "w": 120,
+  "h": 120,
+  "ax": 60,
+  "ay": 60,
+  "r": 40
+ },
+ "ball": {
+  "file": "data/look/paint/ball.png",
+  "w": 192,
+  "h": 192,
+  "ax": 96,
+  "ay": 96,
+  "r": 48
+ },
+ "ball-hot": {
+  "file": "data/look/paint/ball-hot.png",
+  "w": 192,
+  "h": 192,
+  "ax": 96,
+  "ay": 96,
+  "r": 48
+ },
+ "debris": {
+  "file": "data/look/paint/debris.png",
+  "w": 192,
+  "h": 192,
+  "ax": 96,
+  "ay": 96,
+  "r": 48
+ },
+ "knot-navy": {
+  "file": "data/look/paint/knot-navy.png",
+  "w": 192,
+  "h": 192,
+  "ax": 96,
+  "ay": 96,
+  "r": 48
+ },
+ "knot-ochre": {
+  "file": "data/look/paint/knot-ochre.png",
+  "w": 192,
+  "h": 192,
+  "ax": 96,
+  "ay": 96,
+  "r": 48
+ },
+ "wheel": {
+  "file": "data/look/paint/wheel.png",
+  "w": 192,
+  "h": 192,
+  "ax": 96,
+  "ay": 96,
+  "r": 48
+ },
+ "puff": {
+  "file": "data/look/paint/puff.png",
+  "w": 192,
+  "h": 192,
+  "ax": 96,
+  "ay": 96,
+  "r": 48
+ },
+ "chip-wood": {
+  "file": "data/look/paint/chip-wood.png",
+  "w": 192,
+  "h": 192,
+  "ax": 96,
+  "ay": 96,
+  "r": 48
+ },
+ "chip-stone": {
+  "file": "data/look/paint/chip-stone.png",
+  "w": 192,
+  "h": 192,
+  "ax": 96,
+  "ay": 96,
+  "r": 48
+ },
+ "chip-metal": {
+  "file": "data/look/paint/chip-metal.png",
+  "w": 192,
+  "h": 192,
+  "ax": 96,
+  "ay": 96,
+  "r": 48
+ },
+ "chip-dust": {
+  "file": "data/look/paint/chip-dust.png",
+  "w": 192,
+  "h": 192,
+  "ax": 96,
+  "ay": 96,
+  "r": 48
+ },
+ "flame": {
+  "file": "data/look/paint/flame.png",
+  "w": 192,
+  "h": 192,
+  "ax": 96,
+  "ay": 96,
+  "r": 48
+ }
+}
